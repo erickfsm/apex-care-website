@@ -1,0 +1,600 @@
+/* Variáveis CSS para Cores e Fontes */
+:root {
+    --color-graphite: #2c3e50;
+    --color-cyan: #00A99D;
+    --color-white: #ffffff;
+    --color-light-gray: #f4f6f9;
+    --font-main: 'Montserrat', sans-serif;
+}
+
+/* Reset e Estilos Globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-main);
+    color: var(--color-graphite);
+}
+
+.main-header {
+    background-color: transparent;
+    padding: 0 5%; /* Espaçamento lateral */
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    transition: background-color 0.4s ease;
+    height: 90px; /* ALTURA FIXA DO HEADER */
+}
+
+.main-header.scrolled {
+    background-color: var(--color-white);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.main-nav { 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%; /* Ocupa toda a altura do header */
+}
+
+.logo img {
+    height: 200px; 
+    width: auto;
+}
+
+@media (max-width: 768px) {
+    .main-nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .main-nav ul {
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .main-nav ul li {
+        width: 100%;
+        text-align: left;
+    }
+
+    .main-nav a {
+        display: block; 
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .cta-button-nav {
+        margin-top: 10px;
+        width: 100%;
+        text-align: center;
+    }
+}
+
+.main-nav ul {
+    list-style: none;
+    display: flex;
+    gap: 25px;
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: var(--color-graphite);
+    font-weight: 700;
+    transition: color 0.3s;
+}
+
+.main-nav a:hover {
+    color: var(--color-cyan);
+}
+
+.cta-button-nav {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+.cta-button-nav:hover {
+    color: var(--color-white);
+    opacity: 0.9;
+}
+
+.hero-section {
+    background: url('../assets/images/hero-background.jpg') no-repeat center center/cover;
+    color: var(--color-white);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0 5%;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4); /* Sobreposição escura para melhorar a legibilidade */
+    z-index: -1; /* Fica atrás do conteúdo */
+}
+
+.hero-section h1 {
+    font-size: 3.5em; /* Título grande */
+    margin-bottom: 20px;
+    font-weight: 900; /* Extra bold */
+    line-height: 1.2;
+}
+
+.hero-section p {
+    font-size: 1.3em; /* Parágrafo legível */
+    margin-bottom: 40px;
+    max-width: 700px;
+}
+
+.cta-button-hero {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    padding: 15px 30px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1em;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.cta-button-hero:hover {
+    background-color: #008f83; /* Um tom um pouco mais escuro de ciano */
+    transform: translateY(-3px); /* Leve efeito de "elevar" */
+}
+
+/* Ajuste para telas menores */
+@media (max-width: 768px) {
+    .hero-section h1 {
+        font-size: 2.5em;
+    }
+
+    .hero-section p {
+        font-size: 1em;
+    }
+
+    .cta-button-hero {
+        padding: 12px 25px;
+        font-size: 1em;
+    }
+}
+
+/* --- Estilo das Seções Padrão --- */
+.section-padding {
+    padding: 80px 5%;
+}
+
+.container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 50px;
+}
+
+/* --- Estilo da Grade de Serviços --- */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.service-card {
+    background-color: var(--color-white);
+    padding: 40px 30px;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.service-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+}
+
+.service-icon {
+    height: 60px;
+    margin-bottom: 20px;
+}
+
+.service-card h3 {
+    font-size: 1.4em;
+    margin-bottom: 15px;
+}
+
+.service-card p {
+    font-size: 1em;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* --- Estilo da Seção "Planos e Pacotes" --- */
+
+.pricing-grid {
+    display: flex; /* Usando flexbox para melhor controle */    
+    justify-content: center; /* Centraliza os cards */
+    flex-wrap: wrap; /* Permite que os cards quebrem para a linha de baixo */
+    gap: 30px;
+    align-items: center;
+    margin-top: 50px;
+}
+
+.pricing-card {
+    background-color: var(--color-white);
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    text-align: center;
+    border: 2px solid transparent;
+    transition: transform 0.3s, box-shadow 0.3s;
+    width: 100%; /* Ocupa o espaço disponível */
+    max-width: 320px; /* Limita a largura máxima de cada card */
+    display: flex; /* Adicionado para alinhar o botão no final */
+    flex-direction: column; /* Adicionado para alinhar o botão no final */
+}
+
+/* Garante que a lista ocupe o espaço necessário para empurrar o botão para baixo */
+.plan-features {
+    list-style: none;
+    margin-bottom: 30px;
+    text-align: left;
+    flex-grow: 1; 
+}
+
+/* --- Estilo da Seção "O Método Apex" --- */
+
+.section-subtitle {
+    text-align: center;
+    max-width: 700px;
+    margin: -30px auto 60px auto;
+    font-size: 1.1em;
+    line-height: 1.6;
+    color: #555;
+}
+
+.method-timeline {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* A linha vertical da timeline */
+.method-timeline::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    background-color: var(--color-cyan);
+    opacity: 0.3;
+    top: 0;
+    bottom: 0;
+    left: 40px; /* Alinhado com o centro dos ícones */
+}
+
+.method-step {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    margin-bottom: 50px;
+}
+
+.step-icon-wrapper {
+    background-color: var(--color-white);
+    border: 3px solid var(--color-cyan);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0; /* Impede que o círculo do ícone encolha */
+    z-index: 10; /* Garante que fique acima da linha */
+}
+
+.step-icon {
+    height: 40px;
+}
+
+.step-content {
+    margin-left: 30px;
+    padding-top: 10px;
+}
+
+.step-content h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: var(--color-graphite);
+}
+
+.step-content p {
+    font-size: 1em;
+    line-height: 1.7;
+    color: #555;
+}
+
+
+.plan-title {
+    font-size: 1.6em;
+    font-weight: 700;
+}
+
+.plan-tagline {
+    font-size: 1em;
+    color: #777;
+    margin-bottom: 25px;
+}
+
+.plan-price {
+    font-size: 2.8em;
+    font-weight: 700;
+    color: var(--color-cyan);
+    margin-bottom: 25px;
+}
+
+.plan-price .price-period {
+    font-size: 0.4em;
+    font-weight: 400;
+    color: #777;
+}
+
+.plan-features {
+    list-style: none;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.plan-features li {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    font-size: 1em;
+}
+
+.check-icon {
+    color: var(--color-cyan);
+    font-weight: 700;
+    margin-right: 10px;
+}
+
+.cta-button-outline {
+    display: block;
+    background-color: transparent;
+    color: var(--color-cyan);
+    border: 2px solid var(--color-cyan);
+    padding: 15px 30px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1em;
+    transition: all 0.3s;
+}
+
+.cta-button-outline:hover {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+}
+
+
+/* --- Estilo do Plano em Destaque --- */
+.pricing-card.featured {
+    transform: scale(1.05);
+    border: 2px solid var(--color-cyan);
+    position: relative;
+}
+
+.featured-badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+
+/* --- Estilo da Seção "Sobre Nós" --- */
+
+.about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Coluna da imagem menor que a do texto */
+    gap: 60px;
+    align-items: center;
+}
+
+.about-image img {
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.about-content h3 {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-top: -30px; /* Sobe um pouco para perto do título principal */
+    margin-bottom: 20px;
+}
+
+.about-content p {
+    font-size: 1.1em;
+    line-height: 1.8;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+/* Ajuste para telas menores */
+@media (max-width: 768px) {
+    .about-grid {
+        grid-template-columns: 1fr; /* Uma coluna só no mobile */
+        gap: 40px;
+    }
+    
+    .about-content h2 {
+        text-align: center !important;
+    }
+
+    .about-content h3 {
+        text-align: center;
+        margin-top: 0;
+    }
+
+    .about-content {
+        text-align: center;
+    }
+}
+
+/* --- Estilo da Seção de Pacotes --- */
+
+.packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.package-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-light-gray);
+    border-radius: 10px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+}
+
+.package-title {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--color-graphite);
+    margin-bottom: 15px;
+}
+
+.package-description {
+    font-size: 1em;
+    line-height: 1.6;
+    color: #555;
+    flex-grow: 1; /* Faz a descrição ocupar o espaço e alinhar os botões */
+    margin-bottom: 20px;
+}
+
+.package-discount {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--color-cyan);
+    margin-bottom: 25px;
+    text-align: center;
+}
+/* --- Estilo da Seção de Orçamento (CTA Final) --- */
+.cta-section {
+    background-color: var(--color-graphite);
+    text-align: center;
+}
+
+.cta-features {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    color: var(--color-white);
+    margin: 30px 0;
+    font-weight: 700;
+}
+
+.cta-button-hero.large {
+    font-size: 1.3em;
+    padding: 20px 40px;
+}
+
+.whatsapp-link {
+    color: rgba(255,255,255,0.7);
+    margin-top: 20px;
+}
+
+.whatsapp-link a {
+    color: var(--color-white);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* --- Estilo do Rodapé (Footer) --- */
+.main-footer {
+    background-color: var(--color-graphite);
+    color: rgba(255,255,255,0.7);
+    padding: 60px 0 0 0;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr; /* Coluna do logo maior */
+    gap: 50px;
+    margin-bottom: 50px;
+}
+
+.footer-logo {
+    height: 50px;
+    margin-bottom: 20px;
+}
+
+.footer-col h4 {
+    color: var(--color-white);
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.footer-col ul {
+    list-style: none;
+}
+
+.footer-col ul li {
+    margin-bottom: 10px;
+}
+
+.footer-col a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer-col a:hover {
+    color: var(--color-white);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 20px 0;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+/* Ajuste do Footer para Telas Menores */
+@media (max-width: 768px) {
+    .footer-grid {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+}

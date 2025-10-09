@@ -1,0 +1,162 @@
+/* --- ESTILOS PARA O COMPONENTE DE AGENDAMENTO --- */
+
+.scheduler-container {
+    background-color: var(--color-white);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+}
+
+/* --- Calendário --- */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.calendar-header button {
+    background: none;
+    border: none;
+    font-size: 1.8em;
+    cursor: pointer;
+    color: var(--color-cyan);
+    padding: 5px 10px;
+}
+.weekdays, .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+.weekdays div {
+    font-weight: 700;
+}
+.days div {
+    padding: 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.days div.available:hover {
+    background-color: var(--color-light-gray);
+}
+.days div.unavailable {
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: line-through;
+}
+.days div.selected {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    font-weight: 700;
+}
+
+/* --- Horários --- */
+.time-slots-container {
+    border-left: 1px solid var(--color-light-gray);
+    padding-left: 40px;
+}
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+.time-slots .time-slot {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+.time-slots .time-slot:hover {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+}
+.time-slots .time-slot.selected {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    font-weight: 700;
+    border-color: var(--color-cyan);
+}
+
+/* --- Sumário e Botão --- */
+.selection-summary {
+    grid-column: 1 / -1;
+    text-align: center;
+    border-top: 1px solid var(--color-light-gray);
+    padding-top: 20px;
+    margin-top: 20px;
+}
+#confirm-btn.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Ajustes para Telas Menores */
+@media (max-width: 768px) {
+    .scheduler-container {
+        grid-template-columns: 1fr;
+    }
+    .time-slots-container {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--color-light-gray);
+        padding-top: 30px;
+        margin-top: 30px;
+    }
+}
+
+/* --- Estilo do Título e Cabeçalho da Página --- */
+.orcamento-main h1 {
+    font-size: 2.8em;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 10px;
+    color: var(--color-graphite);
+}
+
+.orcamento-main > .container > p {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 1.1em;
+    color: #555;
+    line-height: 1.6;
+}
+
+#scheduler-wrapper {
+    max-width: 900px;
+    margin: 50px auto 0 auto;
+}
+
+#confirm-btn {
+    background-color: var(--color-cyan);
+    color: var(--color-white);
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s;
+    width: auto;
+    display: inline-block;
+}
+
+#confirm-btn:not(.disabled):hover {
+    background-color: #008f83;
+    transform: translateY(-3px);
+}
+
+#confirm-btn.disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}

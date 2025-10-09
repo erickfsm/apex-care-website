@@ -1,0 +1,158 @@
+/* Estilos específicos para a página de orçamento */
+
+.orcamento-main {
+    padding-top: 120px;
+    padding-bottom: 80px;
+    background-color: var(--color-light-gray);
+}
+
+.orcamento-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 50px;
+    background-color: var(--color-white);
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.form-steps {
+    flex: 2;
+    min-width: 300px;
+}
+
+.step h2 {
+    font-size: 1.5em;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-light-gray);
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+}
+
+.summary {
+    flex: 1;
+    background-color: var(--color-light-gray);
+    padding: 30px;
+    border-radius: 10px;
+    position: sticky;
+    top: 120px;
+    height: fit-content;
+}
+
+.summary h3 {
+    font-size: 1.5em;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#summary-items {
+    min-height: 150px;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.8em;
+    font-weight: 900;
+    margin-bottom: 30px;
+}
+/* --- Estilos para os Itens de Serviço Dinâmicos --- */
+
+#service-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    background-color: var(--color-light-gray);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease-in-out;
+}
+
+.service-item:hover {
+    border-color: var(--color-cyan);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.service-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    accent-color: var(--color-cyan);
+}
+
+.service-item label {
+    flex-grow: 1;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.service-item .quantity-input {
+    width: 60px;
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-left: 15px;
+}
+
+.service-item .quantity-input:disabled {
+    background-color: #eee;
+    opacity: 0.5;
+}
+
+.service-item span {
+    margin-left: 10px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+
+/* --- Estilos para os Itens do Resumo --- */
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #ddd;
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.summary-item span:first-child {
+    color: #555;
+    margin-right: 10px;
+}
+
+.summary-item span:last-child {
+    font-weight: 700;
+    white-space: nowrap;
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Apex Care</title>
+    <link rel="stylesheet" href="css/style.css"> 
+    <link rel="stylesheet" href="css/auth.css"> <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="auth-box">
+            <a href="index.html" class="auth-logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+            <h2>Bem-vindo de volta!</h2>
+            <p>Acesse sua conta para gerenciar seus agendamentos.</p>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="cta-button-hero" style="width: 100%;">Entrar</button>
+            </form>
+            <p id="error-message" class="error-text"></p>
+            <p class="auth-switch">Ainda não tem uma conta? <a href="cadastro.html">Cadastre-se</a></p>
+        </div>
+    </div>
+    
+    <script type="module" src="js/auth.js"></script> </body>
+</html>
