@@ -26,58 +26,70 @@ if (registerForm) {
         errorMessage.textContent = '';
 
         try {
-            // PASSO 1: Cria o usuário na autenticação
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: email,
-                password: password,
-            });
-
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Usuário não foi criado, tente novamente.");
-
-            const userId = authData.user.id;
-
-            // PASSO 2: Salva os dados adicionais na tabela 'profiles'
-            const { error: profileError } = await supabase.from('profiles').insert({
-                id: userId,
-                nome_completo: nome,
-                whatsapp: whatsapp,
-                endereco: endereco
-            });
-
-            if (profileError) throw profileError;
-            
-            // PASSO 3: Recupera o orçamento e salva em 'agendamentos'
-            const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
-            if (orcamentoSalvo) {
-                const orcamentoData = JSON.parse(orcamentoSalvo);
-                
-                const { error: agendamentoError } = await supabase.from('agendamentos').insert({
-                    cliente_id: userId,
-                    servicos_escolhidos: orcamentoData.servicos,
-                    valor_total: orcamentoData.valor_total,
-                    status_pagamento: 'Pendente'
-                });
-
-                if (agendamentoError) throw agendamentoError;
-                
-                localStorage.removeItem('apexCareOrcamento');
-            }
-            
-            // PASSO 4: Redireciona
-            alert("Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
-            window.location.href = 'agendamento.html';
-
-        } catch (error) {
-            console.error("ERRO DETALHADO NO CADASTRO:", error);
-            errorMessage.textContent = `Erro: ${error.message}`;
-            alert(`Ocorreu um erro no cadastro:\n\n${error.message}`);
-        }
+// PASSO 1: Cria o usuário na autenticação
+const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: email,
+    password: password,
     });
 
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("Usuário não foi criado, tente novamente.");
+
+    const userId = authData.user.id;
+
+// PASSO 2: Salva os dados adicionais na tabela 'profiles'
+const { error: profileError } = await supabase.from('profiles').insert({
+    id: userId,
+    nome_completo: nome,
+    whatsapp: whatsapp,
+    endereco: endereco
+    });
+
+    if (profileError) throw profileError;
+            
+// PASSO 3 (CORRIGIDO): Recupera o orçamento da memória e salva na tabela 'agendamentos'
+const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
+if (orcamentoSalvo) {
+    const orcamentoData = JSON.parse(orcamentoSalvo);
+    
+    // Garantindo que a lista de serviços é um JSON válido
+    const servicosParaSalvar = orcamentoData.servicos; 
+
+    console.log("Tentando salvar este objeto de agendamento:", {
+        cliente_id: userId,
+        servicos_escolhidos: servicosParaSalvar,
+        valor_total: orcamentoData.valor_total,
+        status_pagamento: 'Pendente'
+    });
+
+    const { data: agendamentoData, error: agendamentoError } = await supabase.from('agendamentos').insert({
+        cliente_id: userId,
+        servicos_escolhidos: servicosParaSalvar, // Enviando o array diretamente
+        valor_total: orcamentoData.valor_total,
+        status_pagamento: 'Pendente'
+    }).select(); // Adicionamos .select() para ver o que foi salvo
+
+    if (agendamentoError) {
+        console.error("ERRO DETALHADO AO SALVAR AGENDAMENTO:", agendamentoError);
+        throw agendamentoError;
+    }
+    
+    console.log("Orçamento salvo com sucesso! Resposta do DB:", agendamentoData);
+    localStorage.removeItem('apexCareOrcamento');
 }
+            
+// PASSO 4: Redireciona
+alert("Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
+window.location.href = 'agendamento.html';
 
+    } catch (error) {
+        console.error("ERRO DETALHADO NO CADASTRO:", error);
+        errorMessage.textContent = `Erro: ${error.message}`;
+        alert(`Ocorreu um erro no cadastro:\n\n${error.message}`);
+    }
+});
 
+}
 // --- LÓGICA DE LOGIN ---
 const loginForm = document.getElementById('login-form');
 
