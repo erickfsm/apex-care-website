@@ -26,30 +26,52 @@ if (registerForm) {
         try {
             console.log("🔐 Iniciando cadastro para:", email);
 
-            // PASSO 1: Cria o usuário na autenticação
+            // ✅ PASSO 1: Cria o usuário na autenticação
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email,
                 password: password,
+                options: {
+                    data: {
+                        nome_completo: nome,
+                        whatsapp: whatsapp,
+                        endereco: endereco
+                    }
+                }
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Usuário não foi criado, tente novamente.");
+            if (authError) {
+                console.error("❌ Erro na autenticação:", authError);
+                throw authError;
+            }
+            
+            if (!authData.user) {
+                throw new Error("Usuário não foi criado, tente novamente.");
+            }
 
             const userId = authData.user.id;
             console.log("✅ Usuário criado com ID:", userId);
 
-            // PASSO 2: Salva os dados adicionais na tabela 'profiles'
-            const { error: profileError } = await supabase.from('profiles').insert({
-                id: userId,
-                nome_completo: nome,
-                whatsapp: whatsapp,
-                endereco: endereco
-            });
+            // ✅ PASSO 2: Aguarda um pouco para o trigger criar o profile
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-            if (profileError) throw profileError;
-            console.log("✅ Perfil do usuário salvo");
+            // ✅ PASSO 3: Atualiza o profile com os dados completos
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({
+                    nome_completo: nome,
+                    whatsapp: whatsapp,
+                    endereco: endereco
+                })
+                .eq('id', userId);
+
+            if (profileError) {
+                console.warn("⚠️ Aviso ao atualizar profile:", profileError);
+                // Não interrompe o fluxo, pois o usuário já foi criado
+            } else {
+                console.log("✅ Perfil do usuário atualizado");
+            }
                     
-            // PASSO 3: Recupera o orçamento e salva em 'agendamentos'
+            // ✅ PASSO 4: Recupera o orçamento e salva em 'agendamentos'
             const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
             
             if (orcamentoSalvo) {
@@ -86,7 +108,7 @@ if (registerForm) {
                 console.warn("⚠️ Nenhum orçamento encontrado em localStorage");
             }
                     
-            // PASSO 4: Redireciona com sucesso
+            // ✅ PASSO 5: Redireciona com sucesso
             alert("✅ Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
             window.location.href = 'agendamento.html';
 
