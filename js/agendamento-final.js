@@ -190,24 +190,12 @@ confirmBtn.addEventListener('click', async () => {
     confirmBtn.textContent = "Gerando Pagamento...";
 
     try {
-        // 1. Atualiza o agendamento com a data/hora escolhida
-        const { error: updateError } = await supabase
-            .from('agendamentos')
-            .update({ 
-                data_agendamento: selectedDate,
-                hora_agendamento: selectedTime,
-            })
-            .eq('id', pendingAppointment.id);
-
-        if (updateError) throw updateError;
-        console.log("Agendamento atualizado com data/hora com sucesso.");
-
-        // 2. Chama a Edge Function para criar o link de pagamento
-        console.log("Invocando a função 'create-payment'...");
+        // PASSO 1: Invoca a função para criar o pagamento
+        console.log("Invocando a função 'create-payment' com os dados do agendamento pendente...");
         const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
             body: {
                 appointmentId: pendingAppointment.id,
-                items: pendingAppointment.servicos_escolhidos, // <-- A CORREÇÃO ESTÁ AQUI! Usando a variável original.
+                items: pendingAppointment.servicos_escolhidos, // Itens do orçamento
                 clientEmail: currentUser.email
             }
         });
@@ -216,11 +204,15 @@ confirmBtn.addEventListener('click', async () => {
         
         console.log("Link de pagamento recebido:", functionData.checkoutUrl);
 
-        // 3. Redireciona o cliente para o checkout do Mercado Pago
+        // PASSO 2: Atualiza o agendamento com a data e hora escolhidas
+        // Nota: Esta etapa será movida para o webhook do Mercado Pago no futuro.
+        // Por enquanto, apenas redirecionamos o usuário para o checkout.
+        // O update da data e hora será feito junto com o update do status de pagamento.
+        
+        // PASSO 3: Redireciona o cliente para o checkout
         window.location.href = functionData.checkoutUrl;
 
     } catch (error) {
-        // O alert agora vai mostrar o erro da forma correta
         alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
         console.error("Erro completo:", error);
         confirmBtn.disabled = false;
