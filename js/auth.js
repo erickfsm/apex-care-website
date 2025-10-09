@@ -47,35 +47,44 @@ const { error: profileError } = await supabase.from('profiles').insert({
 
     if (profileError) throw profileError;
             
-// PASSO 3 (CORRIGIDO): Recupera o orçamento da memória e salva na tabela 'agendamentos'
+// PASSO 3 (VERSÃO FINAL DE DEBUG): Recupera o orçamento e salva em 'agendamentos'
 const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
 if (orcamentoSalvo) {
-    const orcamentoData = JSON.parse(orcamentoSalvo);
-    
-    // Garantindo que a lista de serviços é um JSON válido
-    const servicosParaSalvar = orcamentoData.servicos; 
+    try {
+        const orcamentoData = JSON.parse(orcamentoSalvo);
+        const servicosParaSalvar = orcamentoData.servicos;
 
-    console.log("Tentando salvar este objeto de agendamento:", {
-        cliente_id: userId,
-        servicos_escolhidos: servicosParaSalvar,
-        valor_total: orcamentoData.valor_total,
-        status_pagamento: 'Pendente'
-    });
+        console.log("TENTANDO INSERIR NO BANCO DE DADOS:", {
+            cliente_id: userId,
+            servicos_escolhidos: servicosParaSalvar,
+            valor_total: orcamentoData.valor_total
+        });
 
-    const { data: agendamentoData, error: agendamentoError } = await supabase.from('agendamentos').insert({
-        cliente_id: userId,
-        servicos_escolhidos: servicosParaSalvar, // Enviando o array diretamente
-        valor_total: orcamentoData.valor_total,
-        status_pagamento: 'Pendente'
-    }).select(); // Adicionamos .select() para ver o que foi salvo
+        const { data: agendamentoData, error: agendamentoError } = await supabase
+            .from('agendamentos')
+            .insert({
+                cliente_id: userId,
+                servicos_escolhidos: servicosParaSalvar,
+                valor_total: orcamentoData.valor_total,
+                status_pagamento: 'Pendente'
+            })
+            .select();
 
-    if (agendamentoError) {
-        console.error("ERRO DETALHADO AO SALVAR AGENDAMENTO:", agendamentoError);
-        throw agendamentoError;
+        if (agendamentoError) {
+            // Se houver um erro específico no INSERT, vamos vê-lo agora
+            console.error("### ERRO CRÍTICO NO INSERT DO AGENDAMENTO ###:", agendamentoError);
+            throw agendamentoError;
+        }
+        
+        console.log("AGENDAMENTO SALVO COM SUCESSO! Resposta do DB:", agendamentoData);
+        localStorage.removeItem('apexCareOrcamento');
+
+    } catch (insertError) {
+        console.error("Falha na lógica de salvar o agendamento:", insertError);
+        alert(`Ocorreu um erro ao salvar seu orçamento: ${insertError.message}`);
+        // Para a execução para não redirecionar
+        return; 
     }
-    
-    console.log("Orçamento salvo com sucesso! Resposta do DB:", agendamentoData);
-    localStorage.removeItem('apexCareOrcamento');
 }
             
 // PASSO 4: Redireciona
