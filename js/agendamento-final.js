@@ -7,7 +7,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // HORÁRIOS DE TRABALHO PADRÃO DA APEX CARE
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
-
 // Variáveis globais
 let currentUser = null;
 let pendingAppointment = null;
@@ -19,6 +18,8 @@ let currentDate = new Date();
 const calendarDays = document.getElementById('calendar-days');
 const timeSlotsDiv = document.getElementById('time-slots');
 const confirmBtn = document.getElementById('confirm-btn');
+const payOnSiteBtn = document.getElementById('pay-on-site-btn');
+const payOnlineBtn = document.getElementById('pay-online-btn');
 const summaryText = document.getElementById('summary-text');
 const currentMonthDisplay = document.getElementById('current-month');
 
@@ -170,14 +171,83 @@ function updateSummary() {
     if (selectedDate && selectedTime) {
         const [year, month, day] = selectedDate.split('-');
         summaryText.textContent = `Confirmar para ${day}/${month}/${year} às ${selectedTime}?`;
-        confirmBtn.disabled = false;
-        confirmBtn.classList.remove('disabled');
+        payOnSiteBtn.disabled = false; // Habilita os dois botões
+        payOnlineBtn.disabled = false;
     } else {
         summaryText.textContent = 'Nenhum horário selecionado.';
-        confirmBtn.disabled = true;
-        confirmBtn.classList.add('disabled');
+        payOnSiteBtn.disabled = true; // Desabilita os dois botões
+        payOnlineBtn.disabled = true;
     }
 }
+
+// --- LÓGICA DO BOTÃO 1: AGENDAR E PAGAR NO LOCAL ---
+payOnSiteBtn.addEventListener('click', async () => {
+    if (!selectedDate || !selectedTime || !pendingAppointment) return;
+
+    payOnSiteBtn.disabled = true;
+    payOnlineBtn.disabled = true;
+    payOnSiteBtn.textContent = "Agendando...";
+
+    const { error } = await supabase
+        .from('agendamentos')
+        .update({ 
+            data_agendamento: selectedDate,
+            hora_agendamento: selectedTime,
+            status_pagamento: 'Pendente (Pagar no Local)' // NOVO STATUS
+        })
+        .eq('id', pendingAppointment.id);
+
+    if (error) {
+        alert("Erro ao confirmar o agendamento. Tente novamente.");
+        console.error(error);
+        payOnSiteBtn.disabled = false;
+        payOnlineBtn.disabled = false;
+        payOnSiteBtn.textContent = "Agendar e Pagar no Local";
+    } else {
+        alert("Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
+        window.location.href = 'portal-cliente.html';
+    }
+});
+
+
+// --- LÓGICA DO BOTÃO 2: PAGAR ONLINE E CONFIRMAR (MERCADO PAGO) ---
+payOnlineBtn.addEventListener('click', async () => {
+    if (!selectedDate || !selectedTime || !pendingAppointment || !currentUser) return;
+
+    payOnSiteBtn.disabled = true;
+    payOnlineBtn.disabled = true;
+    payOnlineBtn.textContent = "Gerando Pagamento...";
+
+    try {
+        const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
+            body: {
+                appointmentId: pendingAppointment.id,
+                items: pendingAppointment.servicos_escolhidos,
+                clientEmail: currentUser.email
+            }
+        });
+
+        if (functionError) throw functionError;
+
+        // Antes de redirecionar, salvamos a data e hora
+        await supabase
+            .from('agendamentos')
+            .update({ 
+                data_agendamento: selectedDate,
+                hora_agendamento: selectedTime,
+            })
+            .eq('id', pendingAppointment.id);
+        
+        window.location.href = functionData.checkoutUrl;
+
+    } catch (error) {
+        alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
+        console.error("Erro completo:", error);
+        payOnSiteBtn.disabled = false;
+        payOnSiteBtn.disabled = false;
+        payOnlineBtn.textContent = "Pagar Online e Confirmar";
+    }
+});
 
 // --- AÇÃO FINAL: CONFIRMAR AGENDAMENTO ---
 confirmBtn.addEventListener('click', async () => {

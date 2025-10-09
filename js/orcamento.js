@@ -130,16 +130,13 @@ loadServices();
 // =================================================================================
 // BOTÃO "AGENDAR VISITA" - CORRIGIDO ✅
 // =================================================================================
-scheduleBtn.addEventListener('click', () => {
+scheduleBtn.addEventListener('click', async () => {
     
     const inputs = serviceSelectionDiv.querySelectorAll('input[type="checkbox"]:checked');
-
     if (inputs.length === 0) {
         alert("Por favor, selecione pelo menos um serviço.");
         return;
     }
-
-    // ✅ CORREÇÃO: Coletar os serviços corretamente
     const selectedServices = [];
     inputs.forEach(input => {
         const serviceId = parseInt(input.dataset.serviceId);
@@ -164,17 +161,24 @@ scheduleBtn.addEventListener('click', () => {
     });
 
     const totalPrice = parseFloat(totalPriceSpan.textContent.replace('R$ ', '').replace(',', '.'));
-
-    // ✅ Cria o objeto do orçamento com os dados corretos
     const orcamentoData = {
         servicos: selectedServices,
         valor_total: totalPrice,
         criado_em: new Date().toISOString()
     };
-
-    console.log("✅ Orçamento pronto para salvar:", orcamentoData);
-
-    // Salva na memória e redireciona
     localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));
-    window.location.href = 'cadastro.html';
+    
+    // --- LÓGICA DE REDIRECIONAMENTO INTELIGENTE ---
+    console.log("Verificando sessão do usuário...");
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session && session.user) {
+        // Se TEM uma sessão (usuário logado), vai direto para o agendamento
+        console.log("Usuário logado. Redirecionando para agendamento...");
+        window.location.href = 'agendamento.html';
+    } else {
+        // Se NÃO TEM sessão, vai para o cadastro
+        console.log("Usuário não logado. Redirecionando para cadastro...");
+        window.location.href = 'cadastro.html';
+    }
 });

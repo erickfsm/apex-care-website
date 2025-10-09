@@ -24,7 +24,7 @@
                 <li><a href="#metodo">O Método Apex</a></li>
                 <li><a href="#planos">Planos e Pacotes</a></li>
                 <li><a href="#sobre">Sobre Nós</a></li>
-                <li><a href="#orcamento" class="cta-button-nav">Orçamento Instantâneo</a></li>
+                <div id="auth-container"> </div>
             </ul>
         </nav>
     </header>
@@ -51,10 +51,13 @@
                         <div class="time-slots" id="time-slots"><p>Selecione um dia disponível.</p></div>
                     </div>
                     <div class="selection-summary">
-                        <h4>Sua Seleção:</h4>
-                        <p id="summary-text">Nenhum horário selecionado.</p>
-                        <button id="confirm-btn" class="disabled" disabled>Confirmar Agendamento</button>
-                    </div>
+    <h4>Sua Seleção:</h4>
+    <p id="summary-text">Nenhum horário selecionado.</p>
+    <div class="payment-options">
+        <button id="pay-on-site-btn" class="cta-button-outline" disabled>Agendar e Pagar no Local</button>
+        <button id="pay-online-btn" class="cta-button-hero" disabled>Pagar Online e Confirmar</button>
+    </div>
+</div>
                 </div>
             </div>
         </div>
@@ -95,5 +98,6 @@
 </footer>
 
     <script type="module" src="js/agendamento-final.js"></script> 
+    <script type="module" src="js/shared.js"></script> <script type="module" src="js/main.js"></script>
 </body>
 </html>

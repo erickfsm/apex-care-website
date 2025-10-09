@@ -1,14 +1,15 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 // Configura a conexão (COLE SUAS CHAVES AQUI)
-const SUPABASE_URL = 'SEU_URL_AQUI';
-const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_AQUI';
+const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Elementos do DOM
 const userNameSpan = document.getElementById('user-name');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
 const pastAppointmentsDiv = document.getElementById('past-appointments');
+const logoutBtn = document.getElementById('logout-btn');
 
 async function loadPortalData() {
     // 1. Verifica a sessão do usuário
@@ -53,22 +54,35 @@ function renderAppointments(appointments, element, isUpcoming) {
 
     element.innerHTML = '';
     appointments.forEach(appt => {
-        const servicesText = appt.servicos_escolhidos.map(s => s.name).join(', ');
+        const servicesText = appt.servicos_escolhidos.map(s => `${s.name} (x${s.quantity})`).join(', ');
+        
+        let actionButton = `<span class="status-${appt.status_pagamento?.toLowerCase().replace(' ', '-')}">${appt.status_pagamento}</span>`;
+        
+        if (isUpcoming) {
+            actionButton = `<button class="cancel-btn" data-id="${appt.id}">Cancelar</button>`;
+        } else if (appt.status_pagamento === 'Concluído' || appt.status_pagamento === 'Pago e Confirmado') {
+             // Botão "Agendar Novamente" só aparece para serviços concluídos
+             const servicesData = encodeURIComponent(JSON.stringify(appt.servicos_escolhidos));
+             actionButton = `<button class="rebook-btn" data-services="${servicesData}">Agendar Novamente</button>`;
+        }
+
         const cardHTML = `
             <div class="appointment-card">
                 <div>
-                    <h4>${new Date(appt.data_agendamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })} às ${appt.hora_agendamento}</h4>
+                    <h4>${appt.data_agendamento ? new Date(appt.data_agendamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'Data a definir'} às ${appt.hora_agendamento || ''}</h4>
                     <p>${servicesText} - R$ ${appt.valor_total.toFixed(2)}</p>
                 </div>
-                ${isUpcoming ? `<button class="cancel-btn" data-id="${appt.id}">Cancelar</button>` : `<span>${appt.status_pagamento}</span>`}
+                <div>${actionButton}</div>
             </div>
         `;
         element.innerHTML += cardHTML;
     });
 }
 
-// LÓGICA DE CANCELAMENTO
+// --- LÓGICAS DOS BOTÕES ---
+
 document.body.addEventListener('click', async (e) => {
+     // Lógica de Cancelamento
     if (e.target.classList.contains('cancel-btn')) {
         const appointmentId = e.target.dataset.id;
         
@@ -91,8 +105,24 @@ document.body.addEventListener('click', async (e) => {
             loadPortalData(); // Recarrega os dados para atualizar a tela
         }
     }
-});
+    // NOVA LÓGICA: AGENDAR NOVAMENTE
+    if (e.target.classList.contains('rebook-btn')) {
+        const servicesDataString = e.target.dataset.services;
+        if (!servicesDataString) return;
 
+        const servicesToRebook = JSON.parse(decodeURIComponent(servicesDataString));
+        
+        // Simula a estrutura do 'orcamentoData' que a outra página espera
+        const orcamentoData = {
+            servicos: servicesToRebook,
+            valor_total: servicesToRebook.reduce((total, service) => total + (service.price * service.quantity), 0)
+        };
+
+        // Salva na memória e redireciona para a calculadora
+        localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));
+        window.location.href = 'orcamento.html';
+    }
+});
 
 // Inicializa a página
 loadPortalData();
