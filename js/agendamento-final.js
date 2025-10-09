@@ -190,35 +190,29 @@ confirmBtn.addEventListener('click', async () => {
     confirmBtn.textContent = "Gerando Pagamento...";
 
     try {
-        // 1. Atualiza o agendamento no banco de dados com a data e hora
-        const { data: updatedAppointment, error: updateError } = await supabase
+        // 1. Atualiza o agendamento com a data/hora escolhida
+        const { error: updateError } = await supabase
             .from('agendamentos')
             .update({ 
                 data_agendamento: selectedDate,
                 hora_agendamento: selectedTime,
             })
-            .eq('id', pendingAppointment.id)
-            .select()
-            .single(); // .single() é importante para garantir que temos o objeto atualizado
+            .eq('id', pendingAppointment.id);
 
         if (updateError) throw updateError;
-        console.log("Agendamento atualizado com data/hora:", updatedAppointment);
+        console.log("Agendamento atualizado com data/hora com sucesso.");
 
         // 2. Chama a Edge Function para criar o link de pagamento
         console.log("Invocando a função 'create-payment'...");
         const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
             body: {
-                appointmentId: updatedAppointment.id,
-                items: updatedAppointment.servicos_escolhidos,
+                appointmentId: pendingAppointment.id,
+                items: pendingAppointment.servicos_escolhidos, // <-- A CORREÇÃO ESTÁ AQUI! Usando a variável original.
                 clientEmail: currentUser.email
             }
         });
 
-        if (functionError) {
-          // Se der erro na função, mostra a mensagem específica
-          const errorMsg = await functionError.context.json();
-          throw new Error(errorMsg.error);
-        }
+        if (functionError) throw functionError;
         
         console.log("Link de pagamento recebido:", functionData.checkoutUrl);
 
@@ -226,12 +220,10 @@ confirmBtn.addEventListener('click', async () => {
         window.location.href = functionData.checkoutUrl;
 
     } catch (error) {
+        // O alert agora vai mostrar o erro da forma correta
         alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
         console.error("Erro completo:", error);
         confirmBtn.disabled = false;
         confirmBtn.textContent = "Confirmar Agendamento";
     }
 });
-
-// --- INICIALIZAÇÃO DA PÁGINA ---
-initializePage();
