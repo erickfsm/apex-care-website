@@ -13,9 +13,10 @@ let priceTable = [];
 const serviceSelectionDiv = document.getElementById('service-selection');
 const summaryItemsDiv = document.getElementById('summary-items');
 const totalPriceSpan = document.getElementById('total-price');
+const scheduleBtn = document.getElementById('next-step-btn');
 
 // =================================================================================
-// NOVA FUNÇÃO: BUSCAR OS SERVIÇOS DO SUPABASE
+// FUNÇÃO: BUSCAR OS SERVIÇOS DO SUPABASE
 // =================================================================================
 async function loadServices() {
     serviceSelectionDiv.innerHTML = '<p>Carregando serviços...</p>';
@@ -36,7 +37,7 @@ async function loadServices() {
 }
 
 // =================================================================================
-// FUNÇÃO DE RENDERIZAR (semelhante à anterior)
+// FUNÇÃO DE RENDERIZAR
 // =================================================================================
 function renderServices() {
     serviceSelectionDiv.innerHTML = '';
@@ -60,6 +61,7 @@ function renderServices() {
         serviceSelectionDiv.innerHTML += serviceHTML;
     });
 }
+
 // =================================================================================
 // MOTOR DE CÁLCULO
 // =================================================================================
@@ -72,7 +74,7 @@ function updateSummary() {
         if (input.checked) {
             const serviceId = parseInt(input.dataset.serviceId);
             const service = priceTable.find(s => s.id === serviceId);
-            if (!service) return; // Segurança caso não encontre o serviço
+            if (!service) return;
 
             let itemPrice = service.price;
             let quantity = 1;
@@ -106,7 +108,7 @@ function updateSummary() {
 // LÓGICA DE EVENTOS
 // =================================================================================
 serviceSelectionDiv.addEventListener('change', (e) => {
-    if (e.target.matches('input[type="checkbox"]')) { // Checa se é checkbox
+    if (e.target.matches('input[type="checkbox"]')) {
         const quantityInput = e.target.parentElement.querySelector('.quantity-input');
         if (quantityInput) {
             quantityInput.disabled = !e.target.checked;
@@ -115,16 +117,19 @@ serviceSelectionDiv.addEventListener('change', (e) => {
     updateSummary();
 });
 
+// Também atualiza o resumo quando muda a quantidade
+serviceSelectionDiv.addEventListener('input', (e) => {
+    if (e.target.classList.contains('quantity-input')) {
+        updateSummary();
+    }
+});
+
 // --- INICIALIZAÇÃO ---
 loadServices();
 
 // =================================================================================
-// PASSO FINAL: LÓGICA DO BOTÃO "AGENDAR VISITA"
+// BOTÃO "AGENDAR VISITA" - CORRIGIDO ✅
 // =================================================================================
-
-const clientNameInput = document.getElementById('client-name');
-const clientWhatsappInput = document.getElementById('client-whatsapp');
-const scheduleBtn = document.getElementById('next-step-btn');
 scheduleBtn.addEventListener('click', () => {
     
     const inputs = serviceSelectionDiv.querySelectorAll('input[type="checkbox"]:checked');
@@ -134,20 +139,40 @@ scheduleBtn.addEventListener('click', () => {
         return;
     }
 
-    // Coleta dos serviços selecionados
+    // ✅ CORREÇÃO: Coletar os serviços corretamente
     const selectedServices = [];
     inputs.forEach(input => {
-        // ... (o resto da lógica de coletar os serviços continua a mesma) ...
+        const serviceId = parseInt(input.dataset.serviceId);
+        const service = priceTable.find(s => s.id === serviceId);
+        
+        if (service) {
+            let quantity = 1;
+            if (service.type === 'quantity') {
+                const quantityInput = serviceSelectionDiv.querySelector(
+                    `.quantity-input[data-service-id="${service.id}"]`
+                );
+                quantity = parseInt(quantityInput.value);
+            }
+            
+            selectedServices.push({
+                id: service.id,
+                name: service.name,
+                price: service.price,
+                quantity: quantity
+            });
+        }
     });
 
     const totalPrice = parseFloat(totalPriceSpan.textContent.replace('R$ ', '').replace(',', '.'));
 
-    // Cria o objeto do orçamento (agora sem os dados do cliente)
+    // ✅ Cria o objeto do orçamento com os dados corretos
     const orcamentoData = {
         servicos: selectedServices,
         valor_total: totalPrice,
         criado_em: new Date().toISOString()
     };
+
+    console.log("✅ Orçamento pronto para salvar:", orcamentoData);
 
     // Salva na memória e redireciona
     localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));

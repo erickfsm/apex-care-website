@@ -9,7 +9,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
 
 // Variáveis globais
-// Variáveis globais
 let currentUser = null;
 let pendingAppointment = null;
 let selectedDate = null;
@@ -26,32 +25,26 @@ const currentMonthDisplay = document.getElementById('current-month');
 // --- PONTO DE ENTRADA PRINCIPAL ---
 // Fica "ouvindo" o estado da autenticação
 supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'INITIAL_SESSION' && session && session.user) {
-        // Disparado quando a página carrega e uma sessão válida é encontrada
-        console.log("Sessão válida encontrada!", session.user.email);
+    if (event === 'INITIAL_SESSION' && session?.user) {
+        console.log("✅ Sessão válida encontrada!", session.user.email);
         currentUser = session.user;
         findPendingAppointment();
     } else if (event === 'SIGNED_IN') {
-        // Disparado quando o usuário faz login na mesma página (não nosso caso agora)
-        console.log("Usuário acabou de logar!", session.user.email);
+        console.log("✅ Usuário acabou de logar!", session.user.email);
         currentUser = session.user;
         findPendingAppointment();
     } else if (event === 'SIGNED_OUT') {
-        // Disparado quando o usuário faz logout
         redirectToLogin();
     }
 });
 
-// Verifica a sessão inicial também
-async function checkInitialSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !session.user) {
-        // Se após um pequeno atraso ainda não houver sessão, redireciona
-        setTimeout(() => {
-            if (!currentUser) redirectToLogin();
-        }, 500);
+// Verificação de segurança (timeout)
+setTimeout(() => {
+    if (!currentUser) {
+        console.warn("⚠️ Sessão não encontrada após timeout");
+        redirectToLogin();
     }
-}
+}, 2000);
 
 function redirectToLogin() {
     alert("Sessão não encontrada ou expirada. Por favor, faça o login.");
@@ -61,6 +54,8 @@ function redirectToLogin() {
 async function findPendingAppointment() {
     if (!currentUser) return;
 
+    console.log("🔍 Procurando agendamento pendente para usuário:", currentUser.id);
+
     const { data, error } = await supabase
         .from('agendamentos')
         .select('*')
@@ -69,12 +64,14 @@ async function findPendingAppointment() {
         .single();
 
     if (error || !data) {
+        console.warn("⚠️ Nenhum agendamento pendente encontrado");
         alert("Não encontramos um orçamento pendente. Por favor, faça um novo orçamento.");
         window.location.href = 'orcamento.html';
         return;
     }
+    
     pendingAppointment = data;
-    console.log("Agendamento pendente encontrado:", pendingAppointment);
+    console.log("✅ Agendamento pendente encontrado:", pendingAppointment);
     generateCalendar(); 
 }
 
@@ -122,11 +119,10 @@ document.getElementById('next-month-btn').addEventListener('click', () => {
     generateCalendar();
 });
 
-
 // --- FUNÇÕES DE SELEÇÃO DE HORÁRIO ---
 async function handleDayClick(dayElement, dateStr) {
     selectedDate = dateStr;
-    selectedTime = null; // Reseta a hora selecionada
+    selectedTime = null;
     updateSummary();
 
     timeSlotsDiv.innerHTML = "<p>Verificando disponibilidade...</p>";
@@ -140,6 +136,7 @@ async function handleDayClick(dayElement, dateStr) {
         .eq('data_agendamento', dateStr);
 
     if (error) {
+        console.error("❌ Erro ao verificar horários:", error);
         timeSlotsDiv.innerHTML = "<p>Erro ao verificar horários.</p>";
         return;
     }
@@ -184,37 +181,61 @@ function updateSummary() {
 
 // --- AÇÃO FINAL: CONFIRMAR AGENDAMENTO ---
 confirmBtn.addEventListener('click', async () => {
-    if (!selectedDate || !selectedTime || !pendingAppointment || !currentUser) return;
+    if (!selectedDate || !selectedTime || !pendingAppointment || !currentUser) {
+        alert("❌ Erro: dados incompletos");
+        return;
+    }
 
     confirmBtn.disabled = true;
-    confirmBtn.textContent = "Gerando Pagamento...";
+    confirmBtn.textContent = "Processando...";
 
     try {
-        // PASSO 1: Invoca a função para criar o pagamento
-        console.log("Invocando a função 'create-payment' com os dados do agendamento pendente...");
+        console.log("📅 Atualizando agendamento com data e hora...");
+        
+        // ✅ PASSO 1: Atualiza a data e hora do agendamento
+        const { error: updateError } = await supabase
+            .from('agendamentos')
+            .update({
+                data_agendamento: selectedDate,
+                hora_agendamento: selectedTime
+            })
+            .eq('id', pendingAppointment.id);
+
+        if (updateError) {
+            console.error("❌ Erro ao atualizar agendamento:", updateError);
+            throw updateError;
+        }
+        console.log("✅ Data e hora atualizadas!");
+
+        // ✅ PASSO 2: Invoca a função para criar o pagamento
+        console.log("💳 Criando link de pagamento no Mercado Pago...");
+        
         const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
             body: {
                 appointmentId: pendingAppointment.id,
-                items: pendingAppointment.servicos_escolhidos, // Itens do orçamento
+                items: pendingAppointment.servicos_escolhidos,
                 clientEmail: currentUser.email
             }
         });
 
-        if (functionError) throw functionError;
+        if (functionError) {
+            console.error("❌ Erro na função create-payment:", functionError);
+            throw functionError;
+        }
         
-        console.log("Link de pagamento recebido:", functionData.checkoutUrl);
+        if (!functionData || !functionData.checkoutUrl) {
+            throw new Error("Nenhuma URL de checkout retornada");
+        }
 
-        // PASSO 2: Atualiza o agendamento com a data e hora escolhidas
-        // Nota: Esta etapa será movida para o webhook do Mercado Pago no futuro.
-        // Por enquanto, apenas redirecionamos o usuário para o checkout.
-        // O update da data e hora será feito junto com o update do status de pagamento.
-        
-        // PASSO 3: Redireciona o cliente para o checkout
+        console.log("✅ Link de pagamento recebido!");
+        console.log("🔗 Redirecionando para:", functionData.checkoutUrl);
+
+        // ✅ PASSO 3: Redireciona o cliente para o checkout
         window.location.href = functionData.checkoutUrl;
 
     } catch (error) {
-        alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
-        console.error("Erro completo:", error);
+        console.error("❌ Erro completo:", error);
+        alert(`❌ Erro ao processar agendamento:\n\n${error.message}`);
         confirmBtn.disabled = false;
         confirmBtn.textContent = "Confirmar Agendamento";
     }
