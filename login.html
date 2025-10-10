@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Apex Care</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css"> 
+    <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/style-improvements.css">
-    <link rel="stylesheet" href="css/auth.css"> <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
@@ -20,7 +21,19 @@
             <h2>Bem-vindo de volta!</h2>
             <p>Acesse sua conta para gerenciar seus agendamentos.</p>
 
+            <!-- SELETOR DE TIPO DE USUÁRIO -->
+            <div class="user-type-selector">
+                <button type="button" class="user-type-btn active" data-type="cliente" onclick="selectUserType('cliente', this)">
+                    👤 Cliente
+                </button>
+                <button type="button" class="user-type-btn" data-type="tecnico" onclick="selectUserType('tecnico', this)">
+                    🔧 Técnico
+                </button>
+            </div>
+
             <form id="login-form">
+                <input type="hidden" id="user-type" value="cliente">
+                
                 <div class="form-group">
                     <label for="email">E-mail</label>
                     <input type="email" id="email" required>
@@ -36,7 +49,72 @@
         </div>
     </div>
     
-    <script type="module" src="js/auth.js"></script> </body>
-    <script type="module" src="js/shared.js"></script> <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/auth-improved.js"></script>
+    <script type="module" src="js/shared-improved.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+    <style>
+        /* Estilos para o seletor de tipo de usuário */
+        .user-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background-color: var(--color-light-gray);
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .user-type-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background-color: transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s;
+            color: #666;
+        }
+
+        .user-type-btn:hover {
+            background-color: rgba(0, 169, 157, 0.1);
+            color: var(--color-cyan);
+        }
+
+        .user-type-btn.active {
+            background-color: var(--color-cyan);
+            color: white;
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .user-type-selector {
+                flex-direction: column;
+            }
+
+            .user-type-btn {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <script>
+        // Função para selecionar tipo de usuário
+        function selectUserType(type, button) {
+            // Remove active de todos
+            document.querySelectorAll('.user-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Adiciona active no clicado
+            button.classList.add('active');
+
+            // Atualiza o campo hidden
+            document.getElementById('user-type').value = type;
+
+            console.log('Tipo de usuário selecionado:', type);
+        }
+    </script>
 </body>
 </html>
