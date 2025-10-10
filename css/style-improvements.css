@@ -1,0 +1,552 @@
+/* ==========================================
+   HEADER MELHORADO COM AUTENTICAÇÃO
+   ========================================== */
+
+.auth-container-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.auth-link-login {
+    color: var(--color-graphite);
+    text-decoration: none;
+    font-weight: 700;
+    transition: color 0.3s;
+}
+
+.auth-link-login:hover {
+    color: var(--color-cyan);
+}
+
+.auth-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.auth-dropdown-btn {
+    background-color: var(--color-cyan);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s;
+}
+
+.auth-dropdown-btn:hover {
+    background-color: #008f83;
+}
+
+.auth-dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: white;
+    min-width: 200px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    border-radius: 5px;
+    margin-top: 10px;
+    z-index: 1000;
+}
+
+.auth-dropdown-menu.active {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+.auth-dropdown-menu a {
+    color: var(--color-graphite);
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.2s;
+}
+
+.auth-dropdown-menu a:hover {
+    background-color: var(--color-light-gray);
+    color: var(--color-cyan);
+}
+
+.auth-dropdown-menu a:first-child {
+    border-radius: 5px 5px 0 0;
+}
+
+.auth-dropdown-menu a:last-child {
+    border-radius: 0 0 5px 5px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================
+   STATUS DE PAGAMENTO APRIMORADOS
+   ========================================== */
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pendente {
+    background-color: #FFF3CD;
+    color: #856404;
+}
+
+.status-pago {
+    background-color: #D4EDDA;
+    color: #155724;
+}
+
+.status-confirmado {
+    background-color: #D1ECF1;
+    color: #0C5460;
+}
+
+.status-cancelado {
+    background-color: #F8D7DA;
+    color: #721C24;
+}
+
+.status-concluido {
+    background-color: #C3E6CB;
+    color: #155724;
+}
+
+/* ==========================================
+   CARDS DE AGENDAMENTO MELHORADOS
+   ========================================== */
+
+.appointment-card {
+    background: linear-gradient(135deg, #fff 0%, #f9fafb 100%);
+    border: 1px solid #e5e7eb;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+}
+
+.appointment-card:hover {
+    border-color: var(--color-cyan);
+    box-shadow: 0 10px 30px rgba(0,169,157,0.1);
+}
+
+.appointment-info h4 {
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    color: var(--color-graphite);
+}
+
+.appointment-info p {
+    color: #666;
+    font-size: 0.95em;
+    margin: 5px 0;
+}
+
+.appointment-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-small {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-cancel {
+    background-color: #E74C3C;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background-color: #C0392B;
+}
+
+.btn-rebook {
+    background-color: var(--color-cyan);
+    color: white;
+}
+
+.btn-rebook:hover {
+    background-color: #008f83;
+}
+
+.btn-pay {
+    background-color: #27AE60;
+    color: white;
+}
+
+.btn-pay:hover {
+    background-color: #229954;
+}
+
+/* ==========================================
+   TABELA DE TAXAS ADICIONAIS
+   ========================================== */
+
+.taxa-section {
+    background-color: var(--color-light-gray);
+    padding: 25px;
+    border-radius: 8px;
+    margin: 30px 0;
+}
+
+.taxa-title {
+    font-size: 1.3em;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--color-graphite);
+}
+
+.taxa-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.taxa-table thead {
+    background-color: var(--color-graphite);
+    color: white;
+}
+
+.taxa-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+}
+
+.taxa-table td {
+    padding: 15px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.taxa-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.taxa-value {
+    font-weight: 700;
+    color: var(--color-cyan);
+    font-size: 1.1em;
+}
+
+.taxa-condition {
+    font-size: 0.9em;
+    color: #666;
+    font-style: italic;
+}
+
+/* ==========================================
+   SEÇÃO DE DESCONTOS E PROMOÇÕES
+   ========================================== */
+
+.discount-banner {
+    background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 8px;
+    margin: 30px 0;
+    text-align: center;
+}
+
+.discount-banner h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.discount-banner p {
+    font-size: 1.1em;
+    margin: 10px 0;
+}
+
+.discount-code {
+    background-color: rgba(255,255,255,0.2);
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin: 15px 0;
+    font-size: 1.2em;
+}
+
+/* ==========================================
+   PORTAL DO CLIENTE - DASHBOARD
+   ========================================== */
+
+.dashboard-header {
+    background-color: var(--color-light-gray);
+    padding: 30px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--color-cyan);
+}
+
+.dashboard-header h1 {
+    font-size: 2em;
+    margin-bottom: 5px;
+}
+
+.user-greeting {
+    font-size: 1.1em;
+    color: #666;
+}
+
+.section-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 30px 0;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.tab-btn {
+    padding: 12px 20px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1em;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    color: var(--color-cyan);
+    border-bottom-color: var(--color-cyan);
+}
+
+.tab-btn:hover {
+    color: var(--color-cyan);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ==========================================
+   CARDS DE ESTATÍSTICAS
+   ========================================== */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.stat-card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    border-color: var(--color-cyan);
+    box-shadow: 0 10px 25px rgba(0,169,157,0.1);
+}
+
+.stat-icon {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: 1.8em;
+    font-weight: 900;
+    color: var(--color-cyan);
+    margin: 10px 0;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #666;
+    font-weight: 500;
+}
+
+/* ==========================================
+   MODAL DE CONFIRMAÇÃO
+   ========================================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    animation: fadeIn 0.3s;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s;
+}
+
+.modal-header {
+    font-size: 1.5em;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: var(--color-graphite);
+}
+
+.modal-body {
+    font-size: 1em;
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.modal-btn-primary {
+    background-color: var(--color-cyan);
+    color: white;
+}
+
+.modal-btn-primary:hover {
+    background-color: #008f83;
+}
+
+.modal-btn-secondary {
+    background-color: #e5e7eb;
+    color: var(--color-graphite);
+}
+
+.modal-btn-secondary:hover {
+    background-color: #d1d5db;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ==========================================
+   RESPONSIVIDADE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .appointment-card {
+        grid-template-columns: 1fr;
+    }
+
+    .appointment-actions {
+        justify-content: flex-start;
+    }
+
+    .taxa-table {
+        font-size: 0.9em;
+    }
+
+    .taxa-table th,
+    .taxa-table td {
+        padding: 10px;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .section-tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab-btn {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+
+    .modal-content {
+        padding: 20px;
+    }
+
+    .discount-banner {
+        padding: 20px;
+    }
+
+    .dashboard-header {
+        padding: 20px;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5em;
+    }
+}

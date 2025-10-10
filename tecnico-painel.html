@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Técnico - Apex Care</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .tecnico-main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+            background-color: var(--color-light-gray);
+            min-height: 100vh;
+        }
+
+        .os-header {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .os-header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .os-status {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 700;
+        }
+
+        .os-card {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--color-cyan);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .os-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: var(--color-graphite);
+        }
+
+        .os-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .info-box {
+            background-color: var(--color-light-gray);
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            color: var(--color-graphite);
+            font-weight: 700;
+        }
+
+        .services-checklist {
+            background-color: var(--color-light-gray);
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: white;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+            border-color: var(--color-cyan);
+            background-color: #f9fafb;
+        }
+
+        .checklist-item.completed {
+            background-color: #f0fdf4;
+            border-color: #4caf50;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: var(--color-cyan);
+        }
+
+        .checklist-item label {
+            flex-grow: 1;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .photos-section {
+            margin: 30px 0;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .photo-box {
+            background-color: var(--color-light-gray);
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px dashed #ccc;
+            transition: all 0.2s;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photo-box:hover {
+            border-color: var(--color-cyan);
+            background-color: #f0f8f7;
+        }
+
+        .photo-box.filled {
+            border: 2px solid var(--color-cyan);
+            background-color: white;
+        }
+
+        .photo-box img {
+            max-width: 100%;
+            max-height: 120px;
+            margin-bottom: 10px;
+            border-radius: 3px;
+        }
+
+        .photo-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background-color: var(--color-cyan);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #008f83;
+        }
+
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: var(--color-graphite);
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .notes-section {
+            background-color: var(--color-light-gray);
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .notes-section label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--color-graphite);
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .timeline {
+            border-left: 3px solid var(--color-cyan);
+            padding-left: 20px;
+            margin: 20px 0;
+        }
+
+        .timeline-item {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--color-cyan);
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+
+        .timeline-time {
+            font-size: 0.85em;
+            color: #999;
+            font-weight: 600;
+        }
+
+        .timeline-desc {
+            font-size: 1em;
+            color: var(--color-graphite);
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .os-header h1 {
+                font-size: 1.5em;
+            }
+
+            .os-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .photo-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-primary, .btn-secondary {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-header scrolled">
+        <nav class="main-nav">
+            <a href="index.html" class="logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+            <ul>
+                <li><a href="javascript:history.back()">← Voltar</a></li>
+            </ul>
+            <div id="auth-container-header"></div>
+        </nav>
+    </header>
+
+    <main class="tecnico-main">
+        <div class="container">
+            
+            <!-- CABEÇALHO DA OS -->
+            <div class="os-header">
+                <h1>Ordem de Serviço #2025001</h1>
+                <p style="font-size: 1.1em; margin: 10px 0;">Data: 15 de Outubro, 2025 | Horário: 14:00</p>
+                <span class="os-status">🔄 Em Andamento</span>
+            </div>
+
+            <!-- INFORMAÇÕES DO CLIENTE -->
+            <div class="os-card">
+                <h3>👤 Informações do Cliente</h3>
+                <div class="os-info-grid">
+                    <div class="info-box">
+                        <div class="info-label">Nome do Cliente</div>
+                        <div class="info-value">João Silva</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Telefone</div>
+                        <div class="info-value">(31) 98765-4321</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Endereço</div>
+                        <div class="info-value">Rua exemplo, 123 - Ibirité</div>
+                    </div>
+                    <div class="info-box">
+                        <div class="info-label">Referência</div>
+                        <div class="info-value">Próx. ao mercado Pão de Queijo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SERVIÇOS A REALIZAR -->
+            <div class="os-card">
+                <h3>📋 Serviços a Realizar</h3>
+                <div class="services-checklist">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="service1">
+                        <label for="service1"><strong>Tratamento de Sofá</strong> - 2 lugares</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="service2">
+                        <label for="service2"><strong>Higienização de Colchão</strong> - King Size</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="service3">
+                        <label for="service3"><strong>Impermeabilização Premium</strong> - Sofá</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="service4">
+                        <label for="service4"><strong>Limpeza de Tapete</strong> - Sala de estar</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MATERIAIS E EQUIPAMENTOS -->
+            <div class="os-card">
+                <h3>🛠️ Materiais Utilizados</h3>
+                <div class="services-checklist">
+                    <div class="checklist-item completed">
+                        <input type="checkbox" id="material1" checked>
+                        <label for="material1"><strong>Solução de Limpeza Bio</strong> - 2L</label>
+                    </div>
+                    <div class="checklist-item completed">
+                        <input type="checkbox" id="material2" checked>
+                        <label for="material2"><strong>Impermeabilizante Premium</strong> - 1L</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="material3">
+                        <label for="material3"><strong>Detergente Neutro</strong> - 500ml</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="material4">
+                        <label for="material4"><strong>Fragrância Ambiente</strong> - Spray</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOTOS DO TRABALHO -->
+            <div class="os-card photos-section">
+                <h3>📸 Registro Fotográfico</h3>
+                <div style="background-color: var(--color-light-gray); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">Registre as fotos do trabalho em andamento e após conclusão</h4>
+                </div>
+                <div class="photo-grid">
+                    <div class="photo-box">
+                        <span style="font-size: 2em; margin-bottom: 10px;">📷</span>
+                        <div class="photo-label">Antes</div>
+                    </div>
+                    <div class="photo-box filled">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%2300A99D' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='30' fill='white' text-anchor='middle' dy='.3em'%3E✓%3C/text%3E%3C/svg%3E" alt="Foto">
+                        <div class="photo-label">Durante (1/3)</div>
+                    </div>
+                    <div class="photo-box filled">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%2300A99D' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='30' fill='white' text-anchor='middle' dy='.3em'%3E✓%3C/text%3E%3C/svg%3E" alt="Foto">
+                        <div class="photo-label">Durante (2/3)</div>
+                    </div>
+                    <div class="photo-box">
+                        <span style="font-size: 2em; margin-bottom: 10px;">📷</span>
+                        <div class="photo-label">Depois</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OBSERVAÇÕES -->
+            <div class="os-card notes-section">
+                <label for="notes">📝 Observações e Anotações</label>
+                <textarea id="notes" placeholder="Descreva detalhes do serviço, dificuldades encontradas, recomendações para o cliente..."></textarea>
+            </div>
+
+            <!-- HISTÓRICO DE ATIVIDADES -->
+            <div class="os-card">
+                <h3>⏱️ Histórico de Atividades</h3>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-time">14:00 - 14:05</div>
+                        <div class="timeline-desc">Chegada no local. Cliente presente.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">14:05 - 14:15</div>
+                        <div class="timeline-desc">Inspeção e análise dos itens.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">14:15 - 15:00</div>
+                        <div class="timeline-desc">Aspiração profunda do sofá.</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-time">15:00 - 15:45</div>
+                        <div class="timeline-desc">Aplicação de solução e escovação.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASSINATURA E CONCLUSÃO -->
+            <div class="os-card">
+                <h3>✍️ Conclusão do Serviço</h3>
+                <div class="action-buttons">
+                    <button class="btn-secondary" onclick="addActivity()">⏱️ Adicionar Atividade</button>
+                    <button class="btn-secondary" onclick="previewOS()">👁️ Visualizar Resumo</button>
+                    <button class="btn-primary" onclick="finishOS()">✅ Concluir Ordem de Serviço</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="index.html#servicos">Serviços</a></li>
+                    <li><a href="index.html#metodo">O Método</a></li>
+                    <li><a href="index.html#planos">Planos</a></li>
+                    <li><a href="index.html#sobre">Sobre</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contato</h4>
+                <ul>
+                    <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
+                    <li><a href="mailto:contato@apexcare.com.br">E-mail</a></li>
+                    <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/shared-improved.js"></script>
+    <script>
+        function addActivity() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            alert(`Adicionar atividade às ${time}`);
+        }
+
+        function previewOS() {
+            alert('Visualizando resumo da Ordem de Serviço...');
+        }
+
+        function finishOS() {
+            if (confirm('Tem certeza que deseja concluir esta Ordem de Serviço?')) {
+                alert('✅ Ordem de Serviço #2025001 concluída com sucesso!');
+                // Aqui você faria a requisição para salvar no banco de dados
+            }
+        }
+
+        // Adicionar eventos aos checkboxes
+        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    this.parentElement.classList.add('completed');
+                } else {
+                    this.parentElement.classList.remove('completed');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

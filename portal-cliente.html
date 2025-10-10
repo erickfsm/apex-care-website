@@ -4,38 +4,244 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal do Cliente - Apex Care</title>
-    <link rel="stylesheet" href="css/style.css"> 
-    <link rel="stylesheet" href="css/portal.css"> </head>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/portal.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
 <body>
 
     <header class="main-header scrolled">
-        </header>
+        <nav class="main-nav">
+            <a href="index.html" class="logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+            <ul>
+                <li><a href="index.html">Voltar ao Site</a></li>
+            </ul>
+            <div id="auth-container-header" class="auth-container-header"></div>
+        </nav>
+    </header>
     
     <main class="portal-main">
         <div class="container">
-            <div class="welcome-message">
-                <h1>Seu Portal Apex Care</h1>
-                <p>Olá, <span id="user-name">Cliente</span>! Aqui você gerencia seus tratamentos.</p>
+            <div class="dashboard-header">
+                <h1>Bem-vindo de volta, <span id="user-name">Cliente</span>! 👋</h1>
+                <p class="user-greeting">Gerencie seus agendamentos e acompanhe seus serviços Apex Care.</p>
             </div>
 
-            <div class="appointments-section">
-                <h2>Próximos Agendamentos</h2>
-                <div id="upcoming-appointments"><p>Carregando...</p></div>
+            <!-- ESTATÍSTICAS DASHBOARD -->
+            <div id="stats-container"></div>
+
+            <!-- ABAS DE NAVEGAÇÃO -->
+            <div class="section-tabs">
+                <button class="tab-btn active" onclick="switchTab('upcoming', this)">
+                    📅 Próximos Agendamentos
+                </button>
+                <button class="tab-btn" onclick="switchTab('history', this)">
+                    📋 Histórico de Serviços
+                </button>
+                <button class="tab-btn" onclick="switchTab('info', this)">
+                    ℹ️ Informações Úteis
+                </button>
             </div>
 
-            <div class="appointments-section">
-                <h2>Histórico de Serviços</h2>
-                <div id="past-appointments"><p>Carregando...</p></div>
+            <!-- TAB 1: PRÓXIMOS AGENDAMENTOS -->
+            <div id="upcoming" class="tab-content active">
+                <div class="appointments-section">
+                    <h2>Seus Próximos Agendamentos</h2>
+                    <div id="upcoming-appointments">
+                        <p style="text-align: center; color: #999; padding: 30px;">Carregando...</p>
+                    </div>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <a href="orcamento.html" class="cta-button-hero">+ Novo Agendamento</a>
+                    </div>
+                </div>
             </div>
 
-            <button id="logout-btn" class="cta-button-outline">Sair da Conta (Logout)</button>
+            <!-- TAB 2: HISTÓRICO -->
+            <div id="history" class="tab-content">
+                <div class="appointments-section">
+                    <h2>Histórico de Serviços Realizados</h2>
+                    <div id="past-appointments">
+                        <p style="text-align: center; color: #999; padding: 30px;">Carregando...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: INFORMAÇÕES ÚTEIS -->
+            <div id="info" class="tab-content">
+                <div style="background-color: white; padding: 30px; border-radius: 8px;">
+                    <h2 style="margin-bottom: 20px;">Informações e Dicas</h2>
+                    
+                    <div class="info-section">
+                        <h3>📞 Como Entrar em Contato</h3>
+                        <p>
+                            <strong>WhatsApp:</strong> <a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">(31) XXXXX-XXXX</a><br>
+                            <strong>E-mail:</strong> <a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a><br>
+                            <strong>Instagram:</strong> <a href="https://instagram.com/apex.higienizacao" target="_blank">@apex.higienizacao</a>
+                        </p>
+                    </div>
+
+                    <div class="info-section" style="margin-top: 30px;">
+                        <h3>🛡️ Planos e Descontos</h3>
+                        <p>
+                            Aproveite nossos planos especiais com descontos exclusivos:<br>
+                            • <strong>Plano Trimestral:</strong> 4 higienizações/ano (15% OFF em serviços avulsos)<br>
+                            • <strong>Plano Semestral:</strong> 2 higienizações/ano (15% OFF em serviços avulsos)<br>
+                            • <strong>Plano Anual:</strong> 1 higienização/ano + suporte emergencial
+                        </p>
+                    </div>
+
+                    <div class="info-section" style="margin-top: 30px;">
+                        <h3>💡 Dicas de Manutenção</h3>
+                        <p>
+                            Para prolongar a vida útil de seus estofados:<br>
+                            • Aspirar regularmente (1-2x por semana)<br>
+                            • Virar almofadas frequentemente<br>
+                            • Evitar exposição direta ao sol<br>
+                            • Usar protetores em caso de pets e crianças
+                        </p>
+                    </div>
+
+                    <div class="info-section" style="margin-top: 30px;">
+                        <h3>🚗 Taxas Adicionais</h3>
+                        <table class="taxa-table" style="margin-top: 15px;">
+                            <thead>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                    <th>Condição</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Taxa de Deslocamento</td>
+                                    <td class="taxa-value">R$ 35,00</td>
+                                    <td class="taxa-condition">A partir de 5km</td>
+                                </tr>
+                                <tr>
+                                    <td>Taxa de Urgência</td>
+                                    <td class="taxa-value">R$ 50,00</td>
+                                    <td class="taxa-condition">Agendamento 24h antes</td>
+                                </tr>
+                                <tr>
+                                    <td>Taxa Fim de Semana</td>
+                                    <td class="taxa-value">R$ 30,00</td>
+                                    <td class="taxa-condition">Sábado e domingo</td>
+                                </tr>
+                                <tr>
+                                    <td>Desconto por Volume</td>
+                                    <td class="taxa-value">Até 25%</td>
+                                    <td class="taxa-condition">4+ itens no mesmo dia</td>
+                                </tr>
+                                <tr>
+                                    <td>Taxa Serviço Noturno</td>
+                                    <td class="taxa-value">R$ 25,00</td>
+                                    <td class="taxa-condition">Após 18:00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTÕES DE AÇÃO -->
+            <div style="text-align: center; margin-top: 40px; padding: 20px; background-color: var(--color-light-gray); border-radius: 8px;">
+                <button id="logout-btn" class="cta-button-outline">🚪 Sair da Conta (Logout)</button>
+            </div>
         </div>
     </main>
 
     <footer class="main-footer">
-       </footer>
+        <div class="container footer-grid">
+            
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+            </div>
 
-    <script type="module" src="js/portal.js"></script> 
-    <script type="module" src="js/shared.js"></script> <script type="module" src="js/main.js"></script>
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="index.html#servicos">Serviços</a></li>
+                    <li><a href="index.html#metodo">O Método</a></li>
+                    <li><a href="index.html#planos">Planos</a></li>
+                    <li><a href="index.html#sobre">Sobre</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Contato</h4>
+                <ul>
+                    <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
+                    <li><a href="mailto:contato@apexcare.com.br">E-mail</a></li>
+                    <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
+                </ul>
+            </div>
+
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/shared-improved.js"></script>
+    <script type="module" src="js/portal-improved.js"></script>
+    <script type="module" src="js/main.js"></script>
+
+    <script>
+        // Função para trocar abas
+        function switchTab(tabName, button) {
+            // Esconder todos os tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remover active de todos os botões
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Mostrar tab ativo
+            const activeTab = document.getElementById(tabName);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+
+            // Adicionar active ao botão clicado
+            button.classList.add('active');
+        }
+    </script>
+
+    <style>
+        .info-section {
+            padding: 20px;
+            background-color: var(--color-light-gray);
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .info-section h3 {
+            color: var(--color-cyan);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .info-section p {
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .info-section a {
+            color: var(--color-cyan);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .info-section a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </body>
 </html>

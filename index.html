@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="css/style-improvements.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -18,11 +19,11 @@
             </a>
             <ul>
                 <li><a href="#servicos">Serviços</a></li>
-                <li><a href="#metodo">O Método Apex</a></li>
-                <li><a href="#planos">Planos e Pacotes</a></li>
-                <li><a href="#sobre">Sobre Nós</a></li>
-                <div id="auth-container"> </div>
+                <li><a href="#metodo">O Método</a></li>
+                <li><a href="#planos">Planos</a></li>
+                <li><a href="#sobre">Sobre</a></li>
             </ul>
+            <div id="auth-container" class="auth-container-header"></div>
         </nav>
     </header>
 
@@ -33,258 +34,252 @@
             <a href="#orcamento" class="cta-button-hero">Solicitar Orçamento Instantâneo</a>
         </section>
 
-        <section id="servicos">
         <section id="servicos" class="section-padding">
-    <div class="container">
-        <h2 class="section-title">Um Tratamento Específico para Cada Necessidade</h2>
-        <div class="services-grid">
-            
-            <div class="service-card">
-                <img src="assets/images/icon-sofa.svg" alt="Ícone de Sofá" class="service-icon">
-                <h3>Tratamento de Sofás</h3>
-                <p>Higienização profunda que remove ácaros e sujeira, restaurando a cor e o conforto do seu sofá.</p>
+            <div class="container">
+                <h2 class="section-title">Um Tratamento Específico para Cada Necessidade</h2>
+                <div class="services-grid">
+                    
+                    <div class="service-card">
+                        <img src="assets/images/icon-sofa.svg" alt="Ícone de Sofá" class="service-icon">
+                        <h3>Tratamento de Sofás</h3>
+                        <p>Higienização profunda que remove ácaros e sujeira, restaurando a cor e o conforto do seu sofá.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <img src="assets/images/icon-mattress.svg" alt="Ícone de Colchão" class="service-icon">
+                        <h3>Higienização de Colchões</h3>
+                        <p>Foco na eliminação de alérgenos para garantir um sono mais saudável e tranquilo.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <img src="assets/images/icon-chair.svg" alt="Ícone de Cadeira" class="service-icon">
+                        <h3>Limpeza de Cadeiras e Poltronas</h3>
+                        <p>Cuidado detalhado para cadeiras de jantar, poltronas e estofados de escritório.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <img src="assets/images/icon-waterproof.svg" alt="Ícone de Impermeabilização" class="service-icon">
+                        <h3>Impermeabilização Premium</h3>
+                        <p>Proteja seus estofados contra líquidos e manchas, aumentando drasticamente sua vida útil.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <img src="assets/images/icon-car.svg" alt="Ícone de Carro" class="service-icon">
+                        <h3>Higienização de Veículos</h3>
+                        <p>Cuidado técnico para o interior do seu carro, com higienização de bancos, carpetes e painéis.</p>
+                    </div>
+
+                </div>
             </div>
+        </section>
 
-            <div class="service-card">
-                <img src="assets/images/icon-mattress.svg" alt="Ícone de Colchão" class="service-icon">
-                <h3>Higienização de Colchões</h3>
-                <p>Foco na eliminação de alérgenos para garantir um sono mais saudável e tranquilo.</p>
-            </div>
-
-            <div class="service-card">
-                <img src="assets/images/icon-chair.svg" alt="Ícone de Cadeira" class="service-icon">
-                <h3>Limpeza de Cadeiras e Poltronas</h3>
-                <p>Cuidado detalhado para cadeiras de jantar, poltronas e estofados de escritório.</p>
-            </div>
-
-            <div class="service-card">
-                <img src="assets/images/icon-waterproof.svg" alt="Ícone de Impermeabilização" class="service-icon">
-                <h3>Impermeabilização Premium</h3>
-                <p>Proteja seus estofados contra líquidos e manchas, aumentando drasticamente sua vida útil.</p>
-            </div>
-
-            <div class="service-card">
-                <img src="assets/images/icon-car.svg" alt="Ícone de Carro" class="service-icon">
-                <h3>Higienização de Veículos</h3>
-                <p>Cuidado técnico para o interior do seu carro, com higienização de bancos, carpetes e painéis.</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-        <section id="metodo">
         <section id="metodo" class="section-padding" style="background-color: var(--color-light-gray);">
-    <div class="container">
-        <h2 class="section-title">Precisão Alemã, Cuidado Humano</h2>
-        <p class="section-subtitle">Nosso processo é desenhado para entregar um resultado impecável, com total segurança para sua família e seus estofados.</p>
-        
-        <div class="method-timeline">
-            
-            <div class="method-step">
-                <div class="step-icon-wrapper">
-                    <img src="assets/images/icon-analysis.svg" alt="Ícone de Análise" class="step-icon">
-                </div>
-                <div class="step-content">
-                    <h3>01. Análise e Aspiração Profunda</h3>
-                    <p>Iniciamos com uma inspeção técnica para identificar o tipo de tecido e sujidade. Em seguida, utilizamos um aspirador de alta potência para remover toda a poeira e detritos sólidos, preparando as fibras para o tratamento.</p>
+            <div class="container">
+                <h2 class="section-title">Precisão Alemã, Cuidado Humano</h2>
+                <p class="section-subtitle">Nosso processo é desenhado para entregar um resultado impecável, com total segurança para sua família e seus estofados.</p>
+                
+                <div class="method-timeline">
+                    
+                    <div class="method-step">
+                        <div class="step-icon-wrapper">
+                            <img src="assets/images/icon-analysis.svg" alt="Ícone de Análise" class="step-icon">
+                        </div>
+                        <div class="step-content">
+                            <h3>01. Análise e Aspiração Profunda</h3>
+                            <p>Iniciamos com uma inspeção técnica para identificar o tipo de tecido e sujidade. Em seguida, utilizamos um aspirador de alta potência para remover toda a poeira e detritos sólidos.</p>
+                        </div>
+                    </div>
+
+                    <div class="method-step">
+                        <div class="step-icon-wrapper">
+                            <img src="assets/images/icon-spray.svg" alt="Ícone de Aplicação" class="step-icon">
+                        </div>
+                        <div class="step-content">
+                            <h3>02. Aplicação Controlada de Solução</h3>
+                            <p>Aplicamos uma solução de limpeza biodegradável e antialérgica, formulada especificamente para o seu tipo de estofado.</p>
+                        </div>
+                    </div>
+
+                    <div class="method-step">
+                        <div class="step-icon-wrapper">
+                            <img src="assets/images/icon-brush.svg" alt="Ícone de Escovação" class="step-icon">
+                        </div>
+                        <div class="step-content">
+                            <h3>03. Escovação Técnica de Fibras</h3>
+                            <p>Utilizamos uma escova rotativa de cerdas macias para agitar as fibras do tecido de forma delicada e uniforme.</p>
+                        </div>
+                    </div>
+
+                    <div class="method-step">
+                        <div class="step-icon-wrapper">
+                            <img src="assets/images/icon-extraction.svg" alt="Ícone de Extração" class="step-icon">
+                        </div>
+                        <div class="step-content">
+                            <h3>04. Extração de Alta Performance</h3>
+                            <p>Nossa máquina extratora injeta água limpa e suga imediatamente toda a sujeira, resíduos de produto e umidade.</p>
+                        </div>
+                    </div>
+
                 </div>
             </div>
+        </section>
 
-            <div class="method-step">
-                <div class="step-icon-wrapper">
-                    <img src="assets/images/icon-spray.svg" alt="Ícone de Aplicação" class="step-icon">
-                </div>
-                <div class="step-content">
-                    <h3>02. Aplicação Controlada de Solução</h3>
-                    <p>Aplicamos uma solução de limpeza biodegradável e antialérgica, formulada especificamente para o seu tipo de estofado. O produto age quebrando as moléculas de sujeira sem agredir o tecido.</p>
-                </div>
-            </div>
-
-            <div class="method-step">
-                <div class="step-icon-wrapper">
-                    <img src="assets/images/icon-brush.svg" alt="Ícone de Escovação" class="step-icon">
-                </div>
-                <div class="step-content">
-                    <h3>03. Escovação Técnica de Fibras</h3>
-                    <p>Utilizamos uma escova rotativa de cerdas macias para agitar as fibras do tecido de forma delicada e uniforme. Este passo garante que a solução de limpeza penetre profundamente, soltando a sujeira mais impregnada.</p>
-                </div>
-            </div>
-
-            <div class="method-step">
-                <div class="step-icon-wrapper">
-                    <img src="assets/images/icon-extraction.svg" alt="Ícone de Extração" class="step-icon">
-                </div>
-                <div class="step-content">
-                    <h3>04. Extração de Alta Performance</h3>
-                    <p>Nossa máquina extratora injeta água limpa e suga imediatamente toda a sujeira, resíduos de produto e umidade. O alto poder de vácuo garante uma secagem muito mais rápida e um resultado visivelmente superior.</p>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-        <section id="planos">
         <section id="planos" class="section-padding">
-    <div class="container">
-        <h2 class="section-title">Soluções Contínuas para seu Bem-Estar</h2>
-        <p class="section-subtitle">Escolha o plano de cuidado que melhor se adapta à sua rotina e economize, garantindo um ambiente sempre limpo e saudável.</p>
+            <div class="container">
+                <h2 class="section-title">Soluções Contínuas para seu Bem-Estar</h2>
+                <p class="section-subtitle">Escolha o plano de cuidado que melhor se adapta à sua rotina e economize.</p>
 
-        <div class="pricing-grid">
-            
-            <div class="pricing-card">
-                <h3 class="plan-title">Plano Trimestral</h3>
-                <p class="plan-tagline">Manutenção Máxima</p>
-                <div class="plan-price">R$ 119,90 <span class="price-period">/ trimestre</span></div>
-                <ul class="plan-features">
-                    <li><span class="check-icon">✓</span><span><strong>4 Higienizações</strong> por ano</span></li>
-                    <li><span class="check-icon">✓</span> Ideal para quem tem pets e crianças</li>
-                    <li><span class="check-icon">✓</span> Maior desconto por serviço</li>
-                    <li><span class="check-icon">✓</span> 15% OFF em serviços avulsos</li>
-                    <li><span class="check-icon">✓</span> 20% OFF em Taxas Adicionais</li>
-                </ul>
-                <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
+                <div class="pricing-grid">
+                    
+                    <div class="pricing-card">
+                        <h3 class="plan-title">Trimestral</h3>
+                        <p class="plan-tagline">Manutenção Máxima</p>
+                        <div class="plan-price">R$ 119,90 <span class="price-period">/ trimestre</span></div>
+                        <ul class="plan-features">
+                            <li><span class="check-icon">✓</span><strong>4 Higienizações</strong> por ano</li>
+                            <li><span class="check-icon">✓</span> Ideal para pets e crianças</li>
+                            <li><span class="check-icon">✓</span> Maior desconto por serviço</li>
+                            <li><span class="check-icon">✓</span> 15% OFF serviços avulsos</li>
+                            <li><span class="check-icon">✓</span> 20% OFF taxas adicionais</li>
+                        </ul>
+                        <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
+                    </div>
+
+                    <div class="pricing-card featured">
+                        <div class="featured-badge">MAIS POPULAR</div>
+                        <h3 class="plan-title">Semestral</h3>
+                        <p class="plan-tagline">Cuidado Proativo</p>
+                        <div class="plan-price">6x R$ 49,90 <span class="price-period">/ semestre</span></div>
+                        <ul class="plan-features">
+                            <li><span class="check-icon">✓</span><strong>2 Higienizações</strong> por ano</li>
+                            <li><span class="check-icon">✓</span> Equilíbrio perfeito custo-benefício</li>
+                            <li><span class="check-icon">✓</span> Mantém estofado sempre novo</li>
+                            <li><span class="check-icon">✓</span> 15% OFF serviços avulsos</li>
+                            <li><span class="check-icon">✓</span> 20% OFF taxas adicionais</li>
+                        </ul>
+                        <a href="#orcamento" class="cta-button-hero">Quero Este Plano</a>
+                    </div>
+
+                    <div class="pricing-card">
+                        <h3 class="plan-title">Anual</h3>
+                        <p class="plan-tagline">Tranquilidade Essencial</p>
+                        <div class="plan-price">12x R$ 14,90 <span class="price-period">/ ano</span></div>
+                        <ul class="plan-features">
+                            <li><span class="check-icon">✓</span><strong>1 Higienização</strong> por ano</li>
+                            <li><span class="check-icon">✓</span><strong>1 Suporte Emergencial</strong> para odores</li>
+                            <li><span class="check-icon">✓</span> Segurança contra imprevistos</li>
+                            <li><span class="check-icon">✓</span> 15% OFF serviços avulsos</li>
+                            <li><span class="check-icon">✓</span> 20% OFF taxas adicionais</li>
+                        </ul>
+                        <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
+                    </div>
+
+                </div>
             </div>
-
-            <div class="pricing-card featured">
-                <div class="featured-badge">MAIS POPULAR</div>
-                <h3 class="plan-title">Plano Semestral</h3>
-                <p class="plan-tagline">Cuidado Proativo</p>
-                <div class="plan-price">6x de R$ 49,90 <span class="price-period">/ semestre</span></div>
-                <ul class="plan-features">
-                    <li><span class="check-icon">✓</span><span><strong>2 Higienizações</strong> por ano</span></li>
-                    <li><span class="check-icon">✓</span> Equilíbrio perfeito custo-benefício</li>
-                    <li><span class="check-icon">✓</span> Mantém seu estofado sempre novo</li>
-                    <li><span class="check-icon">✓</span> 15% OFF em serviços avulsos</li>
-                    <li><span class="check-icon">✓</span> 20% OFF em Taxas Adicionais</li>
-                </ul>
-                <a href="#orcamento" class="cta-button-hero">Quero Este Plano</a>
-            </div>
-
-            <div class="pricing-card">
-                <h3 class="plan-title">Plano Anual</h3>
-                <p class="plan-tagline">Tranquilidade Essencial</p>
-                <div class="plan-price">12x de R$ 14,90 <span class="price-period">/ ano</span></div>
-                <ul class="plan-features">
-                    <li><span class="check-icon">✓</span><span><strong>1 Higienização</strong> por ano</span></li>
-                    <li><span class="check-icon">✓</span><span><strong>1 Suporte de Emergência</strong> para Odores</span></li>
-                    <li><span class="check-icon">✓</span> Segurança contra imprevistos</li>
-                    <li><span class="check-icon">✓</span> 15% OFF em serviços avulsos</li>
-                    <li><span class="check-icon">✓</span> 20% OFF em Taxas Adicionais</li>
-                </ul>
-                <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
-            </div>
-
-        </div>
-    </div>
-</section>
+        </section>
 
         <section id="pacotes" class="section-padding" style="background-color: var(--color-light-gray);">
-    <div class="container">
-        <h2 class="section-title">Pacotes Estratégicos</h2>
-        <p class="section-subtitle">Combine serviços e maximize o cuidado com seu lar, aproveitando descontos exclusivos.</p>
+            <div class="container">
+                <h2 class="section-title">Pacotes Estratégicos</h2>
+                <p class="section-subtitle">Combine serviços e maximize o cuidado com seu lar.</p>
 
-        <div class="packages-grid">
-            
-            <div class="package-card">
-                <h3 class="package-title">Proteção Apex</h3>
-                <p class="package-description">A combinação perfeita de limpeza profunda e impermeabilização, blindando seu estofado contra acidentes.</p>
-                <div class="package-discount">Economize até 17%</div>
-                <a href="#orcamento" class="cta-button-outline">Ver Opções</a>
+                <div class="packages-grid">
+                    
+                    <div class="package-card">
+                        <h3 class="package-title">🛡️ Proteção Apex</h3>
+                        <p class="package-description">Limpeza profunda + Impermeabilização premium. Seu estofado blindado contra acidentes.</p>
+                        <div class="package-discount">Economize até 17%</div>
+                        <a href="#orcamento" class="cta-button-outline">Montar Pacote</a>
+                    </div>
+
+                    <div class="package-card">
+                        <h3 class="package-title">🛋️ Sala Impecável</h3>
+                        <p class="package-description">Sofá + Tapete com valor especial. Seu ambiente de convivência totalmente renovado.</p>
+                        <div class="package-discount">Até R$ 80 de desconto</div>
+                        <a href="#orcamento" class="cta-button-outline">Montar Pacote</a>
+                    </div>
+
+                    <div class="package-card">
+                        <h3 class="package-title">🪑 Kit Jantar</h3>
+                        <p class="package-description">6 cadeiras com desconto especial. Renove seu conjunto completo.</p>
+                        <div class="package-discount">Pague 5, Leve 6</div>
+                        <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
+                    </div>
+
+                </div>
             </div>
+        </section>
 
-            <div class="package-card">
-                <h3 class="package-title">Sala de Estar Impecável</h3>
-                <p class="package-description">Cuidado completo para seu ambiente de convivência, incluindo sofá e tapete, com um valor especial.</p>
-                <div class="package-discount">Descontos de até R$ 80</div>
-                <a href="#orcamento" class="cta-button-outline">Montar Pacote</a>
-            </div>
-
-            <div class="package-card">
-                <h3 class="package-title">Kit de Jantar</h3>
-                <p class="package-description">Renove o conjunto completo de cadeiras da sua sala de jantar com nossa oferta especial para múltiplas unidades.</p>
-                <div class="package-discount">Pague 5, Leve 6</div>
-                <a href="#orcamento" class="cta-button-outline">Saber Mais</a>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-        <section id="sobre">
         <section id="sobre" class="section-padding">
-    <div class="container">
-        <div class="about-grid">
-            
-            <div class="about-image">
-                <img src="assets/images/team-or-process.png" alt="Equipe Apex Care utilizando tecnologia de ponta">
+            <div class="container">
+                <div class="about-grid">
+                    
+                    <div class="about-image">
+                        <img src="assets/images/team-or-process.png" alt="Equipe Apex Care">
+                    </div>
+
+                    <div class="about-content">
+                        <h2 class="section-title" style="text-align: left;">Sua tranquilidade é nosso maior primor.</h2>
+                        <h3>Apex Care: Inovação e Confiança em cada Fibra.</h3>
+                        <p>A Apex Care nasceu da visão de elevar o padrão da higienização de estofados. Percebemos que era possível ir além da simples limpeza, oferecendo um verdadeiro tratamento técnico que combina a mais avançada tecnologia com um cuidado detalhado e humanizado.</p>
+                        <p>Nossa equipe é formada por profissionais apaixonados por excelência. Utilizamos equipamentos de ponta e soluções biodegradáveis, garantindo um ambiente mais saudável e estofados impecáveis para o seu lar.</p>
+                    </div>
+
+                </div>
             </div>
+        </section>
 
-            <div class="about-content">
-                <h2 class="section-title" style="text-align: left;">Sua tranquilidade é nosso maior primor.</h2>
-                <h3>Apex Care: Inovação e Confiança em cada Fibra.</h3>
-                <p>A Apex Care nasceu da visão de elevar o padrão da higienização de estofados. Percebemos que era possível ir além da simples limpeza, oferecendo um verdadeiro tratamento técnico que combina a mais avançada tecnologia com um cuidado detalhado e humanizado.</p>
-                <p>Nossa equipe é formada por profissionais apaixonados por excelência. Utilizamos equipamentos de ponta e soluções biodegradáveis, garantindo um ambiente mais saudável e estofados impecáveis para o seu lar. Na Apex Care, cada serviço é um compromisso com a sua satisfação e o bem-estar da sua família.</p>
-            </div>
-
-        </div>
-    </div>
-</section>
-
-        <section id="orcamento">
         <section id="orcamento" class="section-padding cta-section">
-    <div class="container">
-        <h2 class="section-title" style="color: var(--color-white);">Pronto para renovar seu ambiente?</h2>
-        <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">Receba um orçamento detalhado e transparente em menos de 1 minuto, sem compromisso.</p>
-        
-        <div class="cta-features">
-            <span>✓ Instantâneo</span>
-            <span>✓ Transparente</span>
-            <span>✓ Personalizado</span>
-        </div>
+            <div class="container">
+                <h2 class="section-title" style="color: var(--color-white);">Pronto para renovar seu ambiente?</h2>
+                <p class="section-subtitle" style="color: rgba(255,255,255,0.8);">Receba um orçamento detalhado em menos de 1 minuto, sem compromisso.</p>
+                
+                <div class="cta-features">
+                    <span>✓ Instantâneo</span>
+                    <span>✓ Transparente</span>
+                    <span>✓ Personalizado</span>
+                </div>
 
-        <a href="orcamento.html" class="cta-button-hero large">Calcular Meu Orçamento Agora</a>
-        <p class="whatsapp-link">Prefere falar conosco? <a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">Chame no WhatsApp</a></p>
-    </div>
-</section>
+                <a href="orcamento.html" class="cta-button-hero large">Calcular Meu Orçamento Agora</a>
+                <p class="whatsapp-link">Prefere falar? <a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></p>
+            </div>
+        </section>
     </main>
 
     <footer class="main-footer">
-        <footer class="main-footer">
-    <div class="container footer-grid">
-        
-        <div class="footer-col">
-            <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
-            <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
-        </div>
+        <div class="container footer-grid">
+            
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+            </div>
 
-        <div class="footer-col">
-            <h4>Navegação</h4>
-            <ul>
-                <li><a href="#servicos">Serviços</a></li>
-                <li><a href="#metodo">O Método Apex</a></li>
-                <li><a href="#planos">Planos e Pacotes</a></li>
-                <li><a href="#sobre">Sobre Nós</a></li>
-            </ul>
-        </div>
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="#servicos">Serviços</a></li>
+                    <li><a href="#metodo">O Método</a></li>
+                    <li><a href="#planos">Planos</a></li>
+                    <li><a href="#sobre">Sobre Nós</a></li>
+                </ul>
+            </div>
 
-        <div class="footer-col">
-            <h4>Contato</h4>
-            <ul>
-                <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
-                <li><a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a></li>
-                <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
-            </ul>
-        </div>
+            <div class="footer-col">
+                <h4>Contato</h4>
+                <ul>
+                    <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
+                    <li><a href="mailto:contato@apexcare.com.br">E-mail</a></li>
+                    <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
+                </ul>
+            </div>
 
-    </div>
-    <div class="footer-bottom">
-        <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
-    </div>
-</footer>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
     <script type="module" src="js/main.js"></script>
-    <script type="module" src="js/shared.js"></script> 
-    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/shared.js"></script>
 </body>
 </html>
