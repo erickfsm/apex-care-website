@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falha no Pagamento - Apex Care</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .error-container {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .error-box {
+            background-color: white;
+            padding: 50px 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: shake 0.5s ease 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .error-icon svg {
+            width: 60px;
+            height: 60px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .error-box h1 {
+            color: var(--color-graphite);
+            font-size: 2.2em;
+            margin-bottom: 15px;
+        }
+
+        .error-box p {
+            color: #666;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .error-details {
+            background-color: #ffebee;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+            border-left: 4px solid #f44336;
+        }
+
+        .error-details h3 {
+            color: #c62828;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .error-details p {
+            color: #666;
+            font-size: 1em;
+            margin: 0;
+        }
+
+        .help-section {
+            background-color: var(--color-light-gray);
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .help-section h4 {
+            color: var(--color-graphite);
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .help-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .help-section li {
+            padding: 10px 0;
+            padding-left: 35px;
+            position: relative;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .help-section li:before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+            font-size: 1.3em;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .actions a,
+        .actions button {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .support-box {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+
+        .support-box h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .support-box p {
+            color: rgba(255,255,255,0.9);
+            margin: 10px 0;
+        }
+
+        .support-box a {
+            color: white;
+            font-weight: bold;
+            text-decoration: none;
+            border-bottom: 2px solid white;
+        }
+
+        @media (max-width: 768px) {
+            .error-box {
+                padding: 30px 20px;
+            }
+
+            .error-box h1 {
+                font-size: 1.8em;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions a,
+            .actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="error-box">
+            <!-- Ícone de Erro -->
+            <div class="error-icon">
+                <svg viewBox="0 0 52 52">
+                    <circle cx="26" cy="26" r="22"/>
+                    <path d="M16 16 L36 36 M36 16 L16 36"/>
+                </svg>
+            </div>
+
+            <h1>Ops! Pagamento Não Concluído 😔</h1>
+            <p>Não foi possível processar seu pagamento. Mas não se preocupe, seu agendamento está salvo e você pode tentar novamente.</p>
+
+            <!-- Detalhes do Erro -->
+            <div class="error-details">
+                <h3>⚠️ O que aconteceu?</h3>
+                <p id="error-message">O pagamento foi cancelado ou recusado. Nenhum valor foi cobrado.</p>
+            </div>
+
+            <!-- Seção de Ajuda -->
+            <div class="help-section">
+                <h4>💡 Como resolver:</h4>
+                <ul>
+                    <li><strong>Verifique seus dados:</strong> Certifique-se de que o número do cartão, validade e CVV estão corretos</li>
+                    <li><strong>Saldo disponível:</strong> Confirme se há saldo suficiente ou limite disponível</li>
+                    <li><strong>Tente outro cartão:</strong> Se o problema persistir, experimente usar outro cartão</li>
+                    <li><strong>Pague no local:</strong> Você também pode optar por pagar presencialmente no dia do serviço</li>
+                </ul>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="actions">
+                <button onclick="tentarNovamente()" class="cta-button-hero">🔄 Tentar Pagamento Novamente</button>
+                <a href="portal-cliente.html" class="cta-button-outline">Ver Meus Agendamentos</a>
+            </div>
+
+            <!-- Box de Suporte -->
+            <div class="support-box">
+                <h4>📞 Precisa de Ajuda?</h4>
+                <p>Nossa equipe está pronta para ajudar você!</p>
+                <p>
+                    WhatsApp: <a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">(31) XXXXX-XXXX</a><br>
+                    Email: <a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let agendamentoId = null;
+
+        async function loadErrorDetails() {
+            try {
+                // Pega parâmetros da URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const status = urlParams.get('status');
+                const statusDetail = urlParams.get('status_detail');
+
+                // Mensagens customizadas baseadas no status
+                const errorMessages = {
+                    'rejected': 'O pagamento foi recusado pela operadora do cartão.',
+                    'cancelled': 'O pagamento foi cancelado por você.',
+                    'pending': 'O pagamento está pendente de confirmação.',
+                    'in_process': 'O pagamento ainda está sendo processado.'
+                };
+
+                const errorElement = document.getElementById('error-message');
+                if (status && errorMessages[status]) {
+                    errorElement.textContent = errorMessages[status];
+                }
+
+                // Buscar último agendamento do usuário
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    const { data: agendamento } = await supabase
+                        .from('agendamentos')
+                        .select('id')
+                        .eq('cliente_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (agendamento) {
+                        agendamentoId = agendamento.id;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+            }
+        }
+
+        // Função para tentar pagamento novamente
+        window.tentarNovamente = async function() {
+            if (!agendamentoId) {
+                alert('Não foi possível encontrar seu agendamento. Por favor, entre em contato.');
+                return;
+            }
+
+            try {
+                // Redireciona para a página de agendamento para tentar pagar novamente
+                window.location.href = `agendamento.html?appointmentId=${agendamentoId}&action=pay`;
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao tentar novamente. Por favor, acesse o Portal do Cliente.');
+            }
+        };
+
+        // Carregar detalhes ao abrir a página
+        loadErrorDetails();
+    </script>
+
+</body>
+</html>

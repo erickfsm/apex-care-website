@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Confirmado - Apex Care</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .success-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .success-box {
+            background-color: white;
+            padding: 50px 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: scaleIn 0.5s ease 0.3s both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0);
+            }
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .success-icon svg {
+            width: 60px;
+            height: 60px;
+            stroke: white;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        .checkmark {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: drawCheck 0.8s ease 0.5s forwards;
+        }
+
+        @keyframes drawCheck {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .success-box h1 {
+            color: var(--color-graphite);
+            font-size: 2.2em;
+            margin-bottom: 15px;
+        }
+
+        .success-box p {
+            color: #666;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .payment-details {
+            background-color: var(--color-light-gray);
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .payment-details h3 {
+            color: var(--color-graphite);
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            color: var(--color-graphite);
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .actions a {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .next-steps {
+            background-color: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .next-steps h4 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .next-steps ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .next-steps li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+            color: #555;
+        }
+
+        .next-steps li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2e7d32;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        @media (max-width: 768px) {
+            .success-box {
+                padding: 30px 20px;
+            }
+
+            .success-box h1 {
+                font-size: 1.8em;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .actions a {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="success-container">
+        <div class="success-box">
+            <!-- Ícone de Sucesso Animado -->
+            <div class="success-icon">
+                <svg viewBox="0 0 52 52">
+                    <path class="checkmark" d="M14 27l8 8 16-16"/>
+                </svg>
+            </div>
+
+            <h1>Pagamento Confirmado! 🎉</h1>
+            <p>Seu agendamento foi confirmado com sucesso. Você receberá um e-mail com todos os detalhes.</p>
+
+            <!-- Detalhes do Pagamento -->
+            <div class="payment-details">
+                <h3>Detalhes do Agendamento</h3>
+                <div class="detail-row">
+                    <span class="detail-label">ID do Agendamento:</span>
+                    <span class="detail-value" id="appointment-id">Carregando...</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Data e Hora:</span>
+                    <span class="detail-value" id="appointment-date">Carregando...</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Valor Pago:</span>
+                    <span class="detail-value" id="appointment-value">Carregando...</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="color: #2e7d32;">✓ Pago e Confirmado</span>
+                </div>
+            </div>
+
+            <!-- Próximos Passos -->
+            <div class="next-steps">
+                <h4>📋 Próximos Passos:</h4>
+                <ul>
+                    <li>Você receberá um email de confirmação em breve</li>
+                    <li>Um técnico entrará em contato 24h antes do serviço</li>
+                    <li>Prepare o ambiente no horário agendado</li>
+                    <li>Acompanhe o status no Portal do Cliente</li>
+                </ul>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="actions">
+                <a href="portal-cliente.html" class="cta-button-hero">Ver Meus Agendamentos</a>
+                <a href="index.html" class="cta-button-outline">Voltar ao Início</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function loadPaymentDetails() {
+            try {
+                // Pega parâmetros da URL (Mercado Pago retorna esses parâmetros)
+                const urlParams = new URLSearchParams(window.location.search);
+                const paymentId = urlParams.get('payment_id');
+                const status = urlParams.get('status');
+                const externalReference = urlParams.get('external_reference');
+
+                console.log('Payment ID:', paymentId);
+                console.log('Status:', status);
+                console.log('External Reference:', externalReference);
+
+                // Buscar dados do agendamento
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    console.error('Usuário não autenticado');
+                    return;
+                }
+
+                // Buscar último agendamento do usuário
+                const { data: agendamento, error } = await supabase
+                    .from('agendamentos')
+                    .select('*')
+                    .eq('cliente_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (error) {
+                    console.error('Erro ao buscar agendamento:', error);
+                    return;
+                }
+
+                if (agendamento) {
+                    // Atualizar status do pagamento
+                    if (status === 'approved') {
+                        await supabase
+                            .from('agendamentos')
+                            .update({ status_pagamento: 'Pago e Confirmado' })
+                            .eq('id', agendamento.id);
+                    }
+
+                    // Exibir detalhes
+                    document.getElementById('appointment-id').textContent = `#${agendamento.id}`;
+                    
+                    const dataFormatada = agendamento.data_agendamento 
+                        ? new Date(agendamento.data_agendamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                        : 'A confirmar';
+                    
+                    document.getElementById('appointment-date').textContent = 
+                        `${dataFormatada} às ${agendamento.hora_agendamento || '--:--'}`;
+                    
+                    document.getElementById('appointment-value').textContent = 
+                        `R$ ${agendamento.valor_total.toFixed(2).replace('.', ',')}`;
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar detalhes:', error);
+            }
+        }
+
+        // Carregar detalhes ao abrir a página
+        loadPaymentDetails();
+    </script>
+
+</body>
+</html>
