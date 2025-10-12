@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliar Serviço - Apex Care</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .avaliacao-main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .avaliacao-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            margin: 0 auto;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .avaliacao-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .avaliacao-header h1 {
+            color: var(--color-graphite);
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .avaliacao-header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .service-info {
+            background-color: var(--color-light-gray);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .service-info h3 {
+            margin-bottom: 15px;
+            color: var(--color-cyan);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .rating-section {
+            margin: 30px 0;
+        }
+
+        .rating-section h3 {
+            margin-bottom: 20px;
+            color: var(--color-graphite);
+            font-size: 1.3em;
+        }
+
+        .stars-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .star {
+            font-size: 3em;
+            color: #ddd;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #FFD700;
+            transform: scale(1.2);
+        }
+
+        .aspect-rating {
+            margin: 20px 0;
+        }
+
+        .aspect-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .aspect-label {
+            font-weight: 600;
+            color: var(--color-graphite);
+        }
+
+        .aspect-stars {
+            display: flex;
+            gap: 5px;
+        }
+
+        .aspect-star {
+            font-size: 1.5em;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .aspect-star:hover,
+        .aspect-star.active {
+            color: #FFD700;
+        }
+
+        .comment-section {
+            margin: 30px 0;
+        }
+
+        .comment-section label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--color-graphite);
+        }
+
+        .comment-section textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--color-cyan);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .submit-btn:hover {
+            background-color: #008f83;
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .success-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .avaliacao-container {
+                padding: 30px 20px;
+            }
+
+            .stars-container {
+                gap: 10px;
+            }
+
+            .star {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-header scrolled">
+        <nav class="main-nav">
+            <a href="index.html" class="logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+        </nav>
+    </header>
+
+    <main class="avaliacao-main">
+        <div class="container">
+            <div class="avaliacao-container">
+                
+                <div id="form-avaliacao">
+                    <div class="avaliacao-header">
+                        <h1>⭐ Avalie Nosso Serviço</h1>
+                        <p>Sua opinião é muito importante para nós!</p>
+                    </div>
+
+                    <!-- Informações do Serviço -->
+                    <div class="service-info">
+                        <h3>📋 Detalhes do Serviço</h3>
+                        <div class="info-row">
+                            <span>Ordem de Serviço:</span>
+                            <strong id="os-id">Carregando...</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Data:</span>
+                            <strong id="os-data">Carregando...</strong>
+                        </div>
+                        <div class="info-row">
+                            <span>Serviços:</span>
+                            <strong id="os-servicos">Carregando...</strong>
+                        </div>
+                    </div>
+
+                    <!-- Avaliação Geral -->
+                    <div class="rating-section">
+                        <h3>Como foi sua experiência geral?</h3>
+                        <div class="stars-container">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <p id="rating-text" style="text-align: center; color: #666; font-size: 0.9em;"></p>
+                    </div>
+
+                    <!-- Avaliação por Aspectos -->
+                    <div class="aspect-rating">
+                        <h3 style="margin-bottom: 20px; color: var(--color-graphite);">Avalie aspectos específicos:</h3>
+                        
+                        <div class="aspect-item">
+                            <span class="aspect-label">⏰ Pontualidade</span>
+                            <div class="aspect-stars" data-aspect="pontualidade">
+                                <span class="aspect-star" data-value="1">★</span>
+                                <span class="aspect-star" data-value="2">★</span>
+                                <span class="aspect-star" data-value="3">★</span>
+                                <span class="aspect-star" data-value="4">★</span>
+                                <span class="aspect-star" data-value="5">★</span>
+                            </div>
+                        </div>
+
+                        <div class="aspect-item">
+                            <span class="aspect-label">✨ Qualidade do Serviço</span>
+                            <div class="aspect-stars" data-aspect="qualidade">
+                                <span class="aspect-star" data-value="1">★</span>
+                                <span class="aspect-star" data-value="2">★</span>
+                                <span class="aspect-star" data-value="3">★</span>
+                                <span class="aspect-star" data-value="4">★</span>
+                                <span class="aspect-star" data-value="5">★</span>
+                            </div>
+                        </div>
+
+                        <div class="aspect-item">
+                            <span class="aspect-label">😊 Atendimento</span>
+                            <div class="aspect-stars" data-aspect="atendimento">
+                                <span class="aspect-star" data-value="1">★</span>
+                                <span class="aspect-star" data-value="2">★</span>
+                                <span class="aspect-star" data-value="3">★</span>
+                                <span class="aspect-star" data-value="4">★</span>
+                                <span class="aspect-star" data-value="5">★</span>
+                            </div>
+                        </div>
+
+                        <div class="aspect-item">
+                            <span class="aspect-label">💰 Custo-Benefício</span>
+                            <div class="aspect-stars" data-aspect="custo_beneficio">
+                                <span class="aspect-star" data-value="1">★</span>
+                                <span class="aspect-star" data-value="2">★</span>
+                                <span class="aspect-star" data-value="3">★</span>
+                                <span class="aspect-star" data-value="4">★</span>
+                                <span class="aspect-star" data-value="5">★</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comentário -->
+                    <div class="comment-section">
+                        <label for="comentario">Deixe seu comentário (opcional):</label>
+                        <textarea 
+                            id="comentario" 
+                            placeholder="Conte-nos mais sobre sua experiência..."
+                            maxlength="500"
+                        ></textarea>
+                        <p style="text-align: right; color: #999; font-size: 0.85em; margin-top: 5px;">
+                            <span id="char-count">0</span>/500 caracteres
+                        </p>
+                    </div>
+
+                    <!-- Botão Enviar -->
+                    <button class="submit-btn" id="submit-btn" disabled>
+                        Enviar Avaliação
+                    </button>
+                </div>
+
+                <!-- Mensagem de Sucesso -->
+                <div id="success-message" class="success-message">
+                    <div class="success-icon">🎉</div>
+                    <h2 style="color: var(--color-graphite); margin-bottom: 15px;">Obrigado pela sua avaliação!</h2>
+                    <p style="color: #666; margin-bottom: 30px;">Sua opinião nos ajuda a melhorar cada vez mais.</p>
+                    <a href="portal-cliente.html" class="cta-button-hero">Voltar ao Portal</a>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let currentOS = null;
+        let rating = 0;
+        let aspectos = {
+            pontualidade: 0,
+            qualidade: 0,
+            atendimento: 0,
+            custo_beneficio: 0
+        };
+
+        const ratingTexts = {
+            1: '😞 Muito insatisfeito',
+            2: '😕 Insatisfeito',
+            3: '😐 Neutro',
+            4: '😊 Satisfeito',
+            5: '😍 Muito satisfeito'
+        };
+
+        // Inicialização
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                alert('Faça login para avaliar.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = user;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const osId = urlParams.get('os');
+
+            if (!osId) {
+                alert('ID da ordem de serviço não fornecido.');
+                window.location.href = 'portal-cliente.html';
+                return;
+            }
+
+            await loadOS(osId);
+            setupEventListeners();
+        }
+
+        async function loadOS(osId) {
+            const { data, error } = await supabase
+                .from('agendamentos')
+                .select('*')
+                .eq('id', osId)
+                .eq('cliente_id', currentUser.id)
+                .single();
+
+            if (error || !data) {
+                alert('Ordem de serviço não encontrada.');
+                window.location.href = 'portal-cliente.html';
+                return;
+            }
+
+            // Verificar se já foi avaliado
+            if (data.avaliado) {
+                alert('Este serviço já foi avaliado.');
+                window.location.href = 'portal-cliente.html';
+                return;
+            }
+
+            currentOS = data;
+            displayOSInfo();
+        }
+
+        function displayOSInfo() {
+            document.getElementById('os-id').textContent = `#${currentOS.id}`;
+            
+            const dataFormatada = currentOS.data_agendamento 
+                ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
+                : 'N/A';
+            document.getElementById('os-data').textContent = dataFormatada;
+
+            const servicosTexto = currentOS.servicos_escolhidos
+                .map(s => s.name)
+                .join(', ');
+            document.getElementById('os-servicos').textContent = servicosTexto;
+        }
+
+        function setupEventListeners() {
+            // Avaliação geral
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', function() {
+                    rating = parseInt(this.dataset.rating);
+                    updateStars();
+                    checkFormValidity();
+                });
+            });
+
+            // Avaliação por aspectos
+            document.querySelectorAll('.aspect-stars').forEach(container => {
+                const aspect = container.dataset.aspect;
+                container.querySelectorAll('.aspect-star').forEach(star => {
+                    star.addEventListener('click', function() {
+                        aspectos[aspect] = parseInt(this.dataset.value);
+                        updateAspectStars(container, aspectos[aspect]);
+                        checkFormValidity();
+                    });
+                });
+            });
+
+            // Contador de caracteres
+            const comentario = document.getElementById('comentario');
+            comentario.addEventListener('input', function() {
+                document.getElementById('char-count').textContent = this.value.length;
+            });
+
+            // Botão enviar
+            document.getElementById('submit-btn').addEventListener('click', submitAvaliacao);
+        }
+
+        function updateStars() {
+            document.querySelectorAll('.star').forEach(star => {
+                const starRating = parseInt(star.dataset.rating);
+                if (starRating <= rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+
+            document.getElementById('rating-text').textContent = ratingTexts[rating] || '';
+        }
+
+        function updateAspectStars(container, value) {
+            container.querySelectorAll('.aspect-star').forEach(star => {
+                const starValue = parseInt(star.dataset.value);
+                if (starValue <= value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function checkFormValidity() {
+            const allAspectsRated = Object.values(aspectos).every(v => v > 0);
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (rating > 0 && allAspectsRated) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        async function submitAvaliacao() {
+            const comentario = document.getElementById('comentario').value;
+            const submitBtn = document.getElementById('submit-btn');
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+
+            try {
+                // Inserir avaliação
+                const { error: avaliacaoError } = await supabase
+                    .from('avaliacoes')
+                    .insert({
+                        agendamento_id: currentOS.id,
+                        cliente_id: currentUser.id,
+                        nota: rating,
+                        comentario: comentario || null,
+                        aspectos: aspectos
+                    });
+
+                if (avaliacaoError) throw avaliacaoError;
+
+                // Marcar agendamento como avaliado
+                const { error: updateError } = await supabase
+                    .from('agendamentos')
+                    .update({ avaliado: true })
+                    .eq('id', currentOS.id);
+
+                if (updateError) throw updateError;
+
+                // Mostrar mensagem de sucesso
+                document.getElementById('form-avaliacao').style.display = 'none';
+                document.getElementById('success-message').style.display = 'block';
+
+            } catch (error) {
+                console.error('Erro ao enviar avaliação:', error);
+                alert('Erro ao enviar avaliação: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Avaliação';
+            }
+        }
+
+        // Iniciar
+        init();
+    </script>
+
+</body>
+</html>

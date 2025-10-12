@@ -109,8 +109,15 @@ if (registerForm) {
             }
                     
             // ✅ PASSO 5: Redireciona com sucesso
-            alert("✅ Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
-            window.location.href = 'agendamento.html';
+            const temOrcamento = orcamentoSalvo && orcamentoSalvo.length > 0;
+            
+            if (temOrcamento) {
+                alert("✅ Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
+                window.location.href = 'agendamento.html';
+            } else {
+                alert("✅ Conta criada com sucesso! Bem-vindo à Apex Care.");
+                window.location.href = 'portal-cliente.html';
+            }
 
         } catch (error) {
             console.error("❌ ERRO DETALHADO NO CADASTRO:", error);
@@ -183,7 +190,7 @@ if (loginForm) {
             alert("Login efetuado com sucesso!");
             
             if (userTypeFromDB === 'tecnico') {
-                window.location.href = 'tecnico-painel.html';
+                window.location.href = 'tecnico-dashboard.html'; // ← NOVA ROTA PARA TÉCNICOS
             } else {
                 window.location.href = 'index.html'; 
             }

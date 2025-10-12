@@ -1,0 +1,16 @@
+name: Enviar Lembretes Diários
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # Todos os dias às 10:00 UTC
+  workflow_dispatch:  # Permite executar manualmente
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar Edge Function
+        run: |
+          curl -X POST \
+            https://xrajjehettusnbvjielf.supabase.co/functions/v1/send-reminders \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"

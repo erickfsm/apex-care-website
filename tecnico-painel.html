@@ -523,5 +523,25 @@
             });
         });
     </script>
+
+    <!-- Inputs de upload (ocultos) -->
+<input type="file" id="upload-antes" accept="image/*" style="display: none;">
+<input type="file" id="upload-durante" accept="image/*" style="display: none;">
+<input type="file" id="upload-depois" accept="image/*" style="display: none;">
+
+<!-- Textarea para observações -->
+<textarea id="observacoes" placeholder="Observações técnicas..." style="width: 100%; min-height: 100px;"></textarea>
+
+<!-- Botões -->
+<button id="btn-iniciar-servico" class="btn-primary">Iniciar Serviço</button>
+<button id="btn-concluir-servico" class="btn-primary">Concluir Serviço</button>
+
+<!-- Previews -->
+<div id="preview-antes"></div>
+<div id="preview-durante"></div>
+<div id="preview-depois"></div>
+
+<script type="module" src="js/tecnico-painel.js"></script>
+
 </body>
 </html>

@@ -1,29 +1,24 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Configura a conexão
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// HORÁRIOS DE TRABALHO PADRÃO DA APEX CARE
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
-// Variáveis globais
+
 let currentUser = null;
 let pendingAppointment = null;
 let selectedDate = null;
 let selectedTime = null;
 let currentDate = new Date();
 
-// Elementos do DOM
 const calendarDays = document.getElementById('calendar-days');
 const timeSlotsDiv = document.getElementById('time-slots');
-const confirmBtn = document.getElementById('confirm-btn');
 const payOnSiteBtn = document.getElementById('pay-on-site-btn');
 const payOnlineBtn = document.getElementById('pay-online-btn');
 const summaryText = document.getElementById('summary-text');
 const currentMonthDisplay = document.getElementById('current-month');
 
-// --- PONTO DE ENTRADA PRINCIPAL ---
 // Fica "ouvindo" o estado da autenticação
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'INITIAL_SESSION' && session?.user) {
@@ -39,7 +34,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
-// Verificação de segurança (timeout)
 setTimeout(() => {
     if (!currentUser) {
         console.warn("⚠️ Sessão não encontrada após timeout");
@@ -57,11 +51,15 @@ async function findPendingAppointment() {
 
     console.log("🔍 Procurando agendamento pendente para usuário:", currentUser.id);
 
+    // BUSCA MAIS FLEXÍVEL - pega o último agendamento do usuário que NÃO está concluído
     const { data, error } = await supabase
         .from('agendamentos')
         .select('*')
         .eq('cliente_id', currentUser.id)
-        .is('data_agendamento', null)
+        .not('status_pagamento', 'eq', 'Concluído')
+        .not('status_pagamento', 'eq', 'Cancelado')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
     if (error || !data) {
@@ -72,11 +70,18 @@ async function findPendingAppointment() {
     }
     
     pendingAppointment = data;
-    console.log("✅ Agendamento pendente encontrado:", pendingAppointment);
+    console.log("✅ Agendamento encontrado:", pendingAppointment);
+    
+    // Se já tem data/hora, mostrar na tela
+    if (data.data_agendamento && data.hora_agendamento) {
+        selectedDate = data.data_agendamento;
+        selectedTime = data.hora_agendamento;
+        console.log("📅 Agendamento já tem data/hora definida");
+    }
+    
     generateCalendar(); 
 }
 
-// --- FUNÇÕES DO CALENDÁRIO ---
 function generateCalendar() {
     calendarDays.innerHTML = '';
     const year = currentDate.getFullYear();
@@ -97,16 +102,29 @@ function generateCalendar() {
         dayDiv.textContent = day;
         const fullDate = new Date(year, month, day);
 
-        // Desabilita dias passados
         if (fullDate < today.setHours(0,0,0,0)) {
             dayDiv.classList.add('unavailable');
         } else {
             dayDiv.classList.add('available');
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             dayDiv.dataset.date = dateStr;
+            
+            // Se for a data já selecionada, marcar
+            if (dateStr === selectedDate) {
+                dayDiv.classList.add('selected');
+            }
+            
             dayDiv.addEventListener('click', () => handleDayClick(dayDiv, dateStr));
         }
         calendarDays.appendChild(dayDiv);
+    }
+    
+    // Se já tem data selecionada, carregar horários
+    if (selectedDate) {
+        const selectedDayElement = document.querySelector(`[data-date="${selectedDate}"]`);
+        if (selectedDayElement) {
+            handleDayClick(selectedDayElement, selectedDate);
+        }
     }
 }
 
@@ -120,10 +138,9 @@ document.getElementById('next-month-btn').addEventListener('click', () => {
     generateCalendar();
 });
 
-// --- FUNÇÕES DE SELEÇÃO DE HORÁRIO ---
 async function handleDayClick(dayElement, dateStr) {
     selectedDate = dateStr;
-    selectedTime = null;
+    // NÃO reseta selectedTime se já existir
     updateSummary();
 
     timeSlotsDiv.innerHTML = "<p>Verificando disponibilidade...</p>";
@@ -155,6 +172,12 @@ async function handleDayClick(dayElement, dateStr) {
         const slotDiv = document.createElement('div');
         slotDiv.textContent = time;
         slotDiv.classList.add('time-slot');
+        
+        // Se for o horário já selecionado, marcar
+        if (time === selectedTime) {
+            slotDiv.classList.add('selected');
+        }
+        
         slotDiv.addEventListener('click', () => handleTimeClick(slotDiv, time));
         timeSlotsDiv.appendChild(slotDiv);
     });
@@ -171,16 +194,16 @@ function updateSummary() {
     if (selectedDate && selectedTime) {
         const [year, month, day] = selectedDate.split('-');
         summaryText.textContent = `Confirmar para ${day}/${month}/${year} às ${selectedTime}?`;
-        payOnSiteBtn.disabled = false; // Habilita os dois botões
+        payOnSiteBtn.disabled = false;
         payOnlineBtn.disabled = false;
     } else {
         summaryText.textContent = 'Nenhum horário selecionado.';
-        payOnSiteBtn.disabled = true; // Desabilita os dois botões
+        payOnSiteBtn.disabled = true;
         payOnlineBtn.disabled = true;
     }
 }
 
-// --- LÓGICA DO BOTÃO 1: AGENDAR E PAGAR NO LOCAL ---
+// BOTÃO 1: PAGAR NO LOCAL
 payOnSiteBtn.addEventListener('click', async () => {
     if (!selectedDate || !selectedTime || !pendingAppointment) return;
 
@@ -193,7 +216,7 @@ payOnSiteBtn.addEventListener('click', async () => {
         .update({ 
             data_agendamento: selectedDate,
             hora_agendamento: selectedTime,
-            status_pagamento: 'Pendente (Pagar no Local)' // NOVO STATUS
+            status_pagamento: 'Pendente (Pagar no Local)'
         })
         .eq('id', pendingAppointment.id);
 
@@ -204,13 +227,12 @@ payOnSiteBtn.addEventListener('click', async () => {
         payOnlineBtn.disabled = false;
         payOnSiteBtn.textContent = "Agendar e Pagar no Local";
     } else {
-        alert("Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
+        alert("✅ Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
         window.location.href = 'portal-cliente.html';
     }
 });
 
-
-// --- LÓGICA DO BOTÃO 2: PAGAR ONLINE E CONFIRMAR (MERCADO PAGO) ---
+// BOTÃO 2: PAGAR ONLINE
 payOnlineBtn.addEventListener('click', async () => {
     if (!selectedDate || !selectedTime || !pendingAppointment || !currentUser) return;
 
@@ -219,6 +241,16 @@ payOnlineBtn.addEventListener('click', async () => {
     payOnlineBtn.textContent = "Gerando Pagamento...";
 
     try {
+        // Primeiro atualiza data/hora
+        await supabase
+            .from('agendamentos')
+            .update({ 
+                data_agendamento: selectedDate,
+                hora_agendamento: selectedTime,
+            })
+            .eq('id', pendingAppointment.id);
+
+        // Depois gera link de pagamento
         const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
             body: {
                 appointmentId: pendingAppointment.id,
@@ -228,15 +260,6 @@ payOnlineBtn.addEventListener('click', async () => {
         });
 
         if (functionError) throw functionError;
-
-        // Antes de redirecionar, salvamos a data e hora
-        await supabase
-            .from('agendamentos')
-            .update({ 
-                data_agendamento: selectedDate,
-                hora_agendamento: selectedTime,
-            })
-            .eq('id', pendingAppointment.id);
         
         window.location.href = functionData.checkoutUrl;
 
@@ -244,69 +267,7 @@ payOnlineBtn.addEventListener('click', async () => {
         alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
         console.error("Erro completo:", error);
         payOnSiteBtn.disabled = false;
-        payOnSiteBtn.disabled = false;
+        payOnlineBtn.disabled = false;
         payOnlineBtn.textContent = "Pagar Online e Confirmar";
-    }
-});
-
-// --- AÇÃO FINAL: CONFIRMAR AGENDAMENTO ---
-confirmBtn.addEventListener('click', async () => {
-    if (!selectedDate || !selectedTime || !pendingAppointment || !currentUser) {
-        alert("❌ Erro: dados incompletos");
-        return;
-    }
-
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = "Processando...";
-
-    try {
-        console.log("📅 Atualizando agendamento com data e hora...");
-        
-        // ✅ PASSO 1: Atualiza a data e hora do agendamento
-        const { error: updateError } = await supabase
-            .from('agendamentos')
-            .update({
-                data_agendamento: selectedDate,
-                hora_agendamento: selectedTime
-            })
-            .eq('id', pendingAppointment.id);
-
-        if (updateError) {
-            console.error("❌ Erro ao atualizar agendamento:", updateError);
-            throw updateError;
-        }
-        console.log("✅ Data e hora atualizadas!");
-
-        // ✅ PASSO 2: Invoca a função para criar o pagamento
-        console.log("💳 Criando link de pagamento no Mercado Pago...");
-        
-        const { data: functionData, error: functionError } = await supabase.functions.invoke('create-payment', {
-            body: {
-                appointmentId: pendingAppointment.id,
-                items: pendingAppointment.servicos_escolhidos,
-                clientEmail: currentUser.email
-            }
-        });
-
-        if (functionError) {
-            console.error("❌ Erro na função create-payment:", functionError);
-            throw functionError;
-        }
-        
-        if (!functionData || !functionData.checkoutUrl) {
-            throw new Error("Nenhuma URL de checkout retornada");
-        }
-
-        console.log("✅ Link de pagamento recebido!");
-        console.log("🔗 Redirecionando para:", functionData.checkoutUrl);
-
-        // ✅ PASSO 3: Redireciona o cliente para o checkout
-        window.location.href = functionData.checkoutUrl;
-
-    } catch (error) {
-        console.error("❌ Erro completo:", error);
-        alert(`❌ Erro ao processar agendamento:\n\n${error.message}`);
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = "Confirmar Agendamento";
     }
 });
