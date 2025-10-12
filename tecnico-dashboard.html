@@ -77,7 +77,7 @@
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
-            align-items: center;
+            align-items: flex-end;
         }
 
         .filter-group {
@@ -131,27 +131,32 @@
         }
 
         .appointment-id {
-            font-size: 1.1em;
+            font-size: 1.2em;
             font-weight: 700;
             color: var(--color-graphite);
         }
 
         .appointment-status {
-            padding: 6px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 0.85em;
             font-weight: 700;
             text-transform: uppercase;
         }
 
-        .status-agendado {
-            background-color: #e3f2fd;
-            color: #1976d2;
+        .status-pendente {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmado {
+            background-color: #d1ecf1;
+            color: #0c5460;
         }
 
         .status-em-andamento {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: #cfe2ff;
+            color: #084298;
         }
 
         .status-concluido {
@@ -164,39 +169,37 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin: 15px 0;
+            padding: 15px;
+            background-color: var(--color-light-gray);
+            border-radius: 5px;
         }
 
         .info-item {
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .info-icon {
-            font-size: 1.3em;
-        }
-
-        .info-text {
-            flex: 1;
+            flex-direction: column;
+            gap: 5px;
         }
 
         .info-label {
             font-size: 0.85em;
             color: #666;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .info-value {
-            font-size: 1em;
+            font-size: 1.1em;
             color: var(--color-graphite);
             font-weight: 700;
         }
 
         .services-list {
-            background-color: var(--color-light-gray);
+            background-color: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
             margin: 15px 0;
+            border: 1px solid #e9ecef;
         }
 
         .services-list h4 {
@@ -209,31 +212,40 @@
         .services-list ul {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
 
         .services-list li {
-            padding: 5px 0;
+            padding: 8px 0;
             color: #555;
             display: flex;
             align-items: center;
             gap: 8px;
+            border-bottom: 1px dashed #dee2e6;
+        }
+
+        .services-list li:last-child {
+            border-bottom: none;
         }
 
         .services-list li:before {
             content: "✓";
             color: var(--color-cyan);
             font-weight: bold;
+            font-size: 1.2em;
         }
 
         .appointment-actions {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
@@ -241,8 +253,12 @@
             font-size: 0.95em;
             transition: all 0.3s;
             text-decoration: none;
-            display: inline-block;
-            text-align: center;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 150px;
+            justify-content: center;
         }
 
         .btn-primary {
@@ -252,15 +268,16 @@
 
         .btn-primary:hover {
             background-color: #008f83;
+            transform: translateY(-2px);
         }
 
         .btn-secondary {
-            background-color: #e5e7eb;
-            color: var(--color-graphite);
+            background-color: #6c757d;
+            color: white;
         }
 
         .btn-secondary:hover {
-            background-color: #d1d5db;
+            background-color: #5a6268;
         }
 
         .empty-state {
@@ -274,6 +291,18 @@
             font-size: 4em;
             margin-bottom: 20px;
             opacity: 0.3;
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 40px;
+            background-color: white;
+            border-radius: 8px;
+        }
+
+        .loading-state p {
+            color: #666;
+            font-size: 1.1em;
         }
 
         @media (max-width: 768px) {
@@ -338,7 +367,7 @@
                 <div class="stat-card">
                     <div class="stat-icon">📋</div>
                     <div class="stat-value" id="stat-total">0</div>
-                    <div class="stat-label">Total Pendentes</div>
+                    <div class="stat-label">Total de Agendamentos</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">✅</div>
@@ -361,21 +390,21 @@
                     <label for="filter-status">Filtrar por Status:</label>
                     <select id="filter-status">
                         <option value="todos">Todos</option>
-                        <option value="Pago e Confirmado">Agendado</option>
                         <option value="Pendente">Pendente</option>
+                        <option value="Pago e Confirmado">Confirmado</option>
                         <option value="Em Andamento">Em Andamento</option>
                         <option value="Concluído">Concluído</option>
                     </select>
                 </div>
-                <div class="filter-group" style="display: flex; align-items: flex-end; gap: 10px;">
-                    <button class="btn btn-primary" onclick="applyFilters()" style="flex: 1;">🔍 Filtrar</button>
-                    <button class="btn btn-secondary" onclick="clearFilters()" style="flex: 1;">🔄 Limpar</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="applyFilters()">🔍 Filtrar</button>
+                    <button class="btn btn-secondary" onclick="clearFilters()">🔄 Limpar</button>
                 </div>
             </div>
 
             <div id="appointments-container">
-                <div class="loading-state" style="text-align: center; padding: 40px;">
-                    <p>Carregando agendamentos...</p>
+                <div class="loading-state">
+                    <p>⏳ Carregando agendamentos...</p>
                 </div>
             </div>
 
@@ -404,7 +433,7 @@
         let currentUser = null;
         let allAppointments = [];
 
-        // === SETUP AUTH HEADER ===
+        // Setup Auth Header
         async function setupAuthHeader() {
             const authContainer = document.getElementById('auth-container-header');
             const { data: { user } } = await supabase.auth.getUser();
@@ -413,17 +442,16 @@
             
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('nome_completo, user_type')
+                .select('nome_completo')
                 .eq('id', user.id)
                 .single();
             
             const userName = profile?.nome_completo?.split(' ')[0] || 'Usuário';
-            const icon = '🔧';
             
             authContainer.innerHTML = `
                 <div class="auth-dropdown">
                     <button class="auth-dropdown-btn" id="auth-dropdown-btn">
-                        ${icon} ${userName}
+                        🔧 ${userName}
                         <span>▼</span>
                     </button>
                     <div class="auth-dropdown-menu" id="auth-dropdown-menu">
@@ -435,67 +463,76 @@
                 </div>
             `;
             
-            const dropdownBtn = document.getElementById('auth-dropdown-btn');
-            const dropdownMenu = document.getElementById('auth-dropdown-menu');
-            const logoutBtn = document.getElementById('logout-btn');
-            
-            dropdownBtn.addEventListener('click', (e) => {
+            document.getElementById('auth-dropdown-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
-                dropdownMenu.classList.toggle('active');
+                document.getElementById('auth-dropdown-menu').classList.toggle('active');
             });
             
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.auth-dropdown')) {
-                    dropdownMenu.classList.remove('active');
+                    document.getElementById('auth-dropdown-menu').classList.remove('active');
                 }
             });
             
-            logoutBtn.addEventListener('click', async (e) => {
+            document.getElementById('logout-btn').addEventListener('click', async (e) => {
                 e.preventDefault();
                 await supabase.auth.signOut();
                 window.location.href = 'index.html';
             });
         }
 
-        // === INIT ===
+        // Init
         async function init() {
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (!user) {
-                alert('Sessão não encontrada. Faça login novamente.');
-                window.location.href = 'login.html';
-                return;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    alert('Sessão não encontrada. Faça login novamente.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('user_type, nome_completo')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile?.user_type !== 'tecnico') {
+                    alert('Acesso negado. Apenas técnicos podem acessar esta página.');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                currentUser = user;
+                document.getElementById('tecnico-name').textContent = 
+                    profile.nome_completo?.split(' ')[0] || 'Técnico';
+
+                const hoje = new Date();
+                const opcoes = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                document.getElementById('current-date').textContent = 
+                    `Hoje é ${hoje.toLocaleDateString('pt-BR', opcoes)}`;
+
+                await setupAuthHeader();
+                await loadAppointments();
+            } catch (error) {
+                console.error('Erro na inicialização:', error);
+                document.getElementById('appointments-container').innerHTML = `
+                    <div class="empty-state">
+                        <h3>❌ Erro ao Carregar</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">🔄 Tentar Novamente</button>
+                    </div>
+                `;
             }
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('user_type, nome_completo')
-                .eq('id', user.id)
-                .single();
-
-            if (profile?.user_type !== 'tecnico') {
-                alert('Acesso negado. Apenas técnicos podem acessar esta página.');
-                window.location.href = 'index.html';
-                return;
-            }
-
-            currentUser = user;
-            document.getElementById('tecnico-name').textContent = 
-                profile.nome_completo?.split(' ')[0] || 'Técnico';
-
-            const hoje = new Date();
-            const opcoes = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('current-date').textContent = 
-                `Hoje é ${hoje.toLocaleDateString('pt-BR', opcoes)}`;
-
-            await setupAuthHeader();
-            await loadAppointments();
         }
 
-        // === LOAD APPOINTMENTS ===
+        // Load Appointments
         async function loadAppointments() {
             try {
-                // BUSCA SIMPLES - SEM FILTROS RESTRITIVOS
+                console.log('🔍 Carregando agendamentos...');
+
+                // Buscar TODOS os agendamentos primeiro
                 const { data: appointments, error } = await supabase
                     .from('agendamentos')
                     .select('*')
@@ -503,33 +540,46 @@
 
                 if (error) throw error;
 
-                console.log('✅ Total encontrado:', appointments?.length);
+                console.log(`✅ ${appointments?.length || 0} agendamentos encontrados`);
 
-                if (appointments && appointments.length > 0) {
-                    const clienteIds = [...new Set(appointments.map(a => a.cliente_id))];
-                    
-                    const { data: clientes } = await supabase
-                        .from('profiles')
-                        .select('id, nome_completo, whatsapp, endereco')
-                        .in('id', clienteIds);
-
-                    allAppointments = appointments.map(appt => ({
-                        ...appt,
-                        cliente: clientes?.find(c => c.id === appt.cliente_id) || {}
-                    }));
-                } else {
+                if (!appointments || appointments.length === 0) {
                     allAppointments = [];
+                    updateStats();
+                    renderAppointments([]);
+                    return;
                 }
+
+                // Buscar perfis dos clientes
+                const clienteIds = [...new Set(appointments.map(a => a.cliente_id))];
+                
+                const { data: clientes } = await supabase
+                    .from('profiles')
+                    .select('id, nome_completo, whatsapp, endereco')
+                    .in('id', clienteIds);
+
+                // Combinar dados
+                allAppointments = appointments.map(appt => ({
+                    ...appt,
+                    cliente: clientes?.find(c => c.id === appt.cliente_id) || {
+                        nome_completo: 'Cliente não encontrado',
+                        whatsapp: '',
+                        endereco: ''
+                    }
+                }));
+
+                console.log('✅ Dados combinados:', allAppointments.length);
 
                 updateStats();
                 renderAppointments(allAppointments);
 
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('❌ Erro ao carregar:', error);
                 document.getElementById('appointments-container').innerHTML = `
                     <div class="empty-state">
-                        <h3>Erro ao carregar</h3>
+                        <div class="empty-state-icon">❌</div>
+                        <h3>Erro ao Carregar Agendamentos</h3>
                         <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">🔄 Tentar Novamente</button>
                     </div>
                 `;
             }
@@ -541,12 +591,10 @@
             const anoAtual = new Date().getFullYear();
 
             const agendamentosHoje = allAppointments.filter(a => 
-                a.data_agendamento === hoje && a.status_pagamento !== 'Concluído'
+                a.data_agendamento === hoje
             ).length;
 
-            const totalPendentes = allAppointments.filter(a => 
-                a.status_pagamento !== 'Concluído' && a.status_pagamento !== 'Cancelado'
-            ).length;
+            const totalAgendamentos = allAppointments.length;
 
             const concluidosMes = allAppointments.filter(a => {
                 if (!a.data_agendamento) return false;
@@ -566,10 +614,21 @@
                 .reduce((sum, a) => sum + (a.valor_total || 0), 0);
 
             document.getElementById('stat-hoje').textContent = agendamentosHoje;
-            document.getElementById('stat-total').textContent = totalPendentes;
+            document.getElementById('stat-total').textContent = totalAgendamentos;
             document.getElementById('stat-concluidos').textContent = concluidosMes;
             document.getElementById('stat-valor').textContent = 
                 `R$ ${valorMes.toFixed(2).replace('.', ',')}`;
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'Pendente': 'status-pendente',
+                'Pendente (Pagar no Local)': 'status-pendente',
+                'Pago e Confirmado': 'status-confirmado',
+                'Em Andamento': 'status-em-andamento',
+                'Concluído': 'status-concluido'
+            };
+            return map[status] || 'status-pendente';
         }
 
         function renderAppointments(appointments) {
@@ -580,15 +639,13 @@
                     <div class="empty-state">
                         <div class="empty-state-icon">📭</div>
                         <h3>Nenhum agendamento encontrado</h3>
+                        <p>Não há agendamentos para exibir no momento.</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = '<div class="appointment-list"></div>';
-            const listContainer = container.querySelector('.appointment-list');
-
-            appointments.forEach(appt => {
+            const listHTML = appointments.map(appt => {
                 const clienteNome = appt.cliente?.nome_completo || 'N/A';
                 const clienteWhatsApp = appt.cliente?.whatsapp || 'Não informado';
                 const clienteEndereco = appt.cliente?.endereco || 'Não informado';
@@ -597,62 +654,68 @@
                     ? new Date(appt.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
                     : 'Sem data';
 
-                const servicosHTML = appt.servicos_escolhidos
-                    ? appt.servicos_escolhidos.map(s => `<li>${s.name} ${s.quantity > 1 ? `(x${s.quantity})` : ''}</li>`).join('')
-                    : '<li>Nenhum serviço</li>';
+                const servicosHTML = appt.servicos_escolhidos && Array.isArray(appt.servicos_escolhidos)
+                    ? appt.servicos_escolhidos.map(s => 
+                        `<li>${s.name || 'Serviço'} ${s.quantity > 1 ? `(x${s.quantity})` : ''}</li>`
+                      ).join('')
+                    : '<li>Nenhum serviço especificado</li>';
 
                 const whatsappClean = clienteWhatsApp.replace(/\D/g, '');
                 const whatsappLink = whatsappClean ? `https://wa.me/55${whatsappClean}` : '#';
 
-                const card = document.createElement('div');
-                card.className = 'appointment-card';
-                card.innerHTML = `
-                    <div class="appointment-header">
-                        <span class="appointment-id">OS #${appt.id}</span>
-                        <span class="appointment-status status-agendado">${appt.status_pagamento || 'Pendente'}</span>
-                    </div>
-                    <div class="appointment-info">
-                        <div class="info-item">
-                            <div class="info-icon">📅</div>
-                            <div class="info-text">
-                                <div class="info-label">Data e Hora</div>
-                                <div class="info-value">${dataFormatada} - ${appt.hora_agendamento || '--:--'}</div>
+                const statusClass = getStatusClass(appt.status_pagamento);
+
+                return `
+                    <div class="appointment-card">
+                        <div class="appointment-header">
+                            <span class="appointment-id">📋 OS #${appt.id}</span>
+                            <span class="appointment-status ${statusClass}">
+                                ${appt.status_pagamento || 'Pendente'}
+                            </span>
+                        </div>
+                        
+                        <div class="appointment-info">
+                            <div class="info-item">
+                                <span class="info-label">📅 Data</span>
+                                <span class="info-value">${dataFormatada}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">⏰ Horário</span>
+                                <span class="info-value">${appt.hora_agendamento || '--:--'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">👤 Cliente</span>
+                                <span class="info-value">${clienteNome}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">💰 Valor</span>
+                                <span class="info-value">R$ ${(appt.valor_total || 0).toFixed(2).replace('.', ',')}</span>
                             </div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-icon">👤</div>
-                            <div class="info-text">
-                                <div class="info-label">Cliente</div>
-                                <div class="info-value">${clienteNome}</div>
-                            </div>
+
+                        <div class="info-item" style="margin: 15px 0;">
+                            <span class="info-label">📍 Endereço</span>
+                            <span class="info-value">${clienteEndereco}</span>
                         </div>
-                        <div class="info-item">
-                            <div class="info-icon">📞</div>
-                            <div class="info-text">
-                                <div class="info-label">WhatsApp</div>
-                                <div class="info-value">${clienteWhatsApp}</div>
-                            </div>
+
+                        <div class="services-list">
+                            <h4>🔧 Serviços Agendados:</h4>
+                            <ul>${servicosHTML}</ul>
                         </div>
-                        <div class="info-item">
-                            <div class="info-icon">💰</div>
-                            <div class="info-text">
-                                <div class="info-label">Valor Total</div>
-                                <div class="info-value">R$ ${(appt.valor_total || 0).toFixed(2).replace('.', ',')}</div>
-                            </div>
+
+                        <div class="appointment-actions">
+                            <a href="${whatsappLink}" target="_blank" class="btn btn-secondary">
+                                📱 WhatsApp Cliente
+                            </a>
+                            <a href="tecnico-painel.html?os=${appt.id}" class="btn btn-primary">
+                                🚀 Gerenciar OS
+                            </a>
                         </div>
-                    </div>
-                    <div class="services-list">
-                        <h4>📋 Serviços:</h4>
-                        <ul>${servicosHTML}</ul>
-                    </div>
-                    <div class="appointment-actions">
-                        <a href="${whatsappLink}" target="_blank" class="btn btn-secondary">📱 WhatsApp</a>
-                        <a href="tecnico-painel.html?os=${appt.id}" class="btn btn-primary">🔧 Iniciar OS</a>
                     </div>
                 `;
+            }).join('');
 
-                listContainer.appendChild(card);
-            });
+            container.innerHTML = `<div class="appointment-list">${listHTML}</div>`;
         }
 
         window.applyFilters = function() {
