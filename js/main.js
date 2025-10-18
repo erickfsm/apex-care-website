@@ -1,9 +1,21 @@
 // Script para rolagem suave ao clicar nos links do menu
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+
+        if (!href || href === '#') {
+            return;
+        }
+
+        const target = document.querySelector(href);
+
+        if (!target) {
+            return;
+        }
+
         e.preventDefault();
 
-        document.querySelector(this.getAttribute('href')).scrollIntoView({
+        target.scrollIntoView({
             behavior: 'smooth'
         });
     });
