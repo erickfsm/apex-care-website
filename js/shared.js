@@ -20,10 +20,10 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 function renderLoggedOutState() {
     if (!authContainer) return;
-    
+
     authContainer.innerHTML = `
         <a href="login.html" class="auth-link-login">Login</a>
-        <a href="orcamento.html" class="cta-button-nav">Orçamento</a>
+        <a href="cadastro.html" class="cta-button-nav">Criar conta</a>
     `;
 }
 

@@ -5,6 +5,22 @@ const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const RESUME_STATE_KEY = 'apexCareResumeState';
+
+function getResumeState() {
+    try {
+        const stored = localStorage.getItem(RESUME_STATE_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        console.warn('Não foi possível ler o estado de retomada do orçamento.', error);
+        return null;
+    }
+}
+
+function clearResumeState() {
+    localStorage.removeItem(RESUME_STATE_KEY);
+}
+
 // --- LÓGICA DE CADASTRO ---
 const registerForm = document.getElementById('register-form');
 
@@ -110,8 +126,14 @@ if (registerForm) {
                     
             // ✅ PASSO 5: Redireciona com sucesso
             const temOrcamento = orcamentoSalvo && orcamentoSalvo.length > 0;
-            
-            if (temOrcamento) {
+            const resumeState = getResumeState();
+
+            if (resumeState) {
+                alert("✅ Conta criada com sucesso! Retomando seu orçamento.");
+                const targetUrl = resumeState.returnUrl || (resumeState.stage === 'schedule' ? 'agendamento.html' : 'orcamento.html');
+                clearResumeState();
+                window.location.href = targetUrl;
+            } else if (temOrcamento) {
                 alert("✅ Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
                 window.location.href = 'agendamento.html';
             } else {
@@ -188,11 +210,19 @@ if (loginForm) {
 
             // ✅ PASSO 4: Redireciona para a página correta
             alert("Login efetuado com sucesso!");
-            
+
+            const resumeState = getResumeState();
+            if (resumeState && userTypeFromDB !== 'tecnico') {
+                const targetUrl = resumeState.returnUrl || (resumeState.stage === 'schedule' ? 'agendamento.html' : 'orcamento.html');
+                clearResumeState();
+                window.location.href = targetUrl;
+                return;
+            }
+
             if (userTypeFromDB === 'tecnico') {
                 window.location.href = 'tecnico-dashboard.html'; // ← NOVA ROTA PARA TÉCNICOS
             } else {
-                window.location.href = 'index.html'; 
+                window.location.href = 'index.html';
             }
 
         } catch (error) {
