@@ -10,8 +10,8 @@ const BASE_LOCATION = {
     latitude: null,
     longitude: null
 };
-const DISTANCE_THRESHOLD_KM = 10;
-const DISTANCE_FEE_PER_KM = 5;
+const DISTANCE_THRESHOLD_KM = 20;
+const DISTANCE_FEE_PER_KM = 1;
 
 const stepSections = Array.from(document.querySelectorAll('.step-section'));
 const progressSteps = Array.from(document.querySelectorAll('.progress-step'));
@@ -33,6 +33,8 @@ const ruaInput = document.getElementById('rua-input');
 const bairroInput = document.getElementById('bairro-input');
 const cidadeInput = document.getElementById('cidade-input');
 const estadoInput = document.getElementById('estado-input');
+const senhaInput = document.getElementById('senha-input');
+const passwordWrapper = document.querySelector('[data-password-wrapper]');
 
 const resumeFields = {
     nome: document.getElementById('resume-nome'),
@@ -73,6 +75,9 @@ let latestCepLookupId = 0;
 let latestDistanceLookupId = 0;
 let resumeStateRestored = false;
 let pendingResumeState = null;
+let step1Password = '';
+let autoSignupCompleted = false;
+let isCalculatingDistance = false;
 
 function formatCurrency(value) {
     return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
@@ -95,6 +100,22 @@ function setLoginWarningVisible(visible) {
     loginWarning.classList.toggle('hidden', !visible);
 }
 
+function updatePasswordRequirement() {
+    if (!senhaInput) return;
+    const shouldHide = Boolean(currentSession);
+    senhaInput.required = !shouldHide;
+    senhaInput.disabled = shouldHide;
+    senhaInput.setAttribute('autocomplete', shouldHide ? 'off' : 'new-password');
+
+    if (shouldHide) {
+        senhaInput.value = '';
+        senhaInput.setCustomValidity('');
+        passwordWrapper?.classList.add('is-hidden');
+    } else {
+        passwordWrapper?.classList.remove('is-hidden');
+    }
+}
+
 function updateProgressBar(step) {
     const totalSteps = progressSteps.length || 1;
     const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
@@ -115,6 +136,7 @@ function prefillStepForms(step) {
         if (formElements.namedItem('nome')) formElements.namedItem('nome').value = stepData.step1.nome ?? '';
         if (formElements.namedItem('email')) formElements.namedItem('email').value = stepData.step1.email ?? '';
         if (formElements.namedItem('telefone')) formElements.namedItem('telefone').value = stepData.step1.telefone ?? '';
+        if (senhaInput) senhaInput.value = '';
     }
 
     if (step === 2 && stepForms[2]) {
@@ -141,6 +163,9 @@ function showStep(step) {
 
     updateProgressBar(step);
     prefillStepForms(step);
+    if (step === 1) {
+        updatePasswordRequirement();
+    }
 
     if (step === 4) {
         populateResume();
@@ -332,22 +357,26 @@ function renderChargesSummary() {
         if (exceedingKm > 0) {
             distanceSurcharge = Math.ceil(exceedingKm) * DISTANCE_FEE_PER_KM;
             charges.push({
-                label: `Taxa de deslocamento (${distanceKm.toFixed(1)} km)`,
+                label: `Taxa de deslocamento (${distanceKm.toFixed(1)} km, +${formatCurrency(DISTANCE_FEE_PER_KM)} por km acima de ${DISTANCE_THRESHOLD_KM} km)`,
                 amount: distanceSurcharge
             });
-            distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km.`;
+            if (distanceInfoDiv) {
+                distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km. Aplicamos ${formatCurrency(DISTANCE_FEE_PER_KM)} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`;
+            }
         } else {
             distanceSurcharge = 0;
             charges.push({
                 label: `Deslocamento (${distanceKm.toFixed(1)} km, sem taxa adicional)`,
                 amount: 0
             });
-            distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km (dentro da área de cobertura).`;
+            if (distanceInfoDiv) {
+                distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
+            }
         }
     } else {
         distanceSurcharge = 0;
         if (distanceInfoDiv) {
-            distanceInfoDiv.textContent = 'Informe CEP e número para calcular a distância.';
+            distanceInfoDiv.textContent = `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
         }
     }
 
@@ -445,9 +474,16 @@ async function handleNavigation(action) {
             return;
         }
 
+        if (currentStep === 1) {
+            const accountReady = await ensureCustomerAccount();
+            if (!accountReady) {
+                return;
+            }
+        }
+
         const nextStep = Math.min(currentStep + 1, stepSections.length);
         if (nextStep >= 3 && !currentSession) {
-            alert('Para continuar, faça login ou crie uma conta. Vamos guardar suas informações.');
+            alert('Para continuar, faça login com sua conta. Estamos guardando suas informações.');
             setResumeState({ targetStep: nextStep });
             window.location.href = 'login.html';
             return;
@@ -467,15 +503,28 @@ function validateStep(step) {
     if (step === 1) {
         const form = stepForms[1];
         if (!form) return false;
+        const elements = form.elements;
+        const passwordInput = elements.namedItem('senha');
+
+        if (!currentSession && passwordInput) {
+            const passwordValue = passwordInput.value ?? '';
+            if (passwordValue.length < 6) {
+                passwordInput.setCustomValidity('Crie uma senha com pelo menos 6 caracteres.');
+            } else {
+                passwordInput.setCustomValidity('');
+            }
+        }
+
         if (!form.reportValidity()) {
             return false;
         }
-        const elements = form.elements;
+
         stepData.step1 = {
             nome: elements.namedItem('nome')?.value.trim() ?? '',
             email: elements.namedItem('email')?.value.trim() ?? '',
             telefone: elements.namedItem('telefone')?.value.trim() ?? ''
         };
+        step1Password = currentSession ? '' : (elements.namedItem('senha')?.value ?? '');
         return true;
     }
 
@@ -496,8 +545,15 @@ function validateStep(step) {
             return false;
         }
 
-        if (!ruaInput?.value.trim() || !cidadeInput?.value.trim()) {
+        const cidadeValue = (cidadeInput?.value || lastCepData?.localidade || '').trim();
+
+        if (!ruaInput?.value.trim() || !cidadeValue) {
             alert('Confirme um CEP válido e aguarde o preenchimento do endereço.');
+            return false;
+        }
+
+        if (isCalculatingDistance) {
+            alert('Estamos calculando a distância. Aguarde alguns segundos e tente novamente.');
             return false;
         }
 
@@ -513,8 +569,8 @@ function validateStep(step) {
             numero: numeroInput?.value.trim() ?? '',
             complemento: complementoInput?.value.trim() ?? '',
             rua: ruaInput?.value.trim() ?? '',
-            bairro: bairroInput?.value.trim() ?? '',
-            cidadeDetalhe: cidadeInput?.value.trim() ?? '',
+            bairro: (bairroInput?.value || lastCepData?.bairro || '').trim(),
+            cidadeDetalhe: cidadeValue,
             estado: estadoInput?.value.trim() ?? ''
         };
 
@@ -530,6 +586,93 @@ function validateStep(step) {
     }
 
     return true;
+}
+
+async function ensureCustomerAccount() {
+    if (currentSession || autoSignupCompleted) {
+        return true;
+    }
+
+    const { step1 } = stepData;
+    if (!step1?.email || !step1Password) {
+        alert('Preencha seus dados de contato para criarmos sua conta.');
+        return false;
+    }
+
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email: step1.email,
+            password: step1Password,
+            options: {
+                data: {
+                    nome_completo: step1.nome || '',
+                    whatsapp: step1.telefone || ''
+                }
+            }
+        });
+
+        if (error) {
+            const message = error.message?.toLowerCase() ?? '';
+            const alreadyExists = message.includes('already') || message.includes('exist');
+            if (alreadyExists) {
+                alert('Já existe uma conta com esse e-mail. Faça login para continuar.');
+                setResumeState({ targetStep: 2 });
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            console.error('Erro ao criar conta automaticamente:', error);
+            alert('Não foi possível criar sua conta automaticamente. Tente novamente mais tarde ou utilize a página de cadastro.');
+            return false;
+        }
+
+        let session = data?.session ?? null;
+        const userId = data?.user?.id;
+
+        if (!session) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: step1.email,
+                password: step1Password
+            });
+
+            if (signInError) {
+                console.warn('Conta criada, mas não foi possível autenticar automaticamente:', signInError);
+                alert('Enviamos um e-mail de confirmação. Após confirmar, faça login para continuar o orçamento.');
+                setResumeState({ targetStep: 2 });
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            session = signInData?.session ?? null;
+        }
+
+        currentSession = session;
+        autoSignupCompleted = true;
+        step1Password = '';
+        setLoginWarningVisible(false);
+        updatePasswordRequirement();
+        updateScheduleButtonState();
+
+        if (userId) {
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: userId,
+                    nome_completo: step1.nome || null,
+                    whatsapp: step1.telefone || null
+                }, { onConflict: 'id' });
+
+            if (profileError) {
+                console.warn('Não foi possível atualizar o perfil automaticamente:', profileError);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Erro inesperado ao tentar criar conta automática:', error);
+        alert('Ocorreu um erro ao criar sua conta. Tente novamente em instantes ou faça login manualmente.');
+        return false;
+    }
 }
 
 async function loadServices() {
@@ -548,6 +691,7 @@ async function loadServices() {
         serviceSelectionDiv.innerHTML = '<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>';
         return;
     }
+}
 
     priceTable = services || [];
     renderServices();
@@ -681,6 +825,7 @@ async function updateCustomerCoordinates() {
     if (!lastCepData) {
         customerCoordinates = null;
         distanceKm = null;
+        isCalculatingDistance = false;
         renderChargesSummary();
         return;
     }
@@ -689,6 +834,7 @@ async function updateCustomerCoordinates() {
     if (!numero) {
         customerCoordinates = null;
         distanceKm = null;
+        isCalculatingDistance = false;
         renderChargesSummary();
         return;
     }
@@ -702,6 +848,7 @@ async function updateCustomerCoordinates() {
     ].filter(Boolean);
 
     const lookupId = ++latestDistanceLookupId;
+    isCalculatingDistance = true;
     if (distanceInfoDiv) {
         distanceInfoDiv.textContent = 'Calculando distância até a filial...';
     }
@@ -724,6 +871,10 @@ async function updateCustomerCoordinates() {
         }
         distanceKm = null;
         alert('Não conseguimos calcular a distância para o endereço informado. Confira os dados.');
+    } finally {
+        if (lookupId === latestDistanceLookupId) {
+            isCalculatingDistance = false;
+        }
     }
 
     renderChargesSummary();
@@ -734,10 +885,12 @@ async function initializeAuth() {
     const { data } = await supabase.auth.getSession();
     currentSession = data?.session ?? null;
     setLoginWarningVisible(!currentSession);
+    updatePasswordRequirement();
 
     supabase.auth.onAuthStateChange((_event, session) => {
         currentSession = session;
         setLoginWarningVisible(!session);
+        updatePasswordRequirement();
         updateScheduleButtonState();
         if (session) {
             applyResumeState();
@@ -747,10 +900,10 @@ async function initializeAuth() {
 
 function registerNavigationListeners() {
     document.querySelectorAll('.step-actions button[data-action]').forEach((button) => {
-        button.addEventListener('click', (event) => {
+        button.addEventListener('click', async (event) => {
             event.preventDefault();
             const action = button.dataset.action;
-            handleNavigation(action);
+            await handleNavigation(action);
         });
     });
 }

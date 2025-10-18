@@ -156,6 +156,15 @@
     gap: 8px;
 }
 
+.form-group.is-hidden {
+    display: none;
+}
+
+.form-hint {
+    font-size: 0.85rem;
+    color: #6a6a6a;
+}
+
 .form-grid {
     display: grid;
     gap: 16px;
