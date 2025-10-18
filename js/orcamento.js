@@ -691,6 +691,7 @@ async function loadServices() {
         serviceSelectionDiv.innerHTML = '<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>';
         return;
     }
+}
 
     priceTable = services || [];
     renderServices();
