@@ -6,7 +6,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const RESUME_STATE_KEY = 'apexCareResumeState';
 const BASE_LOCATION = {
-    address: 'Rua São Sebastião, 100 - Ibirité, MG',
+    address: 'Rua Parecis, 28 - Canoas, Ibirité - MG, 32145-736, Brasil',
     latitude: null,
     longitude: null
 };
@@ -39,8 +39,7 @@ const resumeFields = {
     email: document.getElementById('resume-email'),
     telefone: document.getElementById('resume-telefone'),
     tipoImovel: document.getElementById('resume-tipo-imovel'),
-    metragem: document.getElementById('resume-metragem'),
-    cidade: document.getElementById('resume-cidade'),
+    distancia: document.getElementById('resume-distancia'),
     cep: document.getElementById('resume-cep'),
     rua: document.getElementById('resume-rua'),
     numero: document.getElementById('resume-numero'),
@@ -121,8 +120,6 @@ function prefillStepForms(step) {
     if (step === 2 && stepForms[2]) {
         const formElements = stepForms[2].elements;
         if (formElements.namedItem('tipo-imovel')) formElements.namedItem('tipo-imovel').value = stepData.step2.tipoImovel ?? '';
-        if (formElements.namedItem('metragem')) formElements.namedItem('metragem').value = stepData.step2.metragem ?? '';
-        if (formElements.namedItem('cidade')) formElements.namedItem('cidade').value = stepData.step2.cidade ?? '';
         if (cepInput) cepInput.value = stepData.step2.cep ? applyCepMask(stepData.step2.cep) : '';
         if (numeroInput) numeroInput.value = stepData.step2.numero ?? '';
         if (complementoInput) complementoInput.value = stepData.step2.complemento ?? '';
@@ -169,8 +166,11 @@ function populateResume() {
     };
 
     if (resumeFields.tipoImovel) resumeFields.tipoImovel.textContent = tipoLabels[step2.tipoImovel] || '-';
-    if (resumeFields.metragem) resumeFields.metragem.textContent = step2.metragem ? `${step2.metragem} m²` : '-';
-    if (resumeFields.cidade) resumeFields.cidade.textContent = step2.cidade || '-';
+    if (resumeFields.distancia) {
+        resumeFields.distancia.textContent = Number.isFinite(distanceKm)
+            ? `${distanceKm.toFixed(1)} km`
+            : '-';
+    }
 
     if (resumeFields.cep) resumeFields.cep.textContent = step2.cep ? applyCepMask(step2.cep) : '-';
     if (resumeFields.rua) resumeFields.rua.textContent = step2.rua || '-';
@@ -509,8 +509,6 @@ function validateStep(step) {
         const elements = form.elements;
         stepData.step2 = {
             tipoImovel: elements.namedItem('tipo-imovel')?.value ?? '',
-            metragem: elements.namedItem('metragem')?.value.trim() ?? '',
-            cidade: elements.namedItem('cidade')?.value.trim() ?? '',
             cep: sanitizeCep(cepInput?.value || ''),
             numero: numeroInput?.value.trim() ?? '',
             complemento: complementoInput?.value.trim() ?? '',
