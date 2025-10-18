@@ -1,0 +1,10 @@
+{
+  "name": "apex-care-website",
+  "version": "1.0.0",
+  "description": "Static site for Apex Care",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Static site - no build needed'",
+    "deploy": "echo 'Deployment handled by Cloudflare Pages'"
+  }
+}
