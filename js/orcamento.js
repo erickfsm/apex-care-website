@@ -9,6 +9,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Variável que vai guardar nossos preços vindos do banco de dados
 let priceTable = [];
 
+const RESUME_STATE_KEY = 'apexCareResumeState';
+
 // Elementos do DOM
 const stepSections = Array.from(document.querySelectorAll('.step-section'));
 const progressSteps = Array.from(document.querySelectorAll('.progress-step'));
@@ -210,6 +212,29 @@ function loadNavigationListeners() {
             handleNavigation(action);
         });
     });
+function setResumeState(state) {
+    try {
+        localStorage.setItem(RESUME_STATE_KEY, JSON.stringify({
+            ...state,
+            timestamp: new Date().toISOString()
+        }));
+    } catch (error) {
+        console.warn('Não foi possível salvar o estado de retomada do orçamento.', error);
+    }
+}
+
+function getResumeState() {
+    try {
+        const stored = localStorage.getItem(RESUME_STATE_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        console.warn('Não foi possível ler o estado de retomada do orçamento.', error);
+        return null;
+    }
+}
+
+function clearResumeState() {
+    localStorage.removeItem(RESUME_STATE_KEY);
 }
 
 // =================================================================================
@@ -330,6 +355,23 @@ if (serviceSelectionDiv) {
 loadNavigationListeners();
 loadServices();
 showStep(stepData.currentStep);
+// --- INICIALIZAÇÃO ---
+(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session || !session.user) {
+        setResumeState({ stage: 'select-services', returnUrl: 'orcamento.html' });
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const resumeState = getResumeState();
+    if (resumeState?.stage === 'select-services') {
+        clearResumeState();
+    }
+
+    loadServices();
+})();
 
 // =================================================================================
 // BOTÃO "AGENDAR VISITA"
@@ -361,6 +403,14 @@ scheduleBtn?.addEventListener('click', async () => {
         window.location.href = 'agendamento.html';
     } else {
         console.log('Usuário não logado. Redirecionando para cadastro...');
+        clearResumeState();
+        // Se TEM uma sessão (usuário logado), vai direto para o agendamento
+        console.log("Usuário logado. Redirecionando para agendamento...");
+        window.location.href = 'agendamento.html';
+    } else {
+        // Se NÃO TEM sessão, salva estado para retomar após autenticação e vai para o cadastro
+        console.log("Usuário não logado. Redirecionando para cadastro...");
+        setResumeState({ stage: 'schedule', returnUrl: 'agendamento.html' });
         window.location.href = 'cadastro.html';
     }
 });
