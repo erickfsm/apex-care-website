@@ -211,6 +211,8 @@ function populateResume() {
     if (resumeFields.cidadeEstado) resumeFields.cidadeEstado.textContent = cidadeEstadoText;
 }
 
+// ============= SERVIÇOS =============
+
 function getSelectedServices() {
     if (!serviceSelectionDiv) {
         return [];
@@ -905,6 +907,7 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
+}
 
     const numero = numeroInput?.value.trim();
     if (!numero) {
@@ -914,6 +917,7 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
+}
 
     const addressParts = [
         lastCepData.logradouro,
