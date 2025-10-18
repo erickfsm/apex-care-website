@@ -78,10 +78,8 @@ let pendingResumeState = null;
 let step1Password = '';
 let autoSignupCompleted = false;
 let isCalculatingDistance = false;
-let addressManager = null;
-let selectedAddressId = null;
-
-// ============= FUNÇÕES AUXILIARES =============
+let profileCache = null;
+let shouldAutoAdvanceAfterAuth = false;
 
 function formatCurrency(value) {
     return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
@@ -213,357 +211,12 @@ function populateResume() {
     if (resumeFields.cidadeEstado) resumeFields.cidadeEstado.textContent = cidadeEstadoText;
 }
 
-// ============= VALIDAÇÃO DOS STEPS =============
-
-function validateStep(step) {
-    console.log('🔍 Validando step:', step);
-
-    if (step === 1) {
-        const form = stepForms[1];
-        if (!form) {
-            console.error('❌ Formulário do step 1 não encontrado');
-            return false;
-        }
-
-        const elements = form.elements;
-        const nomeInput = elements.namedItem('nome');
-        const emailInput = elements.namedItem('email');
-        const telefoneInput = elements.namedItem('telefone');
-        const passwordInput = elements.namedItem('senha');
-
-        // Validar campos básicos
-        if (!nomeInput?.value?.trim()) {
-            alert('Por favor, preencha seu nome completo.');
-            nomeInput?.focus();
-            return false;
-        }
-
-        if (!emailInput?.value?.trim()) {
-            alert('Por favor, preencha seu e-mail.');
-            emailInput?.focus();
-            return false;
-        }
-
-        if (!telefoneInput?.value?.trim()) {
-            alert('Por favor, preencha seu telefone.');
-            telefoneInput?.focus();
-            return false;
-        }
-
-        // Validar senha APENAS se não estiver logado
-        if (!currentSession && passwordInput) {
-            const passwordValue = passwordInput.value ?? '';
-            if (passwordValue.length < 6) {
-                alert('Por favor, crie uma senha com pelo menos 6 caracteres.');
-                passwordInput.focus();
-                return false;
-            }
-            step1Password = passwordValue;
-            console.log('✅ Senha capturada:', step1Password.length, 'caracteres');
-        } else {
-            step1Password = '';
-            console.log('✅ Usuário já logado, senha não necessária');
-        }
-
-        // Salvar dados do step 1
-        stepData.step1 = {
-            nome: nomeInput.value.trim(),
-            email: emailInput.value.trim(),
-            telefone: telefoneInput.value.trim()
-        };
-
-        console.log('✅ Step 1 validado com sucesso');
-        console.log('Dados:', stepData.step1);
-        return true;
-    }
-
-    if (step === 2) {
-        const form = stepForms[2];
-        if (!form) return false;
-
-        const nomeEnderecoInput = document.getElementById('nome-endereco');
-        const tipoImovelSelect = document.getElementById('tipo-imovel');
-
-        // Validar nome do endereço
-        if (!nomeEnderecoInput?.value?.trim()) {
-            alert('Por favor, dê um nome para este endereço (ex: Casa, Trabalho).');
-            nomeEnderecoInput?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        // Validar tipo de imóvel
-        if (!tipoImovelSelect?.value) {
-            alert('Por favor, selecione o tipo de imóvel.');
-            tipoImovelSelect?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        // Validar CEP
-        if (cepInput) {
-            const sanitizedCep = sanitizeCep(cepInput.value);
-            if (sanitizedCep.length !== 8) {
-                alert('Informe um CEP válido com 8 dígitos.');
-                cepInput.focus();
-                switchAddressTab('new');
-                return false;
-            }
-        }
-
-        // Validar número
-        if (!numeroInput?.value?.trim()) {
-            alert('Por favor, informe o número do endereço.');
-            numeroInput?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        const cidadeValue = (cidadeInput?.value || lastCepData?.localidade || '').trim();
-
-        if (!ruaInput?.value.trim() || !cidadeValue) {
-            alert('Confirme um CEP válido e aguarde o preenchimento do endereço.');
-            switchAddressTab('new');
-            return false;
-        }
-
-        if (isCalculatingDistance) {
-            alert('Estamos calculando a distância. Aguarde alguns segundos.');
-            return false;
-        }
-
-        if (!Number.isFinite(distanceKm)) {
-            alert('Aguarde o cálculo de distância antes de prosseguir.');
-            return false;
-        }
-
-        const elements = form.elements;
-        stepData.step2 = {
-            nomeEndereco: nomeEnderecoInput.value.trim(),
-            tipoImovel: tipoImovelSelect.value,
-            cep: sanitizeCep(cepInput?.value || ''),
-            numero: numeroInput?.value.trim() ?? '',
-            complemento: complementoInput?.value.trim() ?? '',
-            rua: ruaInput?.value.trim() ?? '',
-            bairro: (bairroInput?.value || lastCepData?.bairro || '').trim(),
-            cidadeDetalhe: cidadeValue,
-            estado: estadoInput?.value.trim() ?? ''
-        };
-
-        // Salvar endereço se checkbox estiver marcado
-        const saveAddressCheckbox = document.getElementById('save-address-checkbox');
-        const isPrincipalCheckbox = document.getElementById('principal-address-checkbox');
-
-        if (saveAddressCheckbox?.checked && currentSession?.user?.id) {
-            saveNewAddress(
-                stepData.step2,
-                customerCoordinates,
-                isPrincipalCheckbox?.checked || false
-            );
-        }
-
-        return true;
-    }
-
-
-    if (step === 3) {
-        if (!stepData.services.length) {
-            alert('Selecione pelo menos um serviço para continuar.');
-            return false;
-        }
-        return true;
-    }
-
-    return true;
-}
-
-async function saveNewAddress(addressData, coordinates, isPrincipal) {
-    if (!addressManager) return;
-
-    try {
-        console.log('💾 Salvando novo endereço...');
-
-        await addressManager.createAddress({
-            nome_endereco: addressData.nomeEndereco,
-            tipo_imovel: addressData.tipoImovel,
-            cep: addressData.cep,
-            rua: addressData.rua,
-            numero: addressData.numero,
-            complemento: addressData.complemento,
-            bairro: addressData.bairro,
-            cidade: addressData.cidadeDetalhe,
-            estado: addressData.estado,
-            latitude: coordinates?.latitude || null,
-            longitude: coordinates?.longitude || null,
-            is_principal: isPrincipal
-        });
-
-        console.log('✅ Endereço salvo com sucesso!');
-        
-        // Atualizar lista de endereços
-        renderSavedAddresses();
-
-    } catch (error) {
-        console.error('Erro ao salvar endereço:', error);
-        // Não bloqueia o fluxo, apenas loga o erro
-    }
-}
-
-// ============= CRIAÇÃO AUTOMÁTICA DE CONTA =============
-
-async function ensureCustomerAccount() {
-    console.log('🔐 Verificando necessidade de criar conta...');
-    console.log('currentSession:', !!currentSession);
-    console.log('autoSignupCompleted:', autoSignupCompleted);
-
-    // Se já está logado OU já criou conta, não precisa criar novamente
-    if (currentSession || autoSignupCompleted) {
-        console.log('✅ Conta já existe ou usuário já logado');
-        return true;
-    }
-
-    const { step1 } = stepData;
-    
-    console.log('Dados step1:', step1);
-    console.log('step1Password:', step1Password);
-
-    if (!step1?.email || !step1Password) {
-        alert('Erro: Dados incompletos. Por favor, preencha todos os campos.');
-        return false;
-    }
-
-    console.log('🚀 Tentando criar conta automaticamente...');
-
-    try {
-        const { data, error } = await supabase.auth.signUp({
-            email: step1.email,
-            password: step1Password,
-            options: {
-                data: {
-                    nome_completo: step1.nome || '',
-                    whatsapp: step1.telefone || ''
-                }
-            }
-        });
-
-        if (error) {
-            const message = error.message?.toLowerCase() ?? '';
-            const alreadyExists = message.includes('already') || message.includes('exist');
-            if (alreadyExists) {
-                alert('Já existe uma conta com esse e-mail. Redirecionando para login...');
-                setResumeState({ targetStep: 2 });
-                window.location.href = 'login.html';
-                return false;
-            }
-
-            console.error('❌ Erro ao criar conta:', error);
-            alert('Não foi possível criar sua conta. Tente novamente.');
-            return false;
-        }
-
-        let session = data?.session ?? null;
-        const userId = data?.user?.id;
-
-        // Se não tem sessão, tentar fazer login
-        if (!session) {
-            console.log('📝 Conta criada, fazendo login...');
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                email: step1.email,
-                password: step1Password
-            });
-
-            if (signInError) {
-                console.warn('⚠️ Conta criada mas não foi possível autenticar automaticamente');
-                alert('Enviamos um e-mail de confirmação. Após confirmar, faça login para continuar.');
-                setResumeState({ targetStep: 2 });
-                window.location.href = 'login.html';
-                return false;
-            }
-
-            session = signInData?.session ?? null;
-        }
-
-        currentSession = session;
-        autoSignupCompleted = true;
-        step1Password = '';
-        
-        setLoginWarningVisible(false);
-        updatePasswordRequirement();
-        updateScheduleButtonState();
-
-        console.log('✅ Conta criada e autenticada com sucesso!');
-
-        // Atualizar perfil
-        if (userId) {
-            await supabase
-                .from('profiles')
-                .upsert({
-                    id: userId,
-                    nome_completo: step1.nome || null,
-                    whatsapp: step1.telefone || null
-                }, { onConflict: 'id' });
-        }
-
-        return true;
-
-    } catch (error) {
-        console.error('❌ Erro inesperado:', error);
-        alert('Ocorreu um erro ao criar sua conta. Tente novamente.');
-        return false;
-    }
-}
-
-// ============= NAVEGAÇÃO ENTRE STEPS =============
-
-async function handleNavigation(action) {
-    console.log('🔄 Navegação:', action, 'Step atual:', currentStep);
-
-    if (action === 'next') {
-        // Validar step atual
-        console.log('Validando step...');
-        if (!validateStep(currentStep)) {
-            console.log('❌ Validação falhou');
-            return;
-        }
-        console.log('✅ Validação passou');
-
-        // Se é step 1, verificar/criar conta
-        if (currentStep === 1) {
-            console.log('Step 1: verificando conta...');
-            const accountReady = await ensureCustomerAccount();
-            if (!accountReady) {
-                console.log('❌ Conta não está pronta');
-                return;
-            }
-            console.log('✅ Conta pronta');
-        }
-
-        const nextStep = Math.min(currentStep + 1, stepSections.length);
-        
-        // Verificar se precisa de login para steps 3+
-        if (nextStep >= 3 && !currentSession) {
-            alert('Para continuar, faça login. Suas informações foram salvas.');
-            setResumeState({ targetStep: nextStep });
-            window.location.href = 'login.html';
-            return;
-        }
-
-        console.log('➡️ Avançando para step', nextStep);
-        showStep(nextStep);
-        return;
-    }
-
-    if (action === 'prev') {
-        const prevStep = Math.max(1, currentStep - 1);
-        console.log('⬅️ Voltando para step', prevStep);
-        showStep(prevStep);
-    }
-}
-
 // ============= SERVIÇOS =============
 
 function getSelectedServices() {
-    if (!serviceSelectionDiv) return [];
+    if (!serviceSelectionDiv) {
+        return [];
+    }
 
     const selectedServices = [];
     const inputs = serviceSelectionDiv.querySelectorAll('input[type="checkbox"]:checked');
@@ -597,7 +250,7 @@ function renderServices() {
     serviceSelectionDiv.innerHTML = '';
 
     if (!priceTable.length) {
-        serviceSelectionDiv.innerHTML = '<p>Carregando serviços...</p>';
+        serviceSelectionDiv.innerHTML = '<p>Não encontramos serviços disponíveis no momento.</p>';
         updateSummary();
         return;
     }
@@ -663,7 +316,9 @@ function applyPendingServiceSelection() {
     pendingServiceSelection.forEach((serviceState) => {
         const checkbox = serviceSelectionDiv.querySelector(`input[type="checkbox"][data-service-id="${serviceState.id}"]`);
         const quantityInput = serviceSelectionDiv.querySelector(`.quantity-input[data-service-id="${serviceState.id}"]`);
-        if (checkbox) checkbox.checked = true;
+        if (checkbox) {
+            checkbox.checked = true;
+        }
         if (quantityInput) {
             quantityInput.disabled = false;
             quantityInput.value = serviceState.quantity;
@@ -706,26 +361,26 @@ function renderChargesSummary() {
         if (exceedingKm > 0) {
             distanceSurcharge = Math.ceil(exceedingKm) * DISTANCE_FEE_PER_KM;
             charges.push({
-                label: `Taxa de deslocamento (${distanceKm.toFixed(1)} km)`,
+                label: `Taxa de deslocamento (${distanceKm.toFixed(1)} km, +${formatCurrency(DISTANCE_FEE_PER_KM)} por km acima de ${DISTANCE_THRESHOLD_KM} km)`,
                 amount: distanceSurcharge
             });
             if (distanceInfoDiv) {
-                distanceInfoDiv.textContent = `Distância: ${distanceKm.toFixed(1)} km. Taxa: ${formatCurrency(DISTANCE_FEE_PER_KM)}/km acima de ${DISTANCE_THRESHOLD_KM} km.`;
+                distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km. Aplicamos ${formatCurrency(DISTANCE_FEE_PER_KM)} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`;
             }
         } else {
             distanceSurcharge = 0;
             charges.push({
-                label: `Deslocamento (${distanceKm.toFixed(1)} km, sem taxa)`,
+                label: `Deslocamento (${distanceKm.toFixed(1)} km, sem taxa adicional)`,
                 amount: 0
             });
             if (distanceInfoDiv) {
-                distanceInfoDiv.textContent = `Distância: ${distanceKm.toFixed(1)} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa).`;
+                distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(1)} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
             }
         }
     } else {
         distanceSurcharge = 0;
         if (distanceInfoDiv) {
-            distanceInfoDiv.textContent = `Informe CEP e número para calcular distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa).`;
+            distanceInfoDiv.textContent = `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
         }
     }
 
@@ -748,8 +403,6 @@ function updateScheduleButtonState() {
     scheduleBtn.disabled = !canFinish || !currentSession;
 }
 
-// ============= RESUME STATE =============
-
 function setResumeState(state) {
     try {
         const payload = {
@@ -763,7 +416,7 @@ function setResumeState(state) {
         };
         localStorage.setItem(RESUME_STATE_KEY, JSON.stringify(payload));
     } catch (error) {
-        console.warn('Não foi possível salvar estado:', error);
+        console.warn('Não foi possível salvar o estado do orçamento.', error);
     }
 }
 
@@ -772,7 +425,7 @@ function getResumeState() {
         const stored = localStorage.getItem(RESUME_STATE_KEY);
         return stored ? JSON.parse(stored) : null;
     } catch (error) {
-        console.warn('Não foi possível ler estado:', error);
+        console.warn('Não foi possível ler o estado salvo do orçamento.', error);
         return null;
     }
 }
@@ -819,7 +472,308 @@ function applyResumeState() {
     clearResumeState();
 }
 
-// ============= CEP E ENDEREÇO =============
+async function handleNavigation(action) {
+    if (action === 'next') {
+        if (!validateStep(currentStep)) {
+            return;
+        }
+
+        if (currentStep === 1) {
+            const accountReady = await ensureCustomerAccount();
+            if (!accountReady) {
+                return;
+            }
+        }
+
+        const nextStep = Math.min(currentStep + 1, stepSections.length);
+        if (nextStep >= 3 && !currentSession) {
+            alert('Para continuar, faça login com sua conta. Estamos guardando suas informações.');
+            setResumeState({ targetStep: nextStep });
+            window.location.href = 'login.html';
+            return;
+        }
+
+        showStep(nextStep);
+        return;
+    }
+
+    if (action === 'prev') {
+        const prevStep = Math.max(1, currentStep - 1);
+        showStep(prevStep);
+    }
+}
+
+function validateStep(step) {
+    if (step === 1) {
+        const form = stepForms[1];
+        if (!form) return false;
+        const elements = form.elements;
+        const passwordInput = elements.namedItem('senha');
+
+        if (!currentSession && passwordInput) {
+            const passwordValue = passwordInput.value ?? '';
+            if (passwordValue.length < 6) {
+                passwordInput.setCustomValidity('Crie uma senha com pelo menos 6 caracteres.');
+            } else {
+                passwordInput.setCustomValidity('');
+            }
+        }
+
+        if (!form.reportValidity()) {
+            return false;
+        }
+
+        stepData.step1 = {
+            nome: elements.namedItem('nome')?.value.trim() ?? '',
+            email: elements.namedItem('email')?.value.trim() ?? '',
+            telefone: elements.namedItem('telefone')?.value.trim() ?? ''
+        };
+        step1Password = currentSession ? '' : (elements.namedItem('senha')?.value ?? '');
+        return true;
+    }
+
+    if (step === 2) {
+        const form = stepForms[2];
+        if (!form) return false;
+
+        if (cepInput) {
+            const sanitizedCep = sanitizeCep(cepInput.value);
+            if (sanitizedCep.length !== 8) {
+                cepInput.setCustomValidity('Informe um CEP válido com 8 dígitos.');
+            } else {
+                cepInput.setCustomValidity('');
+            }
+        }
+
+        if (!form.reportValidity()) {
+            return false;
+        }
+
+        const cidadeValue = (cidadeInput?.value || lastCepData?.localidade || '').trim();
+
+        if (!ruaInput?.value.trim() || !cidadeValue) {
+            alert('Confirme um CEP válido e aguarde o preenchimento do endereço.');
+            return false;
+        }
+
+        if (isCalculatingDistance) {
+            alert('Estamos calculando a distância. Aguarde alguns segundos e tente novamente.');
+            return false;
+        }
+
+        if (!Number.isFinite(distanceKm)) {
+            alert('Aguarde o cálculo de distância antes de prosseguir.');
+            return false;
+        }
+
+        const elements = form.elements;
+        stepData.step2 = {
+            tipoImovel: elements.namedItem('tipo-imovel')?.value ?? '',
+            cep: sanitizeCep(cepInput?.value || ''),
+            numero: numeroInput?.value.trim() ?? '',
+            complemento: complementoInput?.value.trim() ?? '',
+            rua: ruaInput?.value.trim() ?? '',
+            bairro: (bairroInput?.value || lastCepData?.bairro || '').trim(),
+            cidadeDetalhe: cidadeValue,
+            estado: estadoInput?.value.trim() ?? ''
+        };
+
+        return true;
+    }
+
+    if (step === 3) {
+        if (!stepData.services.length) {
+            alert('Selecione pelo menos um serviço para continuar.');
+            return false;
+        }
+        return true;
+    }
+
+    return true;
+}
+
+async function fetchProfile(userId) {
+    if (!userId) return null;
+
+    if (profileCache?.id === userId && Object.prototype.hasOwnProperty.call(profileCache, 'data')) {
+        return profileCache.data;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('nome_completo, whatsapp')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            console.warn('Não foi possível buscar o perfil do cliente:', error);
+            profileCache = { id: userId, data: null };
+            return null;
+        }
+
+        profileCache = { id: userId, data };
+        return data;
+    } catch (error) {
+        console.warn('Erro inesperado ao buscar o perfil do cliente:', error);
+        profileCache = { id: userId, data: null };
+        return null;
+    }
+}
+
+function applyStep1FormValues(contactData) {
+    const form = stepForms[1];
+    if (!form) return;
+
+    const elements = form.elements;
+    if (elements.namedItem('nome')) {
+        elements.namedItem('nome').value = contactData.nome || '';
+    }
+    if (elements.namedItem('email')) {
+        elements.namedItem('email').value = contactData.email || '';
+    }
+    if (elements.namedItem('telefone')) {
+        elements.namedItem('telefone').value = contactData.telefone || '';
+    }
+}
+
+async function hydrateStep1FromSession({ force = false } = {}) {
+    if (!currentSession?.user) {
+        shouldAutoAdvanceAfterAuth = false;
+        return false;
+    }
+
+    const user = currentSession.user;
+    const existingData = stepData.step1 || {};
+
+    let profile = profileCache?.id === user.id ? profileCache.data : null;
+    if (force || profileCache?.id !== user.id) {
+        profile = await fetchProfile(user.id);
+    }
+
+    const metadata = user.user_metadata || {};
+    const contactData = {
+        nome: existingData.nome || profile?.nome_completo || metadata.nome_completo || metadata.full_name || '',
+        email: existingData.email || user.email || metadata.email || '',
+        telefone: existingData.telefone || profile?.whatsapp || metadata.whatsapp || metadata.telefone || ''
+    };
+
+    stepData.step1 = contactData;
+    applyStep1FormValues(contactData);
+
+    const hasRequiredContact = Boolean(contactData.nome && contactData.email && contactData.telefone);
+    shouldAutoAdvanceAfterAuth = hasRequiredContact;
+
+    return hasRequiredContact;
+}
+
+async function ensureCustomerAccount() {
+    if (currentSession || autoSignupCompleted) {
+        return true;
+    }
+
+    const { step1 } = stepData;
+    if (!step1?.email || !step1Password) {
+        alert('Preencha seus dados de contato para criarmos sua conta.');
+        return false;
+    }
+
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email: step1.email,
+            password: step1Password,
+            options: {
+                data: {
+                    nome_completo: step1.nome || '',
+                    whatsapp: step1.telefone || ''
+                }
+            }
+        });
+
+        if (error) {
+            const message = error.message?.toLowerCase() ?? '';
+            const alreadyExists = message.includes('already') || message.includes('exist');
+            if (alreadyExists) {
+                alert('Já existe uma conta com esse e-mail. Faça login para continuar.');
+                setResumeState({ targetStep: 2 });
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            console.error('Erro ao criar conta automaticamente:', error);
+            alert('Não foi possível criar sua conta automaticamente. Tente novamente mais tarde ou utilize a página de cadastro.');
+            return false;
+        }
+
+        let session = data?.session ?? null;
+        const userId = data?.user?.id;
+
+        if (!session) {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: step1.email,
+                password: step1Password
+            });
+
+            if (signInError) {
+                console.warn('Conta criada, mas não foi possível autenticar automaticamente:', signInError);
+                alert('Enviamos um e-mail de confirmação. Após confirmar, faça login para continuar o orçamento.');
+                setResumeState({ targetStep: 2 });
+                window.location.href = 'login.html';
+                return false;
+            }
+
+            session = signInData?.session ?? null;
+        }
+
+        currentSession = session;
+        autoSignupCompleted = true;
+        step1Password = '';
+        setLoginWarningVisible(false);
+        updatePasswordRequirement();
+        updateScheduleButtonState();
+
+        if (userId) {
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: userId,
+                    nome_completo: step1.nome || null,
+                    whatsapp: step1.telefone || null
+                }, { onConflict: 'id' });
+
+            if (profileError) {
+                console.warn('Não foi possível atualizar o perfil automaticamente:', profileError);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Erro inesperado ao tentar criar conta automática:', error);
+        alert('Ocorreu um erro ao criar sua conta. Tente novamente em instantes ou faça login manualmente.');
+        return false;
+    }
+}
+
+async function loadServices() {
+    if (!serviceSelectionDiv) return;
+
+    serviceSelectionDiv.innerHTML = '<p>Carregando serviços...</p>';
+
+    const { data: services, error } = await supabase
+        .from('servicos')
+        .select('*')
+        .eq('is_active', true)
+        .order('id');
+
+    if (error) {
+        console.error('Erro ao carregar serviços:', error);
+        serviceSelectionDiv.innerHTML = '<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>';
+        return;
+    }
+
+    priceTable = services || [];
+    renderServices();
+}
 
 function clearAddressFields() {
     if (ruaInput) ruaInput.value = '';
@@ -847,7 +801,9 @@ async function fetchAddressByCep() {
         const response = await fetch(`https://viacep.com.br/ws/${sanitizedCep}/json/`);
         if (!response.ok) throw new Error('Falha ao consultar CEP.');
         const data = await response.json();
-        if (lookupId !== latestCepLookupId) return;
+        if (lookupId !== latestCepLookupId) {
+            return;
+        }
         if (data.erro) {
             alert('CEP não encontrado. Verifique e tente novamente.');
             clearAddressFields();
@@ -863,12 +819,10 @@ async function fetchAddressByCep() {
         await updateCustomerCoordinates();
     } catch (error) {
         console.error('Erro ao buscar CEP:', error);
-        alert('Não foi possível buscar o endereço.');
+        alert('Não foi possível buscar o endereço pelo CEP informado.');
         clearAddressFields();
     }
 }
-
-// ============= GEOCODING E DISTÂNCIA =============
 
 async function geocodeAddress(address) {
     const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
@@ -879,10 +833,14 @@ async function geocodeAddress(address) {
         }
     });
 
-    if (!response.ok) throw new Error('Falha na geocodificação.');
+    if (!response.ok) {
+        throw new Error('Falha na geocodificação.');
+    }
 
     const results = await response.json();
-    if (!results || !results.length) throw new Error('Endereço não encontrado.');
+    if (!results || !results.length) {
+        throw new Error('Endereço não encontrado.');
+    }
 
     return {
         latitude: parseFloat(results[0].lat),
@@ -915,13 +873,15 @@ async function fetchDistance(origin, destination) {
         }
         throw new Error('Sem rotas disponíveis');
     } catch (error) {
-        console.warn('Usando distância em linha reta:', error);
+        console.warn('Falha ao consultar serviço de rotas, usando distância em linha reta.', error);
         return haversineDistance(origin, destination);
     }
 }
 
 async function ensureBaseCoordinates() {
-    if (baseCoordinates) return;
+    if (baseCoordinates) {
+        return;
+    }
 
     if (BASE_LOCATION.latitude && BASE_LOCATION.longitude) {
         baseCoordinates = {
@@ -934,7 +894,7 @@ async function ensureBaseCoordinates() {
     try {
         baseCoordinates = await geocodeAddress(BASE_LOCATION.address);
     } catch (error) {
-        console.error('Erro ao obter coordenadas da base:', error);
+        console.error('Não foi possível obter as coordenadas da filial base:', error);
         baseCoordinates = null;
     }
 }
@@ -947,6 +907,7 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
+}
 
     const numero = numeroInput?.value.trim();
     if (!numero) {
@@ -956,6 +917,7 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
+}
 
     const addressParts = [
         lastCepData.logradouro,
@@ -968,23 +930,27 @@ async function updateCustomerCoordinates() {
     const lookupId = ++latestDistanceLookupId;
     isCalculatingDistance = true;
     if (distanceInfoDiv) {
-        distanceInfoDiv.textContent = 'Calculando distância...';
+        distanceInfoDiv.textContent = 'Calculando distância até a filial...';
     }
 
     try {
         customerCoordinates = await geocodeAddress(addressParts.join(', '));
         await ensureBaseCoordinates();
-        if (!baseCoordinates) throw new Error('Coordenadas da base indisponíveis.');
-        
+        if (!baseCoordinates) {
+            throw new Error('Coordenadas da base indisponíveis.');
+        }
         const calculatedDistance = await fetchDistance(baseCoordinates, customerCoordinates);
-        if (lookupId !== latestDistanceLookupId) return;
-        
+        if (lookupId !== latestDistanceLookupId) {
+            return;
+        }
         distanceKm = Number.isFinite(calculatedDistance) ? Number(calculatedDistance.toFixed(2)) : null;
     } catch (error) {
-        console.error('Erro ao calcular distância:', error);
-        if (lookupId !== latestDistanceLookupId) return;
+        console.error('Não foi possível calcular a distância:', error);
+        if (lookupId !== latestDistanceLookupId) {
+            return;
+        }
         distanceKm = null;
-        alert('Não conseguimos calcular a distância. Confira os dados.');
+        alert('Não conseguimos calcular a distância para o endereço informado. Confira os dados.');
     } finally {
         if (lookupId === latestDistanceLookupId) {
             isCalculatingDistance = false;
@@ -995,41 +961,16 @@ async function updateCustomerCoordinates() {
     updateScheduleButtonState();
 }
 
-// ============= CARREGAMENTO DE SERVIÇOS =============
-
-async function loadServices() {
-    if (!serviceSelectionDiv) return;
-
-    serviceSelectionDiv.innerHTML = '<p>Carregando serviços...</p>';
-
-    const { data: services, error } = await supabase
-        .from('servicos')
-        .select('*')
-        .eq('is_active', true)
-        .order('id');
-
-    if (error) {
-        console.error('Erro ao carregar serviços:', error);
-        serviceSelectionDiv.innerHTML = '<p>Erro ao carregar os serviços.</p>';
-        return;
-    }
-
-    priceTable = services || [];
-    renderServices();
-}
-
-// ============= AUTENTICAÇÃO =============
-
 async function initializeAuth() {
     const { data } = await supabase.auth.getSession();
     currentSession = data?.session ?? null;
     setLoginWarningVisible(!currentSession);
     updatePasswordRequirement();
 
-    // Se já está logado, carregar dados do usuário
-    if (currentSession?.user?.id) {
-        await loadUserData(currentSession.user.id);
-        await initAddressManager(currentSession.user.id);
+    if (currentSession) {
+        await hydrateStep1FromSession({ force: true });
+    } else {
+        shouldAutoAdvanceAfterAuth = false;
     }
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -1037,319 +978,25 @@ async function initializeAuth() {
         setLoginWarningVisible(!session);
         updatePasswordRequirement();
         updateScheduleButtonState();
-        
-        if (session?.user?.id) {
-            await loadUserData(session.user.id);
-            await initAddressManager(session.user.id);
-            applyResumeState();
+
+        if (session) {
+            if (pendingResumeState) {
+                applyResumeState();
+            }
+            const contactReady = await hydrateStep1FromSession({ force: true });
+            if (!pendingResumeState && !resumeStateRestored && currentStep === 1 && contactReady) {
+                showStep(2);
+            }
+        } else {
+            stepData.step1 = {};
+            shouldAutoAdvanceAfterAuth = false;
+            profileCache = null;
+            if (currentStep !== 1) {
+                showStep(1);
+            }
         }
     });
 }
-
-async function initAddressManager(userId) {
-    try {
-        console.log('📍 Inicializando gerenciador de endereços...');
-        
-        // Criar instância do AddressManager
-        addressManager = new window.AddressManager();
-        await addressManager.init(userId);
-
-        // Renderizar endereços no Step 2
-        renderSavedAddresses();
-
-        console.log('✅ Gerenciador de endereços inicializado');
-    } catch (error) {
-        console.error('Erro ao inicializar gerenciador de endereços:', error);
-    }
-}
-
-// ============= ADICIONAR NOVA FUNÇÃO: Renderizar endereços salvos =============
-
-function renderSavedAddresses() {
-    if (!addressManager) return;
-
-    addressManager.renderAddressList(
-        'saved-addresses-list',
-        // onSelect: Quando usuário clica em um endereço
-        (address) => {
-            console.log('📍 Endereço selecionado:', address.nome_endereco);
-            selectedAddressId = address.id;
-            fillAddressForm(address);
-            // Automaticamente mudar para a tab de novo endereço para mostrar os dados
-            switchAddressTab('new');
-            // Desabilitar edição dos campos (apenas visualização)
-            setAddressFormReadonly(true);
-        },
-        // onEdit: Quando usuário clica em "Editar"
-        (address) => {
-            console.log('✏️ Editando endereço:', address.nome_endereco);
-            selectedAddressId = address.id;
-            fillAddressForm(address);
-            switchAddressTab('new');
-            setAddressFormReadonly(false);
-        },
-        // onDelete: Quando usuário clica em "Excluir"
-        null // Já tratado dentro do AddressManager
-    );
-}
-
-// ============= ADICIONAR NOVA FUNÇÃO: Preencher formulário com endereço =============
-
-function fillAddressForm(address) {
-    const nomeEnderecoInput = document.getElementById('nome-endereco');
-    const tipoImovelSelect = document.getElementById('tipo-imovel');
-    
-    if (nomeEnderecoInput) nomeEnderecoInput.value = address.nome_endereco;
-    if (tipoImovelSelect) tipoImovelSelect.value = address.tipo_imovel;
-    if (cepInput) cepInput.value = applyCepMask(address.cep);
-    if (numeroInput) numeroInput.value = address.numero;
-    if (complementoInput) complementoInput.value = address.complemento || '';
-    if (ruaInput) ruaInput.value = address.rua;
-    if (bairroInput) bairroInput.value = address.bairro;
-    if (cidadeInput) cidadeInput.value = address.cidade;
-    if (estadoInput) estadoInput.value = address.estado;
-
-    // Atualizar lastCepData
-    lastCepData = {
-        logradouro: address.rua,
-        bairro: address.bairro,
-        localidade: address.cidade,
-        uf: address.estado
-    };
-
-    // Calcular distância
-    if (address.latitude && address.longitude) {
-        customerCoordinates = {
-            latitude: parseFloat(address.latitude),
-            longitude: parseFloat(address.longitude)
-        };
-        // Recalcular distância
-        updateCustomerCoordinates();
-    }
-
-    // Salvar dados no stepData
-    stepData.step2 = {
-        tipoImovel: address.tipo_imovel,
-        cep: address.cep,
-        numero: address.numero,
-        complemento: address.complemento || '',
-        rua: address.rua,
-        bairro: address.bairro,
-        cidadeDetalhe: address.cidade,
-        estado: address.estado
-    };
-}
-
-// ============= ADICIONAR NOVA FUNÇÃO: Habilitar/Desabilitar edição =============
-
-function setAddressFormReadonly(readonly) {
-    const nomeEnderecoInput = document.getElementById('nome-endereco');
-    const tipoImovelSelect = document.getElementById('tipo-imovel');
-    
-    if (nomeEnderecoInput) nomeEnderecoInput.readOnly = readonly;
-    if (tipoImovelSelect) tipoImovelSelect.disabled = readonly;
-    if (cepInput) cepInput.readOnly = readonly;
-    if (numeroInput) numeroInput.readOnly = readonly;
-    if (complementoInput) complementoInput.readOnly = readonly;
-}
-
-// ============= MODIFICAR A VALIDAÇÃO DO STEP 2 =============
-
-function validateStep(step) {
-    console.log('🔍 Validando step:', step);
-
-    if (step === 1) {
-        // ... código existente ...
-    }
-
-    if (step === 2) {
-        const form = stepForms[2];
-        if (!form) return false;
-
-        const nomeEnderecoInput = document.getElementById('nome-endereco');
-        const tipoImovelSelect = document.getElementById('tipo-imovel');
-
-        // Validar nome do endereço
-        if (!nomeEnderecoInput?.value?.trim()) {
-            alert('Por favor, dê um nome para este endereço (ex: Casa, Trabalho).');
-            nomeEnderecoInput?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        // Validar tipo de imóvel
-        if (!tipoImovelSelect?.value) {
-            alert('Por favor, selecione o tipo de imóvel.');
-            tipoImovelSelect?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        // Validar CEP
-        if (cepInput) {
-            const sanitizedCep = sanitizeCep(cepInput.value);
-            if (sanitizedCep.length !== 8) {
-                alert('Informe um CEP válido com 8 dígitos.');
-                cepInput.focus();
-                switchAddressTab('new');
-                return false;
-            }
-        }
-
-        // Validar número
-        if (!numeroInput?.value?.trim()) {
-            alert('Por favor, informe o número do endereço.');
-            numeroInput?.focus();
-            switchAddressTab('new');
-            return false;
-        }
-
-        const cidadeValue = (cidadeInput?.value || lastCepData?.localidade || '').trim();
-
-        if (!ruaInput?.value.trim() || !cidadeValue) {
-            alert('Confirme um CEP válido e aguarde o preenchimento do endereço.');
-            switchAddressTab('new');
-            return false;
-        }
-
-        if (isCalculatingDistance) {
-            alert('Estamos calculando a distância. Aguarde alguns segundos.');
-            return false;
-        }
-
-        if (!Number.isFinite(distanceKm)) {
-            alert('Aguarde o cálculo de distância antes de prosseguir.');
-            return false;
-        }
-
-        const elements = form.elements;
-        stepData.step2 = {
-            nomeEndereco: nomeEnderecoInput.value.trim(),
-            tipoImovel: tipoImovelSelect.value,
-            cep: sanitizeCep(cepInput?.value || ''),
-            numero: numeroInput?.value.trim() ?? '',
-            complemento: complementoInput?.value.trim() ?? '',
-            rua: ruaInput?.value.trim() ?? '',
-            bairro: (bairroInput?.value || lastCepData?.bairro || '').trim(),
-            cidadeDetalhe: cidadeValue,
-            estado: estadoInput?.value.trim() ?? ''
-        };
-
-        // Salvar endereço se checkbox estiver marcado
-        const saveAddressCheckbox = document.getElementById('save-address-checkbox');
-        const isPrincipalCheckbox = document.getElementById('principal-address-checkbox');
-
-        if (saveAddressCheckbox?.checked && currentSession?.user?.id) {
-            saveNewAddress(
-                stepData.step2,
-                customerCoordinates,
-                isPrincipalCheckbox?.checked || false
-            );
-        }
-
-        return true;
-    }
-
-    if (step === 3) {
-        // ... código existente ...
-    }
-
-    return true;
-}
-
-// ============= ADICIONAR NOVA FUNÇÃO: Salvar novo endereço =============
-
-async function saveNewAddress(addressData, coordinates, isPrincipal) {
-    if (!addressManager) return;
-
-    try {
-        console.log('💾 Salvando novo endereço...');
-
-        await addressManager.createAddress({
-            nome_endereco: addressData.nomeEndereco,
-            tipo_imovel: addressData.tipoImovel,
-            cep: addressData.cep,
-            rua: addressData.rua,
-            numero: addressData.numero,
-            complemento: addressData.complemento,
-            bairro: addressData.bairro,
-            cidade: addressData.cidadeDetalhe,
-            estado: addressData.estado,
-            latitude: coordinates?.latitude || null,
-            longitude: coordinates?.longitude || null,
-            is_principal: isPrincipal
-        });
-
-        console.log('✅ Endereço salvo com sucesso!');
-        
-        // Atualizar lista de endereços
-        renderSavedAddresses();
-
-    } catch (error) {
-        console.error('Erro ao salvar endereço:', error);
-        // Não bloqueia o fluxo, apenas loga o erro
-    }
-}
-
-// Carregar dados do usuário logado
-async function loadUserData(userId) {
-    try {
-        console.log('👤 Carregando dados do usuário:', userId);
-
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        if (error) {
-            console.error('Erro ao carregar perfil:', error);
-            return;
-        }
-
-        if (!profile) return;
-
-        console.log('✅ Perfil carregado:', profile);
-
-        // Preencher dados do Step 1 automaticamente
-        if (stepForms[1]) {
-            const formElements = stepForms[1].elements;
-            if (formElements.namedItem('nome')) {
-                formElements.namedItem('nome').value = profile.nome_completo || '';
-            }
-            if (formElements.namedItem('email')) {
-                formElements.namedItem('email').value = currentSession.user.email || '';
-                formElements.namedItem('email').readOnly = true; // Email não pode ser editado
-            }
-            if (formElements.namedItem('telefone')) {
-                formElements.namedItem('telefone').value = profile.whatsapp || '';
-            }
-        }
-
-        // Salvar no stepData
-        stepData.step1 = {
-            nome: profile.nome_completo || '',
-            email: currentSession.user.email || '',
-            telefone: profile.whatsapp || ''
-        };
-
-        // Se tem endereço salvo, preencher Step 2
-        if (profile.endereco && stepForms[2]) {
-            // Tentar parsear o endereço (se for um JSON ou string)
-            const endereco = profile.endereco;
-            
-            // Por enquanto, apenas pré-preenche o campo de endereço completo
-            // TODO: Implementar múltiplos endereços salvos
-            console.log('📍 Endereço salvo:', endereco);
-        }
-
-    } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error);
-    }
-}
-
-
-// ============= EVENT LISTENERS =============
 
 function registerNavigationListeners() {
     document.querySelectorAll('.step-actions button[data-action]').forEach((button) => {
@@ -1395,7 +1042,7 @@ function registerScheduleListener() {
 
         const selectedServices = getSelectedServices();
         if (!selectedServices.length) {
-            alert('Selecione pelo menos um serviço.');
+            alert('Selecione ao menos um serviço.');
             return;
         }
 
@@ -1404,69 +1051,22 @@ function registerScheduleListener() {
             return;
         }
 
-        if (!currentSession?.user?.id) {
-            alert('Sessão expirada. Faça login novamente.');
-            window.location.href = 'login.html';
-            return;
-        }
-
         const totalPrice = serviceSubtotal + distanceSurcharge;
 
-        // Desabilitar botão durante processamento
-        scheduleBtn.disabled = true;
-        scheduleBtn.textContent = 'Criando agendamento...';
+        const orcamentoData = {
+            cliente: stepData.step1,
+            imovel: stepData.step2,
+            servicos: selectedServices,
+            subtotal_servicos: serviceSubtotal,
+            distancia_km: distanceKm,
+            taxa_deslocamento: distanceSurcharge,
+            valor_total: totalPrice,
+            criado_em: new Date().toISOString()
+        };
 
-        try {
-            console.log('💾 Criando agendamento no banco de dados...');
-
-            // Criar agendamento no Supabase    
-            const { data: agendamento, error } = await supabase
-              .from("agendamentos")
-              .insert({
-                cliente_id: currentSession.user.id,
-                servicos_escolhidos: selectedServices,
-                valor_total: totalPrice,
-                status_pagamento: "Pendente",
-                distancia_km: distanceKm,
-                taxa_deslocamento: distanceSurcharge,
-              })
-              .select()
-              .single();
-
-            if (error) {
-                console.error('❌ Erro ao criar agendamento:', error);
-                throw error;
-            }
-
-            console.log('✅ Agendamento criado com sucesso! ID:', agendamento.id);
-
-            // Salvar dados completos do orçamento no localStorage (inclui distância)
-            const orcamentoData = {
-                cliente: stepData.step1,
-                imovel: stepData.step2,
-                servicos: selectedServices,
-                subtotal_servicos: serviceSubtotal,
-                distancia_km: distanceKm,
-                taxa_deslocamento: distanceSurcharge,
-                valor_total: totalPrice,
-                agendamento_id: agendamento.id,
-                criado_em: new Date().toISOString()
-            };
-
-            localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));
-            clearResumeState();
-
-            // Redirecionar para página de agendamento
-            window.location.href = 'agendamento.html';
-
-        } catch (error) {
-            console.error('❌ Erro ao criar agendamento:', error);
-            alert(`Erro ao criar agendamento:\n\n${error.message}\n\nTente novamente.`);
-            
-            // Reabilitar botão
-            scheduleBtn.disabled = false;
-            scheduleBtn.textContent = 'Agendar Visita';
-        }
+        localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));
+        clearResumeState();
+        window.location.href = 'agendamento.html';
     });
 }
 
@@ -1480,39 +1080,6 @@ function registerServiceSummaryWatcher() {
     observer.observe(summaryItemsDiv, { childList: true, subtree: true });
 }
 
-window.switchAddressTab = function(tabName) {
-    // Atualizar botões
-    document.querySelectorAll('.address-tab-btn').forEach(btn => {
-        const isActive = btn.dataset.tab === tabName;
-        btn.classList.toggle('active', isActive);
-        btn.style.borderBottomColor = isActive ? '#00A99D' : 'transparent';
-        btn.style.color = isActive ? '#00A99D' : '#666';
-    });
-
-    // Atualizar conteúdo
-    document.querySelectorAll('.address-tab-content').forEach(content => {
-        const isActive = content.dataset.tabContent === tabName;
-        content.style.display = isActive ? 'block' : 'none';
-        content.classList.toggle('active', isActive);
-    });
-
-    // Se mudou para "novo endereço" e não tem endereço selecionado, limpar form
-    if (tabName === 'new' && !selectedAddressId) {
-        setAddressFormReadonly(false);
-    }
-};
-
-// Adicionar event listeners nas tabs quando o DOM carregar
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.address-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            window.switchAddressTab(btn.dataset.tab);
-        });
-    });
-});
-
-// ============= INICIALIZAÇÃO =============
-
 async function init() {
     if (!stepsWrapper) return;
 
@@ -1524,19 +1091,27 @@ async function init() {
     registerScheduleListener();
     registerServiceSummaryWatcher();
 
-    if (!resumeStateRestored) {
-        showStep(1);
-    } else {
-        showStep(currentStep);
-    }
-    
     renderChargesSummary();
     await ensureBaseCoordinates();
     await loadServices();
 
     if (pendingResumeState && currentSession) {
         applyResumeState();
+        return;
     }
+
+    if (resumeStateRestored) {
+        showStep(currentStep);
+        return;
+    }
+
+    let contactReady = false;
+    if (currentSession) {
+        contactReady = await hydrateStep1FromSession();
+    }
+
+    const initialStep = currentSession && shouldAutoAdvanceAfterAuth && contactReady ? 2 : 1;
+    showStep(initialStep);
 }
 
 init();
