@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <header class="main-header scrolled">
         <nav class="main-nav">
@@ -32,7 +34,8 @@
             <div class="steps-wrapper">
                 <div class="steps-header">
                     <h1 class="section-title">Orçamento Instantâneo Apex Care</h1>
-                    <p class="section-subtitle">Preencha as etapas para receber um orçamento personalizado em minutos.</p>
+                    <p class="section-subtitle">Preencha as etapas para receber um orçamento personalizado em minutos.
+                    </p>
                     <div id="login-warning" class="login-warning hidden">
                         <strong>Atenção:</strong> faça login ou crie sua conta para continuar com o orçamento.
                     </div>
@@ -70,16 +73,21 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="email">E-mail</label>
-                                    <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com" required>
+                                    <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com"
+                                        required>
                                 </div>
                                 <div class="form-group">
                                     <label for="telefone">Telefone / WhatsApp</label>
-                                    <input type="tel" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                                    <input type="tel" id="telefone" name="telefone" placeholder="(00) 00000-0000"
+                                        required>
                                 </div>
                                 <div class="form-group" data-password-wrapper>
                                     <label for="senha-input">Crie uma senha</label>
-                                    <input type="password" id="senha-input" name="senha" placeholder="Mínimo de 6 caracteres" minlength="6" autocomplete="new-password" required>
-                                    <small class="form-hint">Usaremos esses dados para criar sua conta automaticamente.</small>
+                                    <input type="password" id="senha-input" name="senha"
+                                        placeholder="Mínimo de 6 caracteres" minlength="6" autocomplete="new-password"
+                                        required>
+                                    <small class="form-hint">Usaremos esses dados para criar sua conta
+                                        automaticamente.</small>
                                 </div>
                             </form>
                             <div class="step-actions">
@@ -88,55 +96,211 @@
                         </section>
 
                         <section class="step-section hidden" data-step="2">
-                            <h2>Etapa 2 – Dados do imóvel</h2>
-                            <form id="step-2-form" class="step-form" novalidate>
-                                <div class="form-group">
-                                    <label for="tipo-imovel">Tipo de imóvel</label>
-                                    <select id="tipo-imovel" name="tipo-imovel" required>
-                                        <option value="">Selecione</option>
-                                        <option value="residencial">Residencial</option>
-                                        <option value="comercial">Comercial</option>
-                                        <option value="condominio">Condomínio</option>
-                                    </select>
+                            <h2>Etapa 2 – Endereço do Serviço</h2>
+                            <p class="step-description">Escolha um endereço salvo ou adicione um novo.</p>
+
+                            <!-- TABS: Endereços Salvos / Novo Endereço -->
+                            <div class="address-tabs"
+                                style="display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e5e7eb;">
+                                <button type="button" class="address-tab-btn active" data-tab="saved"
+                                    style="padding: 12px 24px; border: none; background: transparent; cursor: pointer; font-weight: 700; border-bottom: 3px solid #00A99D; color: #00A99D;">
+                                    📍 Endereços Salvos
+                                </button>
+                                <button type="button" class="address-tab-btn" data-tab="new"
+                                    style="padding: 12px 24px; border: none; background: transparent; cursor: pointer; font-weight: 700; border-bottom: 3px solid transparent; color: #666;">
+                                    ➕ Novo Endereço
+                                </button>
+                            </div>
+
+                            <!-- TAB: ENDEREÇOS SALVOS -->
+                            <div class="address-tab-content active" data-tab-content="saved">
+                                <div id="saved-addresses-list"></div>
+
+                                <div style="text-align: center; margin-top: 20px;">
+                                    <button type="button" class="ghost-button" onclick="switchToNewAddressTab()">
+                                        ➕ Adicionar Novo Endereço
+                                    </button>
                                 </div>
-                                <div class="address-card">
-                                    <h3>Endereço da visita</h3>
-                                    <div class="form-grid">
-                                        <div class="form-group">
-                                            <label for="cep-input">CEP</label>
-                                            <input type="text" id="cep-input" name="cep" placeholder="00000-000" inputmode="numeric" maxlength="9" pattern="\d{5}-?\d{3}" required>
-                                            <small class="form-hint">Digite o CEP e pressione TAB para preencher automaticamente.</small>
+                            </div>
+
+                            <!-- TAB: NOVO ENDEREÇO -->
+                            <div class="address-tab-content" data-tab-content="new" style="display: none;">
+                                <form id="step-2-form" class="step-form" novalidate>
+                                    <!-- Nome do Endereço -->
+                                    <div class="form-group">
+                                        <label for="nome-endereco">Nome do Endereço (ex: Casa, Trabalho)</label>
+                                        <input type="text" id="nome-endereco" name="nome-endereco" placeholder="Casa"
+                                            required>
+                                        <small class="form-hint">Dê um nome para identificar este endereço
+                                            facilmente.</small>
+                                    </div>
+
+                                    <!-- Tipo de Imóvel -->
+                                    <div class="form-group">
+                                        <label for="tipo-imovel">Tipo de Imóvel</label>
+                                        <select id="tipo-imovel" name="tipo-imovel" required>
+                                            <option value="">Selecione</option>
+                                            <option value="residencial">Residencial</option>
+                                            <option value="comercial">Comercial</option>
+                                            <option value="condominio">Condomínio</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="address-card">
+                                        <h3>Endereço Completo</h3>
+                                        <div class="form-grid">
+                                            <div class="form-group">
+                                                <label for="cep-input">CEP</label>
+                                                <input type="text" id="cep-input" name="cep" placeholder="00000-000"
+                                                    inputmode="numeric" maxlength="9" pattern="\d{5}-?\d{3}" required>
+                                                <small class="form-hint">Digite o CEP e pressione TAB para preencher
+                                                    automaticamente.</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="numero-input">Número</label>
+                                                <input type="text" id="numero-input" name="numero" placeholder="Número"
+                                                    inputmode="numeric" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="complemento-input">Complemento</label>
+                                                <input type="text" id="complemento-input" name="complemento"
+                                                    placeholder="Apartamento, bloco...">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="rua-input">Rua</label>
+                                                <input type="text" id="rua-input" name="rua" readonly>
+                                            </div>
+                                            <input type="hidden" id="bairro-input" name="bairro">
+                                            <input type="hidden" id="cidade-input" name="cidade-detalhe">
+                                            <div class="form-group">
+                                                <label for="estado-input">Estado</label>
+                                                <input type="text" id="estado-input" name="estado" readonly>
+                                            </div>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="numero-input">Número</label>
-                                            <input type="text" id="numero-input" name="numero" placeholder="Número" inputmode="numeric" required>
+
+                                        <!-- Checkbox: Salvar endereço -->
+                                        <div class="form-group" style="margin-top: 20px;">
+                                            <label
+                                                style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                                <input type="checkbox" id="save-address-checkbox" checked
+                                                    style="width: 20px; height: 20px;">
+                                                <span>💾 Salvar este endereço para uso futuro</span>
+                                            </label>
                                         </div>
+
+                                        <!-- Checkbox: Endereço principal -->
                                         <div class="form-group">
-                                            <label for="complemento-input">Complemento</label>
-                                            <input type="text" id="complemento-input" name="complemento" placeholder="Apartamento, bloco, ponto de referência...">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="rua-input">Rua</label>
-                                            <input type="text" id="rua-input" name="rua" readonly>
-                                        </div>
-                                        <input type="hidden" id="bairro-input" name="bairro">
-                                        <input type="hidden" id="cidade-input" name="cidade-detalhe">
-                                        <div class="form-group">
-                                            <label for="estado-input">Estado</label>
-                                            <input type="text" id="estado-input" name="estado" readonly>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                                <input type="checkbox" id="principal-address-checkbox"
+                                                    style="width: 20px; height: 20px;">
+                                                <span>⭐ Definir como endereço principal</span>
+                                            </label>
                                         </div>
                                     </div>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
+
                             <div class="step-actions">
                                 <button class="ghost-button" data-action="prev">Voltar</button>
                                 <button class="cta-button-hero" data-action="next">Próximo</button>
                             </div>
                         </section>
 
+                        <script>
+                            // Função para alternar entre as tabs
+                            function switchAddressTab(tabName) {
+                                // Atualizar botões
+                                document.querySelectorAll('.address-tab-btn').forEach(btn => {
+                                    const isActive = btn.dataset.tab === tabName;
+                                    btn.classList.toggle('active', isActive);
+                                    btn.style.borderBottomColor = isActive ? '#00A99D' : 'transparent';
+                                    btn.style.color = isActive ? '#00A99D' : '#666';
+                                });
+
+                                // Atualizar conteúdo
+                                document.querySelectorAll('.address-tab-content').forEach(content => {
+                                    const isActive = content.dataset.tabContent === tabName;
+                                    content.style.display = isActive ? 'block' : 'none';
+                                    content.classList.toggle('active', isActive);
+                                });
+                            }
+
+                            // Adicionar event listeners nas tabs
+                            document.querySelectorAll('.address-tab-btn').forEach(btn => {
+                                btn.addEventListener('click', () => {
+                                    switchAddressTab(btn.dataset.tab);
+                                });
+                            });
+
+                            // Função auxiliar para mudar para a tab de novo endereço
+                            function switchToNewAddressTab() {
+                                switchAddressTab('new');
+                            }
+                        </script>
+
+                        <style>
+                            .address-tab-btn {
+                                transition: all 0.3s;
+                            }
+
+                            .address-tab-btn:hover {
+                                color: #00A99D !important;
+                            }
+
+                            .address-tab-btn.active {
+                                border-bottom-color: #00A99D !important;
+                                color: #00A99D !important;
+                            }
+
+                            .address-item:hover {
+                                border-color: #00A99D !important;
+                                box-shadow: 0 5px 15px rgba(0, 169, 157, 0.2);
+                            }
+                        </style>
+                        <div class="address-card">
+                            <h3>Endereço da visita</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="cep-input">CEP</label>
+                                    <input type="text" id="cep-input" name="cep" placeholder="00000-000"
+                                        inputmode="numeric" maxlength="9" pattern="\d{5}-?\d{3}" required>
+                                    <small class="form-hint">Digite o CEP e pressione TAB para preencher
+                                        automaticamente.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="numero-input">Número</label>
+                                    <input type="text" id="numero-input" name="numero" placeholder="Número"
+                                        inputmode="numeric" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="complemento-input">Complemento</label>
+                                    <input type="text" id="complemento-input" name="complemento"
+                                        placeholder="Apartamento, bloco, ponto de referência...">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rua-input">Rua</label>
+                                    <input type="text" id="rua-input" name="rua" readonly>
+                                </div>
+                                <input type="hidden" id="bairro-input" name="bairro">
+                                <input type="hidden" id="cidade-input" name="cidade-detalhe">
+                                <div class="form-group">
+                                    <label for="estado-input">Estado</label>
+                                    <input type="text" id="estado-input" name="estado" readonly>
+                                </div>
+                            </div>
+                        </div>
+                        </form>
+                        <div class="step-actions">
+                            <button class="ghost-button" data-action="prev">Voltar</button>
+                            <button class="cta-button-hero" data-action="next">Próximo</button>
+                        </div>
+                        </section>
+
                         <section class="step-section hidden" data-step="3">
                             <h2>Etapa 3 – Seleção de serviços</h2>
-                            <p class="step-description">Escolha os serviços desejados para seu imóvel. Você poderá revisar tudo na etapa seguinte.</p>
+                            <p class="step-description">Escolha os serviços desejados para seu imóvel. Você poderá
+                                revisar tudo na etapa seguinte.</p>
                             <div id="service-selection" class="service-grid">
                                 <!-- Serviços carregados dinamicamente -->
                             </div>
@@ -148,7 +312,8 @@
 
                         <section class="step-section hidden" data-step="4">
                             <h2>Etapa 4 – Resumo e preço</h2>
-                            <p class="step-description">Confira os dados antes de finalizar. O valor total aparece no resumo ao lado.</p>
+                            <p class="step-description">Confira os dados antes de finalizar. O valor total aparece no
+                                resumo ao lado.</p>
                             <div class="resume-grid">
                                 <div class="resume-card">
                                     <h3>Seus dados</h3>
@@ -187,7 +352,8 @@
                             <p>Nenhum item selecionado.</p>
                         </div>
                         <div id="summary-charges" class="summary-charges"></div>
-                        <div id="distance-info" class="summary-distance">Informe CEP e número para calcular a distância (até 20 km sem taxa adicional).</div>
+                        <div id="distance-info" class="summary-distance">Informe CEP e número para calcular a distância
+                            (até 20 km sem taxa adicional).</div>
                         <div class="summary-total">
                             <span>Total Estimado:</span>
                             <span id="total-price">R$ 0,00</span>
@@ -227,9 +393,10 @@
             <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
         </div>
     </footer>
-
+    <script type="module" src="js/address-manager.js"></script>
     <script type="module" src="js/orcamento.js"></script>
     <script type="module" src="js/shared.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>
