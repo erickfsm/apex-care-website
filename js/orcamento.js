@@ -18,6 +18,7 @@ const FINAL_STEP = 6;
 const stepSections = Array.from(document.querySelectorAll(".step-section"));
 const progressSteps = Array.from(document.querySelectorAll(".progress-step"));
 const progressBarFill = document.getElementById("progress-bar-fill");
+const stepIndicator = document.getElementById("step-indicator");
 const stepsWrapper = document.querySelector(".steps-wrapper");
 const loginWarning = document.getElementById("login-warning");
 
@@ -140,7 +141,7 @@ function updatePasswordRequirement() {
 }
 
 function updateProgressBar(step) {
-  const totalSteps = progressSteps.length || 1;
+  const totalSteps = progressSteps.length || FINAL_STEP;
   const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
   if (progressBarFill) {
     progressBarFill.style.width = `${Math.max(
@@ -154,6 +155,24 @@ function updateProgressBar(step) {
     progressStep.classList.toggle("active", stepNumber === step);
     progressStep.classList.toggle("completed", stepNumber < step);
   });
+
+  updateStepIndicator(step, totalSteps);
+}
+
+function updateStepIndicator(step, totalSteps = FINAL_STEP) {
+  if (!stepIndicator) return;
+
+  const section = stepSections.find(
+    (item) => Number(item.dataset.step) === step
+  );
+  const headingText =
+    section?.querySelector("h2")?.textContent?.trim() ||
+    `Etapa ${step}`;
+
+  stepIndicator.innerHTML = `
+    <strong>Etapa ${step} de ${totalSteps}</strong>
+    <span>${headingText}</span>
+  `;
 }
 
 function prefillStepForms(step) {
@@ -628,7 +647,11 @@ function updateSummaryVisibility() {
     scheduleBtn.classList.toggle("hidden", !revealTotals);
   }
 
-  totalPriceSpan.textContent = formatCurrency(totalPrice);
+  if (totalPriceSpan) {
+    totalPriceSpan.textContent = revealTotals
+      ? formatCurrency(lastCalculatedTotal)
+      : "R$ --";
+  }
   updateScheduleButtonState();
 }
 
@@ -1389,10 +1412,94 @@ function registerScheduleListener() {
 
     const totalPrice = lastCalculatedTotal;
 
+    const servicesPayload = selectedServices.map((service) => ({
+      ...service,
+      line_total: Number(service.price || 0) * Number(service.quantity || 1),
+    }));
+
+    const extremeSelections = stepData.extremeConditions?.selections ?? [];
+    extremeSelections.forEach((selection) => {
+      const amount = Number(selection.amount) || 0;
+      servicesPayload.push({
+        id: `extreme-${selection.id}`,
+        name: selection.label,
+        price: amount,
+        quantity: 1,
+        line_total: amount,
+        type: "adjustment",
+      });
+    });
+
+    if (distanceSurcharge > 0 && Number.isFinite(distanceKm)) {
+      servicesPayload.push({
+        id: "distance-surcharge",
+        name: `Taxa de deslocamento (${distanceKm.toFixed(1)} km)`,
+        price: distanceSurcharge,
+        quantity: 1,
+        line_total: distanceSurcharge,
+        type: "adjustment",
+      });
+    }
+
+    if (lastPromotionDiscount > 0) {
+      servicesPayload.push({
+        id: "promotion-discount",
+        name: "Desconto Promocional",
+        price: -lastPromotionDiscount,
+        quantity: 1,
+        line_total: -lastPromotionDiscount,
+        type: "discount",
+      });
+    }
+
+    const tipoImovelLabels = {
+      residencial: "Residencial",
+      comercial: "Comercial",
+      condominio: "Condomínio",
+    };
+
+    if (stepData.step2) {
+      const tipoImovel =
+        tipoImovelLabels[stepData.step2.tipoImovel] ||
+        stepData.step2.tipoImovel ||
+        "Não informado";
+      const cepFormatado = stepData.step2.cep
+        ? applyCepMask(stepData.step2.cep)
+        : "Não informado";
+      const distanciaLabel = Number.isFinite(distanceKm)
+        ? ` • Distância estimada ${distanceKm.toFixed(1)} km`
+        : "";
+      servicesPayload.push({
+        id: "property-overview",
+        name: `Dados do imóvel - ${tipoImovel} • CEP ${cepFormatado}${distanciaLabel}`,
+        price: 0,
+        quantity: 1,
+        line_total: 0,
+        type: "info",
+        details: {
+          cep: stepData.step2.cep || "",
+          numero: stepData.step2.numero || "",
+          complemento: stepData.step2.complemento || "",
+          distanciaKm: distanceKm,
+        },
+      });
+    }
+
+    if (stepData.extremeConditions?.observations) {
+      servicesPayload.push({
+        id: "extreme-observations",
+        name: `Observações adicionais: ${stepData.extremeConditions.observations}`,
+        price: 0,
+        quantity: 1,
+        line_total: 0,
+        type: "info",
+      });
+    }
+
     const orcamentoData = {
       cliente: stepData.step1,
       imovel: stepData.step2,
-      servicos: selectedServices,
+      servicos: servicesPayload,
       subtotal_servicos: serviceSubtotal,
       distancia_km: distanceKm,
       taxa_deslocamento: distanceSurcharge,
@@ -1403,10 +1510,93 @@ function registerScheduleListener() {
       criado_em: new Date().toISOString(),
     };
 
-    localStorage.setItem("apexCareOrcamento", JSON.stringify(orcamentoData));
-    clearResumeState();
-    window.location.href = "agendamento.html";
+    try {
+      const savedRecord = await persistBudgetForApproval(orcamentoData);
+      const enrichedBudget = {
+        ...orcamentoData,
+        agendamento_id: savedRecord?.id || null,
+        status_pagamento: savedRecord?.status_pagamento || "Em Aprovação",
+        alreadyPersisted: true,
+      };
+      localStorage.setItem(
+        "apexCareOrcamento",
+        JSON.stringify(enrichedBudget)
+      );
+      clearResumeState();
+      alert(
+        "Orçamento enviado para aprovação! Nossa equipe revisará as informações e liberará o agendamento em seguida."
+      );
+      window.location.href = "portal-cliente.html";
+    } catch (error) {
+      console.error("Erro ao enviar orçamento para aprovação:", error);
+      alert(
+        "Não foi possível enviar seu orçamento para aprovação agora. Tente novamente em instantes ou fale com nosso atendimento."
+      );
+    }
   });
+}
+
+async function persistBudgetForApproval(orcamentoData) {
+  if (!currentSession?.user?.id) {
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+
+  const clienteId = currentSession.user.id;
+
+  const { data: existingList, error: fetchError } = await supabase
+    .from("agendamentos")
+    .select("id, status_pagamento")
+    .eq("cliente_id", clienteId)
+    .in("status_pagamento", [
+      "Em Aprovação",
+      "Aprovado",
+      "Aguardando Agendamento",
+    ])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  const existingAppointment = existingList?.[0] || null;
+
+  const basePayload = {
+    cliente_id: clienteId,
+    servicos_escolhidos: orcamentoData.servicos,
+    valor_total: orcamentoData.valor_total,
+    status_pagamento: "Em Aprovação",
+    desconto_aplicado: orcamentoData.desconto_promocional || 0,
+    data_agendamento: null,
+    hora_agendamento: null,
+  };
+
+  if (existingAppointment) {
+    const { data, error } = await supabase
+      .from("agendamentos")
+      .update(basePayload)
+      .eq("id", existingAppointment.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("agendamentos")
+    .insert(basePayload)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 function registerServiceSummaryWatcher() {

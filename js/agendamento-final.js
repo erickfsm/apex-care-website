@@ -68,10 +68,22 @@ async function findPendingAppointment() {
         window.location.href = 'orcamento.html';
         return;
     }
-    
+
     pendingAppointment = data;
     console.log("✅ Agendamento encontrado:", pendingAppointment);
-    
+
+    if (pendingAppointment.status_pagamento === 'Em Aprovação') {
+        alert('Seu orçamento ainda está em análise. Assim que for aprovado, liberaremos a agenda para escolha de horários.');
+        window.location.href = 'portal-cliente.html';
+        return;
+    }
+
+    if (pendingAppointment.status_pagamento === 'Reprovado') {
+        alert('Seu orçamento precisa ser revisado com nossa equipe. Entre em contato para ajustes.');
+        window.location.href = 'portal-cliente.html';
+        return;
+    }
+
     // Se já tem data/hora, mostrar na tela
     if (data.data_agendamento && data.hora_agendamento) {
         selectedDate = data.data_agendamento;

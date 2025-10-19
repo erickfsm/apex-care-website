@@ -465,8 +465,9 @@
                 .eq('id', user.id)
                 .single();
 
-            if (profile?.user_type !== 'admin') {
-                alert('Apenas administradores podem acessar esta página.');
+            const allowedRoles = ['admin', 'tecnico_master'];
+            if (!allowedRoles.includes(profile?.user_type)) {
+                alert('Apenas administradores autorizados podem acessar esta página.');
                 window.location.href = 'index.html';
                 return;
             }
