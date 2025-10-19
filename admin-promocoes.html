@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Promoções - Admin Apex Care</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        .admin-main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+            background-color: var(--color-light-gray);
+            min-height: 100vh;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .stats-admin {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-box-admin {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-box-admin:hover {
+            transform: translateY(-5px);
+        }
+
+        .promo-grid {
+            display: grid;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .promo-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .promo-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .promo-card.percentual {
+            border-color: #4caf50;
+        }
+
+        .promo-card.valor_fixo {
+            border-color: #ff9800;
+        }
+
+        .promo-card.combo {
+            border-color: #2196f3;
+        }
+
+        .promo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .promo-title {
+            font-size: 1.4em;
+            font-weight: 900;
+            color: var(--color-graphite);
+            flex: 1;
+        }
+
+        .promo-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-ativa {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inativa {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .promo-desconto {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .promo-desconto-valor {
+            font-size: 3em;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .promo-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: var(--color-light-gray);
+            border-radius: 5px;
+        }
+
+        .promo-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .promo-info-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .promo-info-value {
+            font-size: 1.1em;
+            color: var(--color-graphite);
+            font-weight: 700;
+        }
+
+        .promo-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            flex-wrap: wrap;
+        }
+
+        .btn-admin {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-edit {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .btn-edit:hover {
+            background-color: #ffb300;
+        }
+
+        .btn-toggle {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background-color: #1976d2;
+        }
+
+        .btn-delete {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-nova {
+            background-color: #4caf50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.1em;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-nova:hover {
+            background-color: #388e3c;
+        }
+
+        .modal-admin {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .modal-admin.active {
+            display: flex;
+        }
+
+        .modal-content-admin {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-group-admin {
+            margin-bottom: 20px;
+        }
+
+        .form-group-admin label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--color-graphite);
+        }
+
+        .form-group-admin input,
+        .form-group-admin select,
+        .form-group-admin textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        .form-group-admin small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        @media (max-width: 768px) {
+            .promo-info {
+                grid-template-columns: 1fr;
+            }
+
+            .promo-actions {
+                flex-direction: column;
+            }
+
+            .btn-admin {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="main-header scrolled">
+        <nav class="main-nav">
+            <a href="admin-dashboard.html" class="logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+            <ul>
+                <li><a href="admin-dashboard.html">← Dashboard</a></li>
+            </ul>
+            <div id="auth-container-header"></div>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+        <div class="container">
+            
+            <div class="admin-header">
+                <h1>🎁 Gerenciar Promoções</h1>
+                <p>Crie, edite e controle todas as promoções ativas</p>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="stats-admin">
+                <div class="stat-box-admin">
+                    <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Promoções Ativas</h3>
+                    <div id="stat-ativas" style="font-size: 2.5em; font-weight: 900; color: #4caf50;">0</div>
+                </div>
+                <div class="stat-box-admin">
+                    <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Total de Usos</h3>
+                    <div id="stat-usos" style="font-size: 2.5em; font-weight: 900; color: #2196f3;">0</div>
+                </div>
+                <div class="stat-box-admin">
+                    <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Desconto Concedido</h3>
+                    <div id="stat-desconto" style="font-size: 2.5em; font-weight: 900; color: #ff9800;">R$ 0</div>
+                </div>
+            </div>
+
+            <!-- Botão Nova Promoção -->
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn-nova" onclick="abrirModalNova()">
+                    ➕ Nova Promoção
+                </button>
+            </div>
+
+            <!-- Lista de Promoções -->
+            <div id="promocoes-lista" class="promo-grid">
+                <p style="text-align: center; padding: 40px; background: white; border-radius: 8px;">
+                    ⏳ Carregando promoções...
+                </p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL: Nova/Editar Promoção -->
+    <div id="modal-promo" class="modal-admin">
+        <div class="modal-content-admin">
+            <h2 id="modal-title">Nova Promoção</h2>
+            <form id="form-promo">
+                <input type="hidden" id="promo-id">
+                
+                <div class="form-group-admin">
+                    <label>Nome da Promoção*</label>
+                    <input type="text" id="promo-nome" required placeholder="Ex: Black Friday 2025">
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Descrição</label>
+                    <textarea id="promo-descricao" rows="3" placeholder="Descreva a promoção para os clientes..."></textarea>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Tipo de Desconto*</label>
+                    <select id="promo-tipo" required>
+                        <option value="percentual">Percentual (%)</option>
+                        <option value="valor_fixo">Valor Fixo (R$)</option>
+                        <option value="combo">Combo Especial</option>
+                    </select>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Valor do Desconto*</label>
+                    <input type="number" id="promo-valor" step="0.01" min="0" required placeholder="Ex: 15 ou 50">
+                    <small>Para percentual: 15 = 15%. Para valor fixo: 50 = R$ 50,00</small>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Valor Mínimo do Pedido</label>
+                    <input type="number" id="promo-valor-minimo" step="0.01" min="0" placeholder="Ex: 200">
+                    <small>Deixe vazio se não houver valor mínimo</small>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Quantidade Mínima de Serviços</label>
+                    <input type="number" id="promo-qtd-minima" min="1" value="1" placeholder="1">
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Data Início*</label>
+                    <input type="date" id="promo-inicio" required>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Data Fim*</label>
+                    <input type="date" id="promo-fim" required>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Limite de Usos (Total)</label>
+                    <input type="number" id="promo-limite-uso" min="1" placeholder="Ex: 100">
+                    <small>Deixe vazio para ilimitado</small>
+                </div>
+
+                <div class="form-group-admin">
+                    <label>Usos por Cliente</label>
+                    <input type="number" id="promo-uso-cliente" min="1" value="1" placeholder="1">
+                </div>
+
+                <div class="form-group-admin">
+                    <label>
+                        <input type="checkbox" id="promo-ativo" checked>
+                        Ativar imediatamente
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn-admin btn-toggle" style="flex: 1;">💾 Salvar</button>
+                    <button type="button" onclick="fecharModal()" class="btn-admin btn-delete" style="flex: 1;">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+        let editandoPromo = null;
+
+        // Inicialização
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                alert('Acesso negado.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('user_type')
+                .eq('id', user.id)
+                .single();
+
+            if (profile?.user_type !== 'admin') {
+                alert('Apenas administradores podem acessar esta página.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            currentUser = user;
+            await carregarPromocoes();
+            await carregarEstatisticas();
+        }
+
+        async function carregarPromocoes() {
+            try {
+                const { data, error } = await supabase
+                    .from('promocoes')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                renderizarPromocoes(data || []);
+            } catch (error) {
+                console.error('Erro ao carregar promoções:', error);
+                document.getElementById('promocoes-lista').innerHTML = `
+                    <p style="text-align: center; color: red;">Erro ao carregar promoções: ${error.message}</p>
+                `;
+            }
+        }
+
+        async function carregarEstatisticas() {
+            try {
+                // Contar promoções ativas
+                const hoje = new Date().toISOString().split('T')[0];
+                const { count: ativas } = await supabase
+                    .from('promocoes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('ativo', true)
+                    .lte('data_inicio', hoje)
+                    .gte('data_fim', hoje);
+
+                document.getElementById('stat-ativas').textContent = ativas || 0;
+
+                // Total de usos e desconto concedido
+                const { data: usos } = await supabase
+                    .from('promocoes_uso')
+                    .select('valor_desconto');
+
+                const totalUsos = usos?.length || 0;
+                const totalDesconto = usos?.reduce((sum, u) => sum + (u.valor_desconto || 0), 0) || 0;
+
+                document.getElementById('stat-usos').textContent = totalUsos;
+                document.getElementById('stat-desconto').textContent = 
+                    `R$ ${totalDesconto.toFixed(2).replace('.', ',')}`;
+
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        function renderizarPromocoes(promocoes) {
+            const container = document.getElementById('promocoes-lista');
+
+            if (promocoes.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px; background: white; border-radius: 10px;">
+                        <h3 style="color: #666; margin-bottom: 20px;">📭 Nenhuma promoção cadastrada</h3>
+                        <p style="color: #999;">Clique em "Nova Promoção" para criar sua primeira campanha!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = promocoes.map(promo => {
+                const hoje = new Date().toISOString().split('T')[0];
+                const estaAtiva = promo.ativo && 
+                                 promo.data_inicio <= hoje && 
+                                 promo.data_fim >= hoje;
+
+                const valorDisplay = promo.tipo_desconto === 'percentual' 
+                    ? `${promo.valor_desconto}%`
+                    : `R$ ${promo.valor_desconto.toFixed(2).replace('.', ',')}`;
+
+                return `
+                    <div class="promo-card ${promo.tipo_desconto}">
+                        <div class="promo-header">
+                            <div class="promo-title">${promo.nome}</div>
+                            <span class="promo-status ${estaAtiva ? 'status-ativa' : 'status-inativa'}">
+                                ${estaAtiva ? '✅ ATIVA' : '❌ INATIVA'}
+                            </span>
+                        </div>
+
+                        ${promo.descricao ? `<p style="color: #666; margin: 10px 0;">${promo.descricao}</p>` : ''}
+
+                        <div class="promo-desconto">
+                            <div class="promo-desconto-valor">${valorDisplay}</div>
+                            <div style="font-size: 0.9em; margin-top: 5px; opacity: 0.9;">
+                                ${promo.tipo_desconto === 'percentual' ? 'DE DESCONTO' : 'OFF'}
+                            </div>
+                        </div>
+
+                        <div class="promo-info">
+                            <div class="promo-info-item">
+                                <span class="promo-info-label">Início</span>
+                                <span class="promo-info-value">${new Date(promo.data_inicio).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <div class="promo-info-item">
+                                <span class="promo-info-label">Término</span>
+                                <span class="promo-info-value">${new Date(promo.data_fim).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            <div class="promo-info-item">
+                                <span class="promo-info-label">Limite</span>
+                                <span class="promo-info-value">${promo.limite_uso || '∞'} usos</span>
+                            </div>
+                            <div class="promo-info-item">
+                                <span class="promo-info-label">Tipo</span>
+                                <span class="promo-info-value">${promo.tipo_desconto}</span>
+                            </div>
+                        </div>
+
+                        <div class="promo-actions">
+                            <button class="btn-admin btn-edit" onclick="editarPromocao('${promo.id}')">
+                                ✏️ Editar
+                            </button>
+                            <button class="btn-admin btn-toggle" onclick="togglePromocao('${promo.id}', ${!promo.ativo})">
+                                ${promo.ativo ? '⏸️ Desativar' : '▶️ Ativar'}
+                            </button>
+                            <button class="btn-admin btn-delete" onclick="deletarPromocao('${promo.id}')">
+                                🗑️ Excluir
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Abrir modal para nova promoção
+        window.abrirModalNova = function() {
+            editandoPromo = null;
+            document.getElementById('modal-title').textContent = 'Nova Promoção';
+            document.getElementById('form-promo').reset();
+            document.getElementById('promo-id').value = '';
+            document.getElementById('modal-promo').classList.add('active');
+        };
+
+        // Fechar modal
+        window.fecharModal = function() {
+            document.getElementById('modal-promo').classList.remove('active');
+        };
+
+        // Editar promoção
+        window.editarPromocao = async function(id) {
+            try {
+                const { data, error } = await supabase
+                    .from('promocoes')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                editandoPromo = data;
+                document.getElementById('modal-title').textContent = 'Editar Promoção';
+                document.getElementById('promo-id').value = data.id;
+                document.getElementById('promo-nome').value = data.nome;
+                document.getElementById('promo-descricao').value = data.descricao || '';
+                document.getElementById('promo-tipo').value = data.tipo_desconto;
+                document.getElementById('promo-valor').value = data.valor_desconto;
+                document.getElementById('promo-valor-minimo').value = data.valor_minimo || '';
+                document.getElementById('promo-qtd-minima').value = data.quantidade_minima || 1;
+                document.getElementById('promo-inicio').value = data.data_inicio;
+                document.getElementById('promo-fim').value = data.data_fim;
+                document.getElementById('promo-limite-uso').value = data.limite_uso || '';
+                document.getElementById('promo-uso-cliente').value = data.uso_por_cliente || 1;
+                document.getElementById('promo-ativo').checked = data.ativo;
+
+                document.getElementById('modal-promo').classList.add('active');
+            } catch (error) {
+                alert('Erro ao carregar promoção: ' + error.message);
+            }
+        };
+
+        // Salvar promoção (criar ou atualizar)
+        document.getElementById('form-promo').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('promo-id').value;
+            const dados = {
+                nome: document.getElementById('promo-nome').value,
+                descricao: document.getElementById('promo-descricao').value || null,
+                tipo_desconto: document.getElementById('promo-tipo').value,
+                valor_desconto: parseFloat(document.getElementById('promo-valor').value),
+                valor_minimo: parseFloat(document.getElementById('promo-valor-minimo').value) || null,
+                quantidade_minima: parseInt(document.getElementById('promo-qtd-minima').value) || 1,
+                data_inicio: document.getElementById('promo-inicio').value,
+                data_fim: document.getElementById('promo-fim').value,
+                limite_uso: parseInt(document.getElementById('promo-limite-uso').value) || null,
+                uso_por_cliente: parseInt(document.getElementById('promo-uso-cliente').value) || 1,
+                ativo: document.getElementById('promo-ativo').checked
+            };
+
+            try {
+                if (id) {
+                    // Atualizar
+                    const { error } = await supabase
+                        .from('promocoes')
+                        .update(dados)
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    alert('✅ Promoção atualizada com sucesso!');
+                } else {
+                    // Criar nova
+                    const { error } = await supabase
+                        .from('promocoes')
+                        .insert(dados);
+
+                    if (error) throw error;
+                    alert('✅ Promoção criada com sucesso!');
+                }
+
+                fecharModal();
+                await carregarPromocoes();
+                await carregarEstatisticas();
+
+            } catch (error) {
+                alert('Erro ao salvar promoção: ' + error.message);
+            }
+        });
+
+        // Ativar/Desativar promoção
+        window.togglePromocao = async function(id, novoStatus) {
+            try {
+                const { error } = await supabase
+                    .from('promocoes')
+                    .update({ ativo: novoStatus })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                await carregarPromocoes();
+                await carregarEstatisticas();
+            } catch (error) {
+                alert('Erro ao alterar status: ' + error.message);
+            }
+        };
+
+        // Deletar promoção
+        window.deletarPromocao = async function(id) {
+            if (!confirm('Tem certeza que deseja excluir esta promoção? Esta ação não pode ser desfeita.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('promocoes')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert('✅ Promoção excluída com sucesso!');
+                await carregarPromocoes();
+                await carregarEstatisticas();
+
+            } catch (error) {
+                alert('Erro ao excluir promoção: ' + error.message);
+            }
+        };
+
+        init();
+    </script>
+
+    <script type="module" src="js/shared-improved.js"></script>
+</body>
+</html>
