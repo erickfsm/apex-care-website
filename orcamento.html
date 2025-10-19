@@ -53,7 +53,15 @@
                         </div>
                         <div class="progress-step" data-step="4">
                             <span class="step-index">4</span>
-                            <span class="step-label">Resumo e preço</span>
+                            <span class="step-label">Condições especiais</span>
+                        </div>
+                        <div class="progress-step" data-step="5">
+                            <span class="step-index">5</span>
+                            <span class="step-label">Resumo do carrinho</span>
+                        </div>
+                        <div class="progress-step" data-step="6">
+                            <span class="step-index">6</span>
+                            <span class="step-label">Preço final</span>
                         </div>
                         <div class="progress-bar">
                             <div class="progress-bar-fill" id="progress-bar-fill"></div>
@@ -149,8 +157,44 @@
                         </section>
 
                         <section class="step-section hidden" data-step="4">
-                            <h2>Etapa 4 – Resumo e preço</h2>
-                            <p class="step-description">Confira os dados antes de finalizar. O valor total aparece no resumo ao lado.</p>
+                            <h2>Etapa 4 – Condições especiais</h2>
+                            <p class="step-description">Conte-nos se há situações que exigem reforço na limpeza para que possamos preparar o time e os valores adicionais.</p>
+                            <form id="extreme-conditions-form" class="step-form" novalidate>
+                                <div class="form-group checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="extreme-condition" value="extreme-dirt" data-label="Condição extrema (mofo, infiltrações, resíduos biológicos)" data-additional-price="70">
+                                        Condição extrema (mofo, infiltrações, resíduos biológicos)
+                                        <small>Adicional de R$ 70,00</small>
+                                    </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="extreme-condition" value="pet-stains" data-label="Manchas de animais ou resíduos orgânicos" data-additional-price="40">
+                                        Manchas de animais ou resíduos orgânicos
+                                        <small>Adicional de R$ 40,00</small>
+                                    </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="extreme-condition" value="odor-removal" data-label="Remoção de odores persistentes" data-additional-price="50">
+                                        Remoção de odores persistentes
+                                        <small>Adicional de R$ 50,00</small>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="extreme-details">Detalhes adicionais</label>
+                                    <textarea id="extreme-details" name="extreme-details" rows="4" placeholder="Descreva outras condições especiais, como presença de roedores, sujeira pós-obra, etc."></textarea>
+                                </div>
+                            </form>
+                            <div class="step-actions">
+                                <button class="ghost-button" data-action="prev">Voltar</button>
+                                <button class="cta-button-hero" data-action="next">Próximo</button>
+                            </div>
+                        </section>
+
+                        <section class="step-section hidden" data-step="5">
+                            <h2>Etapa 5 – Resumo do carrinho</h2>
+                            <p class="step-description">Revise todas as informações antes de confirmar. O valor final aparecerá somente após essa confirmação.</p>
                             <div class="resume-grid">
                                 <div class="resume-card">
                                     <h3>Seus dados</h3>
@@ -179,6 +223,25 @@
                             </div>
                             <div class="step-actions">
                                 <button class="ghost-button" data-action="prev">Voltar</button>
+                                <button class="cta-button-hero" data-action="next">Confirmar resumo</button>
+                            </div>
+                        </section>
+
+                        <section class="step-section hidden" data-step="6">
+                            <h2>Etapa 6 – Confirmação e preço final</h2>
+                            <p class="step-description">Confira o valor final com todos os adicionais aplicados. Se estiver tudo certo, finalize o agendamento.</p>
+                            <div class="resume-grid">
+                                <div class="resume-card">
+                                    <h3>Resumo final</h3>
+                                    <p>Os valores ao lado consideram serviços, deslocamento e adicionais informados.</p>
+                                </div>
+                                <div class="resume-card">
+                                    <h3>Observações enviadas</h3>
+                                    <p id="resume-extreme-notes">Nenhuma observação adicional.</p>
+                                </div>
+                            </div>
+                            <div class="step-actions">
+                                <button class="ghost-button" data-action="prev">Voltar</button>
                             </div>
                         </section>
                     </div>
@@ -190,6 +253,7 @@
                         </div>
                         <div id="summary-charges" class="summary-charges"></div>
                         <div id="distance-info" class="summary-distance">Informe CEP e número para calcular a distância (até 20 km sem taxa adicional).</div>
+                        <div id="summary-total-locked" class="summary-total-locked">Confirme o resumo para visualizar o valor final.</div>
                         <div class="summary-total">
                             <span>Total Estimado:</span>
                             <span id="total-price">R$ 0,00</span>
