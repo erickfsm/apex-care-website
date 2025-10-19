@@ -431,49 +431,50 @@
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
+        let currentRole = 'tecnico';
         let allAppointments = [];
 
         // Setup Auth Header
-        async function setupAuthHeader() {
+        async function setupAuthHeader(profile) {
             const authContainer = document.getElementById('auth-container-header');
+            if (!authContainer) return;
+
             const { data: { user } } = await supabase.auth.getUser();
-            
             if (!user) return;
-            
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('nome_completo')
-                .eq('id', user.id)
-                .single();
-            
+
             const userName = profile?.nome_completo?.split(' ')[0] || 'Usuário';
-            
+            const userIcon = currentRole === 'tecnico_master' ? '🛠️' : '🔧';
+            const adminLink = currentRole === 'tecnico_master'
+                ? '<a href="admin-dashboard.html" class="stealth-admin-link">🛡️ Área Gerencial</a>'
+                : '';
+
             authContainer.innerHTML = `
                 <div class="auth-dropdown">
                     <button class="auth-dropdown-btn" id="auth-dropdown-btn">
-                        🔧 ${userName}
+                        ${userIcon} ${userName}
                         <span>▼</span>
                     </button>
                     <div class="auth-dropdown-menu" id="auth-dropdown-menu">
                         <a href="tecnico-dashboard.html">🔧 Meu Dashboard</a>
                         <a href="config-perfil.html">⚙️ Configurações</a>
                         <a href="index.html">🏠 Site</a>
+                        ${adminLink}
                         <a href="#" id="logout-btn">🚪 Sair</a>
                     </div>
                 </div>
             `;
-            
+
             document.getElementById('auth-dropdown-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.getElementById('auth-dropdown-menu').classList.toggle('active');
             });
-            
+
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.auth-dropdown')) {
                     document.getElementById('auth-dropdown-menu').classList.remove('active');
                 }
             });
-            
+
             document.getElementById('logout-btn').addEventListener('click', async (e) => {
                 e.preventDefault();
                 await supabase.auth.signOut();
@@ -498,14 +499,16 @@
                     .eq('id', user.id)
                     .single();
 
-                if (profile?.user_type !== 'tecnico') {
-                    alert('Acesso negado. Apenas técnicos podem acessar esta página.');
+                const allowedRoles = ['tecnico', 'tecnico_master'];
+                if (!allowedRoles.includes(profile?.user_type)) {
+                    alert('Acesso negado. Apenas técnicos autorizados podem acessar esta página.');
                     window.location.href = 'index.html';
                     return;
                 }
 
                 currentUser = user;
-                document.getElementById('tecnico-name').textContent = 
+                currentRole = profile?.user_type || 'tecnico';
+                document.getElementById('tecnico-name').textContent =
                     profile.nome_completo?.split(' ')[0] || 'Técnico';
 
                 const hoje = new Date();
@@ -513,7 +516,7 @@
                 document.getElementById('current-date').textContent = 
                     `Hoje é ${hoje.toLocaleDateString('pt-BR', opcoes)}`;
 
-                await setupAuthHeader();
+                await setupAuthHeader(profile);
                 await loadAppointments();
             } catch (error) {
                 console.error('Erro na inicialização:', error);
@@ -616,17 +619,24 @@
             document.getElementById('stat-hoje').textContent = agendamentosHoje;
             document.getElementById('stat-total').textContent = totalAgendamentos;
             document.getElementById('stat-concluidos').textContent = concluidosMes;
-            document.getElementById('stat-valor').textContent = 
-                `R$ ${valorMes.toFixed(2).replace('.', ',')}`;
+            const valorFormatado = `R$ ${valorMes.toFixed(2).replace('.', ',')}`;
+            document.getElementById('stat-valor').textContent =
+                currentRole === 'tecnico' ? 'Restrito' : valorFormatado;
         }
 
         function getStatusClass(status) {
             const map = {
+                'Em Aprovação': 'status-pendente',
+                'Aprovado': 'status-confirmado',
+                'Aguardando Agendamento': 'status-confirmado',
                 'Pendente': 'status-pendente',
                 'Pendente (Pagar no Local)': 'status-pendente',
                 'Pago e Confirmado': 'status-confirmado',
+                'Aguardando Execução': 'status-confirmado',
                 'Em Andamento': 'status-em-andamento',
-                'Concluído': 'status-concluido'
+                'Concluído': 'status-concluido',
+                'Cancelado': 'status-cancelado',
+                'Reprovado': 'status-cancelado'
             };
             return map[status] || 'status-pendente';
         }
@@ -689,7 +699,7 @@
                             </div>
                             <div class="info-item">
                                 <span class="info-label">💰 Valor</span>
-                                <span class="info-value">R$ ${(appt.valor_total || 0).toFixed(2).replace('.', ',')}</span>
+                                <span class="info-value">${currentRole === 'tecnico' ? 'Restrito' : `R$ ${(appt.valor_total || 0).toFixed(2).replace('.', ',')}`}</span>
                             </div>
                         </div>
 
