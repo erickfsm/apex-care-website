@@ -410,6 +410,7 @@ function updateSummary() {
 
 async function renderChargesSummary() {
   const charges = [];
+  const selectedServices = stepData.services;
   charges.push({ label: "Subtotal de serviços", amount: serviceSubtotal });
 
   if (Number.isFinite(distanceKm)) {
@@ -450,17 +451,6 @@ async function renderChargesSummary() {
     }
   }
 
-  summaryChargesDiv.innerHTML = charges
-    .map(
-      (charge) => `
-        <div class="summary-charge">
-            <span>${charge.label}</span>
-            <span>${formatCurrency(charge.amount)}</span>
-        </div>
-    `
-    )
-    .join("");
-
   let descontoPromocao = 0;
   let mensagemPromocao = null;
 
@@ -481,6 +471,17 @@ async function renderChargesSummary() {
     }
   }
 
+  summaryChargesDiv.innerHTML = charges
+    .map(
+      (charge) => `
+        <div class="summary-charge">
+            <span>${charge.label}</span>
+            <span>${formatCurrency(charge.amount)}</span>
+        </div>
+    `
+    )
+    .join("");
+
   const totalPrice = serviceSubtotal + distanceSurcharge - descontoPromocao;
 
   if (mensagemPromocao) {
@@ -497,10 +498,10 @@ async function renderChargesSummary() {
                 ${mensagemPromocao}
             </div>
         `;
-
-    totalPriceSpan.textContent = formatCurrency(totalPrice);
-    updateScheduleButtonState();
   }
+
+  totalPriceSpan.textContent = formatCurrency(totalPrice);
+  updateScheduleButtonState();
 }
 
 function updateScheduleButtonState() {
