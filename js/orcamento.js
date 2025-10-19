@@ -80,6 +80,7 @@ let autoSignupCompleted = false;
 let isCalculatingDistance = false;
 let profileCache = null;
 let shouldAutoAdvanceAfterAuth = false;
+let promocoesManager = null;
 
 function formatCurrency(value) {
     return `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
@@ -352,7 +353,7 @@ function updateSummary() {
     renderChargesSummary();
 }
 
-function renderChargesSummary() {
+async function renderChargesSummary() {
     const charges = [];
     charges.push({ label: 'Subtotal de serviços', amount: serviceSubtotal });
 
@@ -391,9 +392,46 @@ function renderChargesSummary() {
         </div>
     `).join('');
 
-    const totalPrice = serviceSubtotal + distanceSurcharge;
-    totalPriceSpan.textContent = formatCurrency(totalPrice);
-    updateScheduleButtonState();
+     let descontoPromocao = 0;
+    let mensagemPromocao = null;
+
+    if (promocoesManager && selectedServices.length > 0) {
+        const resultado = await promocoesManager.calcularMelhorPromocao(
+            selectedServices,
+            serviceSubtotal
+        );
+        
+        descontoPromocao = resultado.desconto;
+        mensagemPromocao = resultado.mensagem;
+        
+        if (descontoPromocao > 0) {
+            charges.push({
+                label: `✨ Desconto Promocional`,
+                amount: -descontoPromocao // negativo
+            });
+        }
+    }
+
+    const totalPrice = serviceSubtotal + distanceSurcharge - descontoPromocao;
+
+    if (mensagemPromocao) {
+        summaryChargesDiv.innerHTML += `
+            <div class="promo-message" style="
+                background-color: #d4edda;
+                border-left: 4px solid #28a745;
+                padding: 12px;
+                margin: 10px 0;
+                border-radius: 5px;
+                color: #155724;
+                font-weight: 600;
+            ">
+                ${mensagemPromocao}
+            </div>
+        `;
+    
+        totalPriceSpan.textContent = formatCurrency(totalPrice);
+        updateScheduleButtonState();
+    }
 }
 
 function updateScheduleButtonState() {
@@ -907,7 +945,6 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
-}
 
     const numero = numeroInput?.value.trim();
     if (!numero) {
@@ -917,7 +954,6 @@ async function updateCustomerCoordinates() {
         renderChargesSummary();
         return;
     }
-}
 
     const addressParts = [
         lastCepData.logradouro,
@@ -1094,6 +1130,15 @@ async function init() {
     renderChargesSummary();
     await ensureBaseCoordinates();
     await loadServices();
+
+    if (currentSession) {
+        promocoesManager = new window.PromocoesManager();
+        await promocoesManager.init(currentSession.user.id);
+        
+        // Renderizar banner de promoções
+        promocoesManager.renderBannerPromocoes('promocoes-banner');
+    }
+
 
     if (pendingResumeState && currentSession) {
         applyResumeState();
