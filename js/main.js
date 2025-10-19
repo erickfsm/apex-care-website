@@ -1,3 +1,5 @@
+import { renderHomepagePlans } from './pricing-renderer.js';
+
 // Script para rolagem suave ao clicar nos links do menu
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
@@ -29,4 +31,6 @@ window.addEventListener('scroll', () => {
         header.classList.remove('scrolled');
     }
 });
+// Renderização dinâmica dos planos
+renderHomepagePlans();
 // =================================================================================

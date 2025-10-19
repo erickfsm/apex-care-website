@@ -1,3 +1,5 @@
+import { renderPortalPlanComparison } from './pricing-renderer.js';
+
 // Adicionar em js/portal-improved.js (substituir função updateStats)
 
 function updateStats() {
@@ -149,3 +151,5 @@ function updateStats() {
         ` : ''}
     `;
 }
+
+renderPortalPlanComparison();
