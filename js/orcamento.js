@@ -13,10 +13,12 @@ const BASE_LOCATION = {
 };
 const DISTANCE_THRESHOLD_KM = 20;
 const DISTANCE_FEE_PER_KM = 1;
+const FINAL_STEP = 6;
 
 const stepSections = Array.from(document.querySelectorAll(".step-section"));
 const progressSteps = Array.from(document.querySelectorAll(".progress-step"));
 const progressBarFill = document.getElementById("progress-bar-fill");
+const stepIndicator = document.getElementById("step-indicator");
 const stepsWrapper = document.querySelector(".steps-wrapper");
 const loginWarning = document.getElementById("login-warning");
 
@@ -25,7 +27,15 @@ const summaryItemsDiv = document.getElementById("summary-items");
 const summaryChargesDiv = document.getElementById("summary-charges");
 const distanceInfoDiv = document.getElementById("distance-info");
 const totalPriceSpan = document.getElementById("total-price");
+const summaryTotalContainer = document.querySelector(".summary-total");
+const summaryLockedMessage = document.getElementById("summary-total-locked");
 const scheduleBtn = document.getElementById("finalize-budget-btn");
+
+const extremeConditionsForm = document.getElementById(
+  "extreme-conditions-form"
+);
+const extremeDetailsInput = document.getElementById("extreme-details");
+const resumeExtremeNotes = document.getElementById("resume-extreme-notes");
 
 const cepInput = document.getElementById("cep-input");
 const numeroInput = document.getElementById("numero-input");
@@ -54,12 +64,17 @@ const resumeFields = {
 const stepForms = {
   1: document.getElementById("step-1-form"),
   2: document.getElementById("step-2-form"),
+  4: extremeConditionsForm,
 };
 
 const stepData = {
   step1: {},
   step2: {},
   services: [],
+  extremeConditions: {
+    selections: [],
+    observations: "",
+  },
 };
 
 let priceTable = [];
@@ -82,6 +97,9 @@ let isCalculatingDistance = false;
 let profileCache = null;
 let shouldAutoAdvanceAfterAuth = false;
 let promocoesManager = null;
+let extremeConditionChargesTotal = 0;
+let lastCalculatedTotal = 0;
+let lastPromotionDiscount = 0;
 
 function formatCurrency(value) {
   return `R$ ${Number(value || 0)
@@ -123,7 +141,7 @@ function updatePasswordRequirement() {
 }
 
 function updateProgressBar(step) {
-  const totalSteps = progressSteps.length || 1;
+  const totalSteps = progressSteps.length || FINAL_STEP;
   const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
   if (progressBarFill) {
     progressBarFill.style.width = `${Math.max(
@@ -137,6 +155,24 @@ function updateProgressBar(step) {
     progressStep.classList.toggle("active", stepNumber === step);
     progressStep.classList.toggle("completed", stepNumber < step);
   });
+
+  updateStepIndicator(step, totalSteps);
+}
+
+function updateStepIndicator(step, totalSteps = FINAL_STEP) {
+  if (!stepIndicator) return;
+
+  const section = stepSections.find(
+    (item) => Number(item.dataset.step) === step
+  );
+  const headingText =
+    section?.querySelector("h2")?.textContent?.trim() ||
+    `Etapa ${step}`;
+
+  stepIndicator.innerHTML = `
+    <strong>Etapa ${step} de ${totalSteps}</strong>
+    <span>${headingText}</span>
+  `;
 }
 
 function prefillStepForms(step) {
@@ -168,6 +204,20 @@ function prefillStepForms(step) {
     if (cidadeInput) cidadeInput.value = stepData.step2.cidadeDetalhe ?? "";
     if (estadoInput) estadoInput.value = stepData.step2.estado ?? "";
   }
+
+  if (step === 4 && stepForms[4]) {
+    const selections = stepData.extremeConditions?.selections ?? [];
+    const selectedIds = new Set(selections.map((item) => item.id));
+    stepForms[4]
+      .querySelectorAll('input[name="extreme-condition"]')
+      .forEach((input) => {
+        input.checked = selectedIds.has(input.value);
+      });
+    if (extremeDetailsInput) {
+      extremeDetailsInput.value =
+        stepData.extremeConditions?.observations ?? "";
+    }
+  }
 }
 
 function showStep(step) {
@@ -185,11 +235,13 @@ function showStep(step) {
     updatePasswordRequirement();
   }
 
-  if (step === 4) {
+  if (step >= 5) {
     populateResume();
+    updateExtremeNotes();
   }
 
-  updateScheduleButtonState();
+  updateSummaryVisibility();
+  renderChargesSummary();
 
   if (stepsWrapper) {
     stepsWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -233,6 +285,55 @@ function populateResume() {
       : step2.cidadeDetalhe || "-";
   if (resumeFields.cidadeEstado)
     resumeFields.cidadeEstado.textContent = cidadeEstadoText;
+}
+
+function updateExtremeNotes() {
+  if (!resumeExtremeNotes) return;
+
+  const selections = stepData.extremeConditions?.selections ?? [];
+  const observations = stepData.extremeConditions?.observations?.trim();
+
+  if (observations) {
+    resumeExtremeNotes.textContent = observations;
+    return;
+  }
+
+  if (selections.length) {
+    const labels = selections.map((item) => item.label).join(", ");
+    resumeExtremeNotes.textContent = `Condições informadas: ${labels}.`;
+    return;
+  }
+
+  resumeExtremeNotes.textContent = "Nenhuma observação adicional.";
+}
+
+function captureExtremeConditionsState() {
+  if (!extremeConditionsForm) return;
+
+  const selectedInputs = Array.from(
+    extremeConditionsForm.querySelectorAll(
+      'input[name="extreme-condition"]:checked'
+    )
+  );
+
+  const selections = selectedInputs.map((input) => ({
+    id: input.value,
+    label:
+      input.dataset.label ||
+      input.closest("label")?.textContent?.trim() ||
+      input.value,
+    amount: Number(input.dataset.additionalPrice) || 0,
+  }));
+
+  const observations = extremeDetailsInput?.value.trim() ?? "";
+
+  stepData.extremeConditions = {
+    selections,
+    observations,
+  };
+
+  updateExtremeNotes();
+  renderChargesSummary();
 }
 
 // ============= SERVIÇOS =============
@@ -410,7 +511,21 @@ function updateSummary() {
 
 async function renderChargesSummary() {
   const charges = [];
+  const selectedServices = stepData.services || [];
   charges.push({ label: "Subtotal de serviços", amount: serviceSubtotal });
+
+  const selections = stepData.extremeConditions?.selections ?? [];
+  extremeConditionChargesTotal = selections.reduce(
+    (total, selection) => total + (Number(selection.amount) || 0),
+    0
+  );
+
+  selections.forEach((selection) => {
+    charges.push({
+      label: selection.label,
+      amount: Number(selection.amount) || 0,
+    });
+  });
 
   if (Number.isFinite(distanceKm)) {
     const exceedingKm = Math.max(0, distanceKm - DISTANCE_THRESHOLD_KM);
@@ -450,41 +565,43 @@ async function renderChargesSummary() {
     }
   }
 
-  summaryChargesDiv.innerHTML = charges
-    .map(
-      (charge) => `
+  let descontoPromocao = 0;
+  let mensagemPromocao = null;
+
+  if (promocoesManager && selectedServices.length > 0) {
+    try {
+      const resultado = await promocoesManager.calcularMelhorPromocao(
+        selectedServices,
+        serviceSubtotal
+      );
+      descontoPromocao = resultado.desconto;
+      mensagemPromocao = resultado.mensagem;
+    } catch (error) {
+      console.warn("Não foi possível calcular promoções:", error);
+    }
+  }
+
+  if (descontoPromocao > 0) {
+    charges.push({
+      label: "✨ Desconto Promocional",
+      amount: -descontoPromocao,
+    });
+  }
+
+  if (summaryChargesDiv) {
+    summaryChargesDiv.innerHTML = charges
+      .map(
+        (charge) => `
         <div class="summary-charge">
             <span>${charge.label}</span>
             <span>${formatCurrency(charge.amount)}</span>
         </div>
     `
-    )
-    .join("");
+      )
+      .join("");
 
-  let descontoPromocao = 0;
-  let mensagemPromocao = null;
-
-  if (promocoesManager && selectedServices.length > 0) {
-    const resultado = await promocoesManager.calcularMelhorPromocao(
-      selectedServices,
-      serviceSubtotal
-    );
-
-    descontoPromocao = resultado.desconto;
-    mensagemPromocao = resultado.mensagem;
-
-    if (descontoPromocao > 0) {
-      charges.push({
-        label: `✨ Desconto Promocional`,
-        amount: -descontoPromocao, // negativo
-      });
-    }
-  }
-
-  const totalPrice = serviceSubtotal + distanceSurcharge - descontoPromocao;
-
-  if (mensagemPromocao) {
-    summaryChargesDiv.innerHTML += `
+    if (mensagemPromocao) {
+      summaryChargesDiv.innerHTML += `
             <div class="promo-message" style="
                 background-color: #d4edda;
                 border-left: 4px solid #28a745;
@@ -497,17 +614,52 @@ async function renderChargesSummary() {
                 ${mensagemPromocao}
             </div>
         `;
-
-    totalPriceSpan.textContent = formatCurrency(totalPrice);
-    updateScheduleButtonState();
+    }
   }
+
+  lastCalculatedTotal =
+    serviceSubtotal + distanceSurcharge + extremeConditionChargesTotal -
+    descontoPromocao;
+  lastPromotionDiscount = descontoPromocao;
+
+  if (totalPriceSpan) {
+    totalPriceSpan.textContent = shouldRevealTotals()
+      ? formatCurrency(lastCalculatedTotal)
+      : "R$ --";
+  }
+
+  updateScheduleButtonState();
+}
+
+function shouldRevealTotals() {
+  return currentStep >= FINAL_STEP;
+}
+
+function updateSummaryVisibility() {
+  const revealTotals = shouldRevealTotals();
+  if (summaryTotalContainer) {
+    summaryTotalContainer.classList.toggle("hidden", !revealTotals);
+  }
+  if (summaryLockedMessage) {
+    summaryLockedMessage.classList.toggle("hidden", revealTotals);
+  }
+  if (scheduleBtn) {
+    scheduleBtn.classList.toggle("hidden", !revealTotals);
+  }
+
+  if (totalPriceSpan) {
+    totalPriceSpan.textContent = revealTotals
+      ? formatCurrency(lastCalculatedTotal)
+      : "R$ --";
+  }
+  updateScheduleButtonState();
 }
 
 function updateScheduleButtonState() {
   if (!scheduleBtn) return;
   const hasServices = stepData.services.length > 0;
   const canFinish =
-    currentStep === 4 && hasServices && Number.isFinite(distanceKm);
+    shouldRevealTotals() && hasServices && Number.isFinite(distanceKm);
   scheduleBtn.disabled = !canFinish || !currentSession;
 }
 
@@ -518,6 +670,7 @@ function setResumeState(state) {
       step1: stepData.step1,
       step2: stepData.step2,
       services: stepData.services,
+      extremeConditions: stepData.extremeConditions,
       distanceKm,
       distanceSurcharge,
       timestamp: new Date().toISOString(),
@@ -555,6 +708,11 @@ function applyResumeState() {
   stepData.step1 = pendingResumeState.step1 || {};
   stepData.step2 = pendingResumeState.step2 || {};
   stepData.services = pendingResumeState.services || [];
+  stepData.extremeConditions =
+    pendingResumeState.extremeConditions || {
+      selections: [],
+      observations: "",
+    };
   pendingServiceSelection = stepData.services;
 
   distanceKm = Number.isFinite(pendingResumeState.distanceKm)
@@ -709,6 +867,11 @@ function validateStep(step) {
       alert("Selecione pelo menos um serviço para continuar.");
       return false;
     }
+    return true;
+  }
+
+  if (step === 4) {
+    captureExtremeConditionsState();
     return true;
   }
 
@@ -1205,6 +1368,22 @@ function registerAddressListeners() {
   });
 }
 
+function registerExtremeConditionsListeners() {
+  if (!extremeConditionsForm) return;
+
+  extremeConditionsForm.addEventListener("change", (event) => {
+    if (event.target?.name === "extreme-condition") {
+      captureExtremeConditionsState();
+    }
+  });
+
+  extremeConditionsForm.addEventListener("input", (event) => {
+    if (event.target === extremeDetailsInput) {
+      captureExtremeConditionsState();
+    }
+  });
+}
+
 function registerScheduleListener() {
   if (!scheduleBtn) return;
 
@@ -1214,7 +1393,7 @@ function registerScheduleListener() {
     if (scheduleBtn.disabled) {
       if (!currentSession) {
         alert("Faça login para concluir o orçamento.");
-        setResumeState({ targetStep: 4 });
+        setResumeState({ targetStep: FINAL_STEP });
         window.location.href = "login.html";
       }
       return;
@@ -1231,23 +1410,193 @@ function registerScheduleListener() {
       return;
     }
 
-    const totalPrice = serviceSubtotal + distanceSurcharge;
+    const totalPrice = lastCalculatedTotal;
+
+    const servicesPayload = selectedServices.map((service) => ({
+      ...service,
+      line_total: Number(service.price || 0) * Number(service.quantity || 1),
+    }));
+
+    const extremeSelections = stepData.extremeConditions?.selections ?? [];
+    extremeSelections.forEach((selection) => {
+      const amount = Number(selection.amount) || 0;
+      servicesPayload.push({
+        id: `extreme-${selection.id}`,
+        name: selection.label,
+        price: amount,
+        quantity: 1,
+        line_total: amount,
+        type: "adjustment",
+      });
+    });
+
+    if (distanceSurcharge > 0 && Number.isFinite(distanceKm)) {
+      servicesPayload.push({
+        id: "distance-surcharge",
+        name: `Taxa de deslocamento (${distanceKm.toFixed(1)} km)`,
+        price: distanceSurcharge,
+        quantity: 1,
+        line_total: distanceSurcharge,
+        type: "adjustment",
+      });
+    }
+
+    if (lastPromotionDiscount > 0) {
+      servicesPayload.push({
+        id: "promotion-discount",
+        name: "Desconto Promocional",
+        price: -lastPromotionDiscount,
+        quantity: 1,
+        line_total: -lastPromotionDiscount,
+        type: "discount",
+      });
+    }
+
+    const tipoImovelLabels = {
+      residencial: "Residencial",
+      comercial: "Comercial",
+      condominio: "Condomínio",
+    };
+
+    if (stepData.step2) {
+      const tipoImovel =
+        tipoImovelLabels[stepData.step2.tipoImovel] ||
+        stepData.step2.tipoImovel ||
+        "Não informado";
+      const cepFormatado = stepData.step2.cep
+        ? applyCepMask(stepData.step2.cep)
+        : "Não informado";
+      const distanciaLabel = Number.isFinite(distanceKm)
+        ? ` • Distância estimada ${distanceKm.toFixed(1)} km`
+        : "";
+      servicesPayload.push({
+        id: "property-overview",
+        name: `Dados do imóvel - ${tipoImovel} • CEP ${cepFormatado}${distanciaLabel}`,
+        price: 0,
+        quantity: 1,
+        line_total: 0,
+        type: "info",
+        details: {
+          cep: stepData.step2.cep || "",
+          numero: stepData.step2.numero || "",
+          complemento: stepData.step2.complemento || "",
+          distanciaKm: distanceKm,
+        },
+      });
+    }
+
+    if (stepData.extremeConditions?.observations) {
+      servicesPayload.push({
+        id: "extreme-observations",
+        name: `Observações adicionais: ${stepData.extremeConditions.observations}`,
+        price: 0,
+        quantity: 1,
+        line_total: 0,
+        type: "info",
+      });
+    }
 
     const orcamentoData = {
       cliente: stepData.step1,
       imovel: stepData.step2,
-      servicos: selectedServices,
+      servicos: servicesPayload,
       subtotal_servicos: serviceSubtotal,
       distancia_km: distanceKm,
       taxa_deslocamento: distanceSurcharge,
+      adicionais_condicoes: extremeConditionChargesTotal,
+      condicoes_extremas: stepData.extremeConditions,
+      desconto_promocional: lastPromotionDiscount,
       valor_total: totalPrice,
       criado_em: new Date().toISOString(),
     };
 
-    localStorage.setItem("apexCareOrcamento", JSON.stringify(orcamentoData));
-    clearResumeState();
-    window.location.href = "agendamento.html";
+    try {
+      const savedRecord = await persistBudgetForApproval(orcamentoData);
+      const enrichedBudget = {
+        ...orcamentoData,
+        agendamento_id: savedRecord?.id || null,
+        status_pagamento: savedRecord?.status_pagamento || "Em Aprovação",
+        alreadyPersisted: true,
+      };
+      localStorage.setItem(
+        "apexCareOrcamento",
+        JSON.stringify(enrichedBudget)
+      );
+      clearResumeState();
+      alert(
+        "Orçamento enviado para aprovação! Nossa equipe revisará as informações e liberará o agendamento em seguida."
+      );
+      window.location.href = "portal-cliente.html";
+    } catch (error) {
+      console.error("Erro ao enviar orçamento para aprovação:", error);
+      alert(
+        "Não foi possível enviar seu orçamento para aprovação agora. Tente novamente em instantes ou fale com nosso atendimento."
+      );
+    }
   });
+}
+
+async function persistBudgetForApproval(orcamentoData) {
+  if (!currentSession?.user?.id) {
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+
+  const clienteId = currentSession.user.id;
+
+  const { data: existingList, error: fetchError } = await supabase
+    .from("agendamentos")
+    .select("id, status_pagamento")
+    .eq("cliente_id", clienteId)
+    .in("status_pagamento", [
+      "Em Aprovação",
+      "Aprovado",
+      "Aguardando Agendamento",
+    ])
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  const existingAppointment = existingList?.[0] || null;
+
+  const basePayload = {
+    cliente_id: clienteId,
+    servicos_escolhidos: orcamentoData.servicos,
+    valor_total: orcamentoData.valor_total,
+    status_pagamento: "Em Aprovação",
+    desconto_aplicado: orcamentoData.desconto_promocional || 0,
+    data_agendamento: null,
+    hora_agendamento: null,
+  };
+
+  if (existingAppointment) {
+    const { data, error } = await supabase
+      .from("agendamentos")
+      .update(basePayload)
+      .eq("id", existingAppointment.id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("agendamentos")
+    .insert(basePayload)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 function registerServiceSummaryWatcher() {
@@ -1268,6 +1617,7 @@ async function init() {
 
   registerNavigationListeners();
   registerAddressListeners();
+  registerExtremeConditionsListeners();
   registerScheduleListener();
   registerServiceSummaryWatcher();
 

@@ -7,6 +7,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentOS = null;
+let currentRole = null;
 let uploadedPhotos = {
     antes: null,
     durante: [],
@@ -34,11 +35,14 @@ async function init() {
             .eq('id', user.id)
             .single();
 
-        if (profile?.user_type !== 'tecnico') {
-            alert('Acesso negado. Apenas técnicos podem acessar esta página.');
+        const allowedRoles = ['tecnico', 'tecnico_master'];
+        if (!allowedRoles.includes(profile?.user_type)) {
+            alert('Acesso negado. Apenas técnicos autorizados podem acessar esta página.');
             window.location.href = 'index.html';
             return;
         }
+
+        currentRole = profile?.user_type || 'tecnico';
 
         // Carregar OS da URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -124,8 +128,17 @@ function renderOSDetails() {
     });
 
     // Valor total
-    document.getElementById('valor-total').textContent = 
-        `R$ ${currentOS.valor_total.toFixed(2).replace('.', ',')}`;
+    const valorTotalElement = document.getElementById('valor-total');
+    if (valorTotalElement) {
+        if (currentRole === 'tecnico') {
+            valorTotalElement.textContent = 'Disponível apenas para o administrativo';
+        } else {
+            const valorFormatado = Number(currentOS?.valor_total || 0)
+                .toFixed(2)
+                .replace('.', ',');
+            valorTotalElement.textContent = `R$ ${valorFormatado}`;
+        }
+    }
 }
 
 function setupEventListeners() {

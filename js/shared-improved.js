@@ -55,22 +55,47 @@ async function loadUserProfile(userId) {
 
 function renderLoggedInState(userName, userType) {
     let dropdownLinks = '';
-    let userIcon = userType === 'tecnico' ? '🔧' : '👤';
-    
-    if (userType === 'tecnico') {
-        dropdownLinks = `
-            <a href="tecnico-dashboard.html">🔧 Meu Dashboard</a>
-            <a href="config-perfil.html">⚙️ Configurações</a>
-            <a href="index.html">🏠 Site Apex Care</a>
-            <a href="#" id="logout-btn">🚪 Sair</a>
-        `;
-    } else {
-        dropdownLinks = `
-            <a href="portal-cliente.html">📊 Portal do Cliente</a>
-            <a href="config-perfil.html">⚙️ Meu Perfil</a>
-            <a href="orcamento.html">📋 Novo Orçamento</a>
-            <a href="#" id="logout-btn">🚪 Sair</a>
-        `;
+    let userIcon = '👤';
+
+    switch (userType) {
+        case 'admin':
+            userIcon = '🛡️';
+            dropdownLinks = `
+                <a href="admin-dashboard.html">📊 Painel Administrativo</a>
+                <a href="admin-promocoes.html">🎯 Promoções & Campanhas</a>
+                <a href="tecnico-dashboard.html">🔧 Painel Técnico</a>
+                <a href="config-perfil.html">⚙️ Configurações</a>
+                <a href="#" id="logout-btn">🚪 Sair</a>
+            `;
+            break;
+        case 'tecnico_master':
+            userIcon = '🛠️';
+            dropdownLinks = `
+                <a href="tecnico-dashboard.html">🔧 Meu Dashboard</a>
+                <a href="config-perfil.html">⚙️ Configurações</a>
+                <a href="index.html">🏠 Site Apex Care</a>
+                <a href="admin-dashboard.html" class="stealth-admin-link">🛡️ Área Gerencial</a>
+                <a href="admin-promocoes.html" class="stealth-admin-link">🎯 Promoções</a>
+                <a href="#" id="logout-btn">🚪 Sair</a>
+            `;
+            break;
+        case 'tecnico':
+            userIcon = '🔧';
+            dropdownLinks = `
+                <a href="tecnico-dashboard.html">🔧 Meu Dashboard</a>
+                <a href="config-perfil.html">⚙️ Configurações</a>
+                <a href="index.html">🏠 Site Apex Care</a>
+                <a href="#" id="logout-btn">🚪 Sair</a>
+            `;
+            break;
+        default:
+            dropdownLinks = `
+                <a href="portal-cliente.html">📊 Portal do Cliente</a>
+                <a href="config-perfil.html">⚙️ Meu Perfil</a>
+                <a href="orcamento.html">📋 Novo Orçamento</a>
+                <a href="#" id="logout-btn">🚪 Sair</a>
+            `;
+            break;
     }
 
     authContainer.innerHTML = `

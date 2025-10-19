@@ -77,32 +77,47 @@ if (registerForm) {
             if (orcamentoSalvo) {
                 try {
                     const orcamentoData = JSON.parse(orcamentoSalvo);
-                    const servicosParaSalvar = orcamentoData.servicos;
 
-                    console.log("💾 Tentando salvar agendamento com os serviços:", servicosParaSalvar);
+                    if (orcamentoData?.alreadyPersisted && orcamentoData?.agendamento_id) {
+                        console.log("📦 Orçamento já persistido. Atualizando titularidade do registro existente.");
+                        const { error: updateError } = await supabase
+                            .from('agendamentos')
+                            .update({ cliente_id: userId })
+                            .eq('id', orcamentoData.agendamento_id);
 
-                    const { data: agendamentoData, error: agendamentoError } = await supabase
-                        .from('agendamentos')
-                        .insert({
-                            cliente_id: userId,
-                            servicos_escolhidos: servicosParaSalvar,
-                            valor_total: orcamentoData.valor_total,
-                            status_pagamento: 'Pendente'
-                        })
-                        .select();
+                        if (updateError) {
+                            throw updateError;
+                        }
+                    } else {
+                        const servicosParaSalvar = orcamentoData.servicos || [];
 
-                    if (agendamentoError) {
-                        console.error("❌ ERRO ao inserir agendamento:", agendamentoError);
-                        throw agendamentoError;
+                        console.log("💾 Criando registro de orçamento em aprovação:", servicosParaSalvar);
+
+                        const { error: agendamentoError } = await supabase
+                            .from('agendamentos')
+                            .insert({
+                                cliente_id: userId,
+                                servicos_escolhidos: servicosParaSalvar,
+                                valor_total: orcamentoData.valor_total,
+                                desconto_aplicado: orcamentoData.desconto_promocional || 0,
+                                status_pagamento: 'Em Aprovação',
+                                data_agendamento: null,
+                                hora_agendamento: null
+                            });
+
+                        if (agendamentoError) {
+                            console.error("❌ ERRO ao inserir agendamento:", agendamentoError);
+                            throw agendamentoError;
+                        }
                     }
-                    
-                    console.log("✅ Agendamento salvo com sucesso!");
+
+                    console.log("✅ Dados do orçamento vinculados com sucesso!");
                     localStorage.removeItem('apexCareOrcamento');
 
                 } catch (insertError) {
                     console.error("❌ Falha ao salvar o agendamento:", insertError);
                     alert(`Ocorreu um erro ao salvar seu orçamento: ${insertError.message}`);
-                    return; 
+                    return;
                 }
             } else {
                 console.warn("⚠️ Nenhum orçamento encontrado em localStorage");
