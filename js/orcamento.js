@@ -627,6 +627,9 @@ function updateSummaryVisibility() {
   if (scheduleBtn) {
     scheduleBtn.classList.toggle("hidden", !revealTotals);
   }
+
+  totalPriceSpan.textContent = formatCurrency(totalPrice);
+  updateScheduleButtonState();
 }
 
 function updateScheduleButtonState() {
