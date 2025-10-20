@@ -350,13 +350,13 @@ async function sendNotifications(tipo) {
             : 'N/A';
 
         const notificationData = {
-            clienteNome: currentOS.cliente.nome_completo,
+            clienteNome: currentOS.cliente?.nome_completo,
             dataAgendamento: dataFormatada,
             horaAgendamento: currentOS.hora_agendamento,
             servicos: currentOS.servicos_escolhidos,
-            valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
+            valorTotal: Number(currentOS?.valor_total || 0).toFixed(2).replace('.', ','),
             osId: currentOS.id,
-            endereco: currentOS.cliente.endereco
+            endereco: currentOS.cliente?.endereco
         };
 
         // 1. ENVIAR EMAIL
@@ -373,7 +373,7 @@ async function sendNotifications(tipo) {
 
         // 2. ENVIAR WHATSAPP
         let whatsappMessage = '';
-        
+
         if (tipo === 'started') {
             whatsappMessage = `🔧 *Serviço Iniciado - Apex Care*
 
@@ -401,43 +401,69 @@ ${window.location.origin}/avaliacao.html?os=${notificationData.osId}
 Obrigado pela confiança!`;
         }
 
-        // Formatar número de WhatsApp (remover caracteres especiais e adicionar código do país)
-        let whatsappNumber = currentOS.cliente.whatsapp.replace(/\D/g, '');
-        if (!whatsappNumber.startsWith('55')) {
-            whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+        const promises = [{ channel: 'email', promise: emailPromise }];
+        let whatsappResult;
+
+        const rawWhatsapp = currentOS.cliente?.whatsapp;
+        if (rawWhatsapp) {
+            let whatsappNumber = rawWhatsapp.replace(/\D/g, '');
+
+            if (whatsappNumber.length > 0) {
+                if (!whatsappNumber.startsWith('55')) {
+                    whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+                }
+
+                const whatsappData = {
+                    to: `whatsapp:+${whatsappNumber}`,
+                    message: whatsappMessage,
+                    messageType: tipo
+                };
+
+                const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
+                    body: whatsappData
+                });
+
+                promises.push({ channel: 'whatsapp', promise: whatsappPromise });
+            } else {
+                console.warn('⚠️ Número de WhatsApp inválido fornecido:', rawWhatsapp);
+            }
+        } else {
+            console.info('ℹ️ Cliente sem número de WhatsApp cadastrado. Notificação enviada apenas por email.');
         }
 
-        const whatsappData = {
-            to: `whatsapp:+${whatsappNumber}`,
-            message: whatsappMessage,
-            messageType: tipo
-        };
+        // 3. AGUARDAR CANAIS DISPONÍVEIS (mas não bloquear se algum falhar)
+        const settledResults = await Promise.allSettled(promises.map(item => item.promise));
 
-        const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
-            body: whatsappData
+        let emailResult;
+        settledResults.forEach((result, index) => {
+            const channel = promises[index].channel;
+            if (channel === 'email') {
+                emailResult = result;
+            } else if (channel === 'whatsapp') {
+                whatsappResult = result;
+            }
         });
 
-        // 3. AGUARDAR AMBOS (mas não bloquear se algum falhar)
-        const [emailResult, whatsappResult] = await Promise.allSettled([
-            emailPromise,
-            whatsappPromise
-        ]);
-
         // Log dos resultados
-        if (emailResult.status === 'fulfilled') {
+        if (emailResult?.status === 'fulfilled') {
             console.log('✅ Email enviado com sucesso');
         } else {
-            console.error('❌ Erro ao enviar email:', emailResult.reason);
+            console.error('❌ Erro ao enviar email:', emailResult?.reason);
         }
 
-        if (whatsappResult.status === 'fulfilled') {
-            console.log('✅ WhatsApp enviado com sucesso');
-        } else {
-            console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+        if (whatsappResult) {
+            if (whatsappResult.status === 'fulfilled') {
+                console.log('✅ WhatsApp enviado com sucesso');
+            } else {
+                console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+            }
         }
 
         // Retornar sucesso se pelo menos uma notificação foi enviada
-        return emailResult.status === 'fulfilled' || whatsappResult.status === 'fulfilled';
+        const emailSuccess = emailResult?.status === 'fulfilled';
+        const whatsappSuccess = whatsappResult?.status === 'fulfilled';
+
+        return emailSuccess || whatsappSuccess;
 
     } catch (error) {
         console.error('Erro geral ao enviar notificações:', error);
