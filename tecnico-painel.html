@@ -280,6 +280,55 @@
             margin-top: 5px;
         }
 
+        .timeline-desc p {
+            margin: 0 0 4px;
+        }
+
+        .timeline-meta {
+            display: inline-block;
+            font-size: 0.8em;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .timeline-empty {
+            color: #6b7280;
+            font-size: 0.9em;
+            padding: 10px 0;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+
+        .toast {
+            padding: 12px 18px;
+            border-radius: 6px;
+            background-color: #10b981;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(15, 118, 110, 0.2);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .toast--error {
+            background-color: #ef4444;
+            box-shadow: 0 10px 25px rgba(185, 28, 28, 0.2);
+        }
+
+        .toast--visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         @media (max-width: 768px) {
             .os-header h1 {
                 font-size: 1.5em;
@@ -432,22 +481,7 @@
             <div class="os-card">
                 <h3>⏱️ Histórico de Atividades</h3>
                 <div class="timeline">
-                    <div class="timeline-item">
-                        <div class="timeline-time">14:00 - 14:05</div>
-                        <div class="timeline-desc">Chegada no local. Cliente presente.</div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-time">14:05 - 14:15</div>
-                        <div class="timeline-desc">Inspeção e análise dos itens.</div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-time">14:15 - 15:00</div>
-                        <div class="timeline-desc">Aspiração profunda do sofá.</div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-time">15:00 - 15:45</div>
-                        <div class="timeline-desc">Aplicação de solução e escovação.</div>
-                    </div>
+                    <div class="timeline-empty">Nenhuma atividade registrada até o momento.</div>
                 </div>
             </div>
 
