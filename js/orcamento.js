@@ -119,6 +119,64 @@ function applyCepMask(value) {
   return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
 }
 
+function getCurrentCepValue() {
+  const inputCep = cepInput?.value ? sanitizeCep(cepInput.value) : "";
+  if (inputCep.length === 8) {
+    return inputCep;
+  }
+  return stepData.step2?.cep ? sanitizeCep(stepData.step2.cep) : "";
+}
+
+function getCurrentNumeroValue() {
+  const inputNumero = numeroInput?.value?.trim();
+  if (inputNumero) {
+    return inputNumero;
+  }
+  const storedNumero = stepData.step2?.numero;
+  return typeof storedNumero === "string" ? storedNumero.trim() : "";
+}
+
+function hasValidAddressForTotals() {
+  const cepValue = getCurrentCepValue();
+  const numeroValue = getCurrentNumeroValue();
+  const ruaValue = (ruaInput?.value || stepData.step2?.rua || "").trim();
+  const cidadeValue =
+    (cidadeInput?.value || stepData.step2?.cidadeDetalhe || "").trim();
+  const estadoValue = (estadoInput?.value || stepData.step2?.estado || "").trim();
+  const hasAddressDetails = Boolean(
+    lastCepData || (ruaValue && (cidadeValue || estadoValue))
+  );
+
+  return (
+    cepValue.length === 8 &&
+    numeroValue.length > 0 &&
+    hasAddressDetails &&
+    Number.isFinite(distanceKm)
+  );
+}
+
+function renderStatusMessage(element, message, { isLoading = false } = {}) {
+  if (!element) return;
+
+  element.textContent = "";
+  const wrapper = document.createElement("span");
+  wrapper.className = "status-indicator";
+
+  if (isLoading) {
+    const spinner = document.createElement("span");
+    spinner.className = "status-indicator__spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    wrapper.appendChild(spinner);
+  }
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "status-indicator__text";
+  textSpan.textContent = message;
+  wrapper.appendChild(textSpan);
+
+  element.appendChild(wrapper);
+}
+
 function setLoginWarningVisible(visible) {
   if (!loginWarning) return;
   loginWarning.classList.toggle("hidden", !visible);
@@ -540,11 +598,14 @@ async function renderChargesSummary() {
         amount: distanceSurcharge,
       });
       if (distanceInfoDiv) {
-        distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(
-          1
-        )} km. Aplicamos ${formatCurrency(
-          DISTANCE_FEE_PER_KM
-        )} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`;
+        renderStatusMessage(
+          distanceInfoDiv,
+          `Distância estimada até a filial: ${distanceKm.toFixed(
+            1
+          )} km. Aplicamos ${formatCurrency(
+            DISTANCE_FEE_PER_KM
+          )} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`
+        );
       }
     } else {
       distanceSurcharge = 0;
@@ -553,15 +614,24 @@ async function renderChargesSummary() {
         amount: 0,
       });
       if (distanceInfoDiv) {
-        distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(
-          1
-        )} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
+        renderStatusMessage(
+          distanceInfoDiv,
+          `Distância estimada até a filial: ${distanceKm.toFixed(
+            1
+          )} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`
+        );
       }
     }
   } else {
     distanceSurcharge = 0;
     if (distanceInfoDiv) {
-      distanceInfoDiv.textContent = `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
+      renderStatusMessage(
+        distanceInfoDiv,
+        isCalculatingDistance
+          ? "Calculando distância até a filial..."
+          : `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`,
+        { isLoading: isCalculatingDistance }
+      );
     }
   }
 
@@ -628,15 +698,16 @@ async function renderChargesSummary() {
       : "R$ --";
   }
 
-  updateScheduleButtonState();
+  updateSummaryVisibility();
 }
 
 function shouldRevealTotals() {
-  return currentStep >= FINAL_STEP;
+  return stepData.services.length > 0 && hasValidAddressForTotals();
 }
 
 function updateSummaryVisibility() {
   const revealTotals = shouldRevealTotals();
+  const onFinalStep = currentStep >= FINAL_STEP;
   if (summaryTotalContainer) {
     summaryTotalContainer.classList.toggle("hidden", !revealTotals);
   }
@@ -644,7 +715,7 @@ function updateSummaryVisibility() {
     summaryLockedMessage.classList.toggle("hidden", revealTotals);
   }
   if (scheduleBtn) {
-    scheduleBtn.classList.toggle("hidden", !revealTotals);
+    scheduleBtn.classList.toggle("hidden", !onFinalStep);
   }
 
   if (totalPriceSpan) {
@@ -658,8 +729,10 @@ function updateSummaryVisibility() {
 function updateScheduleButtonState() {
   if (!scheduleBtn) return;
   const hasServices = stepData.services.length > 0;
+  const totalsReady = shouldRevealTotals();
+  const distanceReady = Number.isFinite(distanceKm);
   const canFinish =
-    shouldRevealTotals() && hasServices && Number.isFinite(distanceKm);
+    currentStep >= FINAL_STEP && totalsReady && hasServices && distanceReady;
   scheduleBtn.disabled = !canFinish || !currentSession;
 }
 
@@ -1257,10 +1330,14 @@ async function updateCustomerCoordinates() {
   ].filter(Boolean);
 
   const lookupId = ++latestDistanceLookupId;
+  distanceKm = null;
   isCalculatingDistance = true;
   if (distanceInfoDiv) {
-    distanceInfoDiv.textContent = "Calculando distância até a filial...";
+    renderStatusMessage(distanceInfoDiv, "Calculando distância até a filial...", {
+      isLoading: true,
+    });
   }
+  updateSummaryVisibility();
 
   try {
     customerCoordinates = await geocodeAddress(addressParts.join(", "));
@@ -1294,7 +1371,6 @@ async function updateCustomerCoordinates() {
   }
 
   renderChargesSummary();
-  updateScheduleButtonState();
 }
 
 async function initializeAuth() {
