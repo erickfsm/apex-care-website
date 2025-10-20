@@ -222,7 +222,7 @@ async function iniciarServico() {
         // Atualizar status no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Em Andamento',
                 data_inicio: new Date().toISOString()
             })
@@ -230,11 +230,15 @@ async function iniciarServico() {
 
         if (error) throw error;
 
-        // Enviar email para o cliente
-        await sendEmail('started');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('started');
 
-        alert('✅ Serviço iniciado! Cliente notificado por email.');
-        
+        if (notificationsSent) {
+            alert('✅ Serviço iniciado! Cliente notificado.');
+        } else {
+            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
+        }
+
         // Atualizar interface
         document.getElementById('os-status').textContent = '🔄 Em Andamento';
         document.getElementById('btn-iniciar-servico').disabled = true;
@@ -265,7 +269,7 @@ async function concluirServico() {
         // Atualizar no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Concluído',
                 data_conclusao: new Date().toISOString(),
                 fotos_antes: uploadedPhotos.antes,
@@ -277,49 +281,20 @@ async function concluirServico() {
 
         if (error) throw error;
 
-        // Enviar email de conclusão
-        await sendEmail('completed');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('completed');
 
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        if (notificationsSent) {
+            alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        } else {
+            alert('⚠️ Ordem de Serviço concluída, mas houve erro ao enviar notificações.');
+        }
+
         window.location.href = 'tecnico-dashboard.html';
 
     } catch (error) {
         console.error('Erro ao concluir serviço:', error);
         alert('Erro ao concluir serviço: ' + error.message);
-    }
-}
-
-async function sendEmail(tipo) {
-    try {
-        const dataFormatada = currentOS.data_agendamento 
-            ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
-            : 'N/A';
-
-        const emailData = {
-            to: currentOS.cliente.email,
-            subject: tipo === 'started' ? '🔧 Seu serviço foi iniciado!' : '🎉 Serviço concluído!',
-            emailType: tipo,
-            appointmentData: {
-                clienteNome: currentOS.cliente.nome_completo,
-                dataAgendamento: dataFormatada,
-                horaAgendamento: currentOS.hora_agendamento,
-                servicos: currentOS.servicos_escolhidos,
-                valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
-                osId: currentOS.id
-            }
-        };
-
-        const { error } = await supabase.functions.invoke('send-email', {
-            body: emailData
-        });
-
-        if (error) {
-            console.error('Erro ao enviar email:', error);
-            // Não bloqueia o fluxo se o email falhar
-        }
-
-    } catch (error) {
-        console.error('Erro na função de email:', error);
     }
 }
 
@@ -442,73 +417,6 @@ Obrigado pela confiança!`;
     } catch (error) {
         console.error('Erro geral ao enviar notificações:', error);
         return false;
-    }
-}
-
-// Atualizar função iniciarServico
-async function iniciarServico() {
-    if (!confirm('Deseja iniciar este serviço agora?')) return;
-
-    try {
-        // Atualizar status no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Em Andamento',
-                data_inicio: new Date().toISOString()
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        const notificationsSent = await sendNotifications('started');
-        
-        if (notificationsSent) {
-            alert('✅ Serviço iniciado! Cliente notificado.');
-        } else {
-            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
-        }
-        
-        // Atualizar interface
-        document.getElementById('os-status').textContent = '🔄 Em Andamento';
-        document.getElementById('btn-iniciar-servico').disabled = true;
-
-    } catch (error) {
-        console.error('Erro ao iniciar serviço:', error);
-        alert('Erro ao iniciar serviço: ' + error.message);
-    }
-}
-
-// Atualizar função concluirServico
-async function concluirServico() {
-    // ... validações existentes ...
-
-    try {
-        // Atualizar no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Concluído',
-                data_conclusao: new Date().toISOString(),
-                fotos_antes: uploadedPhotos.antes,
-                fotos_durante: uploadedPhotos.durante,
-                fotos_depois: uploadedPhotos.depois,
-                observacoes_tecnico: observacoes
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        await sendNotifications('completed');
-
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
-        window.location.href = 'tecnico-dashboard.html';
-
-    } catch (error) {
-        console.error('Erro ao concluir serviço:', error);
-        alert('Erro ao concluir serviço: ' + error.message);
     }
 }
 
