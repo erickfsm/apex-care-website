@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Reports Link -->
     <a href="relatorios.html" class="btn btn-secondary" style="margin-top: 20px;">
     📊 Ver Relatórios Completos
 </a>
+    <!-- Internal Styles -->
     <style>
         .admin-main {
             padding-top: 120px;
@@ -320,6 +324,7 @@
 </head>
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="index.html" class="logo">
@@ -332,16 +337,17 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="admin-main">
         <div class="container">
-            
-            <!-- CABEÇALHO ADMIN -->
+
+            <!-- Admin Header -->
             <div class="admin-header">
                 <h1>🎛️ Dashboard Administrativo</h1>
                 <p>Visão completa do seu negócio Apex Care</p>
             </div>
 
-            <!-- ESTATÍSTICAS -->
+            <!-- Statistics -->
             <div class="stats-grid" id="admin-stats">
                 <div class="stat-card">
                     <div class="stat-icon">📅</div>
@@ -385,7 +391,7 @@
                 </div>
             </div>
 
-            <!-- ABAS -->
+            <!-- Tabs -->
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('agendamentos', this)">📋 Agendamentos</button>
                 <button class="tab-btn" onclick="switchTab('tecnicos', this)">🔧 Técnicos</button>
@@ -393,7 +399,7 @@
                 <button class="tab-btn" onclick="switchTab('financeiro', this)">💰 Financeiro</button>
             </div>
 
-            <!-- TAB: AGENDAMENTOS -->
+            <!-- Tab: Agendamentos -->
             <div id="agendamentos" class="tab-content active">
                 <div class="appointments-table">
                     <table>
@@ -419,7 +425,7 @@
                 </div>
             </div>
 
-            <!-- TAB: TÉCNICOS -->
+            <!-- Tab: Técnicos -->
             <div id="tecnicos" class="tab-content">
                 <div class="appointments-table">
                     <table>
@@ -443,7 +449,7 @@
                 </div>
             </div>
 
-            <!-- TAB: CLIENTES -->
+            <!-- Tab: Clientes -->
             <div id="clientes" class="tab-content">
                 <div class="appointments-table">
                     <table>
@@ -467,7 +473,7 @@
                 </div>
             </div>
 
-            <!-- TAB: FINANCEIRO -->
+            <!-- Tab: Financeiro -->
             <div id="financeiro" class="tab-content">
                 <div style="background-color: white; padding: 30px; border-radius: 8px;">
                     <h3>📊 Relatório Financeiro</h3>
@@ -478,7 +484,7 @@
         </div>
     </main>
 
-    <!-- MODAL: ATRIBUIR TÉCNICO -->
+    <!-- Modal: Atribuir Técnico -->
     <div id="assign-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Atribuir Técnico</div>
@@ -497,6 +503,7 @@
         </div>
     </div>
 
+    <!-- Modal: Gerenciar Acesso do Usuário -->
     <div id="user-role-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Gerenciar acesso do usuário</div>
@@ -522,645 +529,15 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script type="module">
         import { supabase } from './js/supabase-client.js';
 
-        let currentUser = null;
-        let allAppointments = [];
-        let allTechnicians = [];
-        let allClients = [];
-        let selectedAppointmentId = null;
-        let managedUser = null;
-        let promotionUsage = [];
-        let promocoesManager = null;
-
-        const ROLE_LABELS = {
-            cliente: 'Cliente',
-            tecnico: 'Técnico',
-            tecnico_master: 'Técnico Master',
-            admin: 'Administrador'
-        };
-
-        const ROLE_DESCRIPTIONS = {
-            cliente: 'Acesso ao portal do cliente, orçamentos e agendamentos.',
-            tecnico: 'Acesso ao painel técnico, sem visibilidade de valores.',
-            tecnico_master: 'Combina o painel técnico com atalhos discretos para a área administrativa.',
-            admin: 'Controle total: aprova orçamentos, gerencia campanhas e acessa relatórios.'
-        };
-
-        const DEFAULT_ROLE_HELP = 'Selecione o nível de acesso desejado.';
-
-        const userRoleModal = document.getElementById('user-role-modal');
-        const userRoleNameEl = document.getElementById('user-role-name');
-        const userRoleCurrentEl = document.getElementById('user-role-current');
-        const roleSelect = document.getElementById('user-role-select');
-        const roleDescriptionEl = document.getElementById('user-role-description');
-        const assignModal = document.getElementById('assign-modal');
-
-        const formatCurrency = (value) => `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
-        const escapeHtml = (value) => {
-            if (value === null || value === undefined) return '';
-            return value
-                .toString()
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        };
-
-        function normalizeRole(role) {
-            return (role || '').toString().toLowerCase();
-        }
-
-        function getRoleLabel(role) {
-            return ROLE_LABELS[normalizeRole(role)] || 'Definir';
-        }
-
-        function formatRolePill(role) {
-            const normalized = normalizeRole(role) || 'indefinido';
-            const label = getRoleLabel(role);
-            return `<span class="role-pill ${normalized}">${label}</span>`;
-        }
-
-        function updateRoleDescription(role) {
-            if (!roleDescriptionEl) return;
-            const normalized = normalizeRole(role);
-            roleDescriptionEl.textContent = ROLE_DESCRIPTIONS[normalized] || DEFAULT_ROLE_HELP;
-        }
-
-        if (roleSelect) {
-            roleSelect.addEventListener('change', (event) => {
-                updateRoleDescription(event.target.value);
-            });
-            updateRoleDescription(roleSelect.value);
-        }
-
-        if (userRoleModal) {
-            userRoleModal.addEventListener('click', (event) => {
-                if (event.target === userRoleModal) {
-                    closeUserRoleModal();
-                }
-            });
-        }
-
-        if (assignModal) {
-            assignModal.addEventListener('click', (event) => {
-                if (event.target === assignModal && typeof window.closeModal === 'function') {
-                    window.closeModal();
-                }
-            });
-        }
-
-        // Inicialização
-        async function init() {
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (!user) {
-                alert('Acesso negado.');
-                window.location.href = 'login.html';
-                return;
-            }
-
-            // Verificar se é admin
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('user_type')
-                .eq('id', user.id)
-                .single();
-
-            const allowedRoles = ['admin', 'tecnico_master'];
-            if (!allowedRoles.includes(profile?.user_type)) {
-                alert('Acesso negado. Apenas administradores autorizados podem acessar esta página.');
-                window.location.href = 'index.html';
-                return;
-            }
-
-            currentUser = user;
-            if (window?.PromocoesManager) {
-                promocoesManager = new window.PromocoesManager();
-            }
-            await loadAllData();
-        }
-
-        async function loadAllData() {
-            await Promise.all([
-                loadAppointments(),
-                loadTechnicians(),
-                loadClients(),
-                loadPromotionUsage()
-            ]);
-            updateStats();
-        }
-
-        async function loadAppointments() {
-            const { data, error } = await supabase
-                .from('agendamentos')
-                .select(`
-                    *,
-                    cliente:profiles!cliente_id (
-                        nome_completo,
-                        email,
-                        whatsapp
-                    ),
-                    tecnico:profiles!tecnico_id (
-                        nome_completo
-                    )
-                `)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Erro ao carregar agendamentos:', error);
-                return;
-            }
-
-            allAppointments = data || [];
-            renderAppointmentsTable();
-        }
-
-        async function loadTechnicians() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .in('user_type', ['tecnico', 'tecnico_master']);
-
-            if (error) {
-                console.error('Erro ao carregar técnicos:', error);
-                return;
-            }
-
-            allTechnicians = data || [];
-            renderTechniciansTable();
-            populateTechnicianSelect();
-        }
-
-        async function loadClients() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_type', 'cliente');
-
-            if (error) {
-                console.error('Erro ao carregar clientes:', error);
-                return;
-            }
-
-            allClients = data || [];
-            renderClientsTable();
-        }
-
-        async function loadPromotionUsage() {
-            const { data, error } = await supabase
-                .from('promocoes_uso')
-                .select('*');
-
-            if (error) {
-                console.error('Erro ao carregar uso de promoções:', error);
-                promotionUsage = [];
-                return;
-            }
-
-            promotionUsage = data || [];
-        }
-
-        function updateStats() {
-            // Total de agendamentos
-            document.getElementById('total-agendamentos').textContent = allAppointments.length;
-
-            // Pendentes
-            const pendentes = allAppointments.filter(a => 
-                a.status_pagamento !== 'Concluído' && a.status_pagamento !== 'Cancelado'
-            ).length;
-            document.getElementById('pendentes').textContent = pendentes;
-
-            // Concluídos
-            const concluidos = allAppointments.filter(a => 
-                a.status_pagamento === 'Concluído'
-            ).length;
-            document.getElementById('concluidos').textContent = concluidos;
-
-            // Receita total
-            const receitaTotal = allAppointments
-                .filter(a => ['Pago e Confirmado', 'Concluído', 'Pendente (Pagar no Local)', 'Em Andamento', 'Aguardando Execução'].includes(a.status_pagamento))
-                .reduce((sum, a) => sum + (a.valor_total || 0), 0);
-            document.getElementById('receita-total').textContent = formatCurrency(receitaTotal);
-
-            // Total de clientes
-            document.getElementById('total-clientes').textContent = allClients.length;
-
-            // Técnicos ativos
-            document.getElementById('total-tecnicos').textContent = allTechnicians.length;
-
-            const totalPromocoes = promotionUsage.length;
-            const totalDescontos = promotionUsage.reduce((sum, uso) => {
-                return sum + (Number(uso?.valor_desconto) || 0);
-            }, 0);
-
-            const promocoesConvertidasEl = document.getElementById('promocoes-convertidas');
-            if (promocoesConvertidasEl) {
-                promocoesConvertidasEl.textContent = totalPromocoes;
-            }
-
-            const descontosConcedidosEl = document.getElementById('descontos-concedidos');
-            if (descontosConcedidosEl) {
-                descontosConcedidosEl.textContent = formatCurrency(totalDescontos);
-            }
-        }
-
-        function shouldRegistrarPromocao(status) {
-            const candidatos = ['Aprovado', 'Aguardando Agendamento', 'Pago e Confirmado'];
-            return candidatos.includes(status);
-        }
-
-        function renderAppointmentsTable() {
-            const tbody = document.getElementById('appointments-tbody');
-            
-            if (allAppointments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;">Nenhum agendamento encontrado</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = '';
-            allAppointments.forEach(appt => {
-                const clienteNome = appt.cliente?.nome_completo || 'N/A';
-                const tecnicoNome = appt.tecnico?.nome_completo || 'Não atribuído';
-                const dataFormatada = appt.data_agendamento
-                    ? new Date(appt.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
-                    : 'Sem data';
-                const statusBadge = `<span class="status-badge ${getStatusClass(appt.status_pagamento)}">${appt.status_pagamento}</span>`;
-                const valorFormatado = formatCurrency(appt.valor_total);
-
-                const distanciaValue = Number(appt.distancia_km);
-                const distanciaTexto = Number.isFinite(distanciaValue)
-                    ? `${distanciaValue.toFixed(1)} km`
-                    : '—';
-                const taxaValue = Number(appt.taxa_deslocamento) || 0;
-                const adicionaisValue = Number(appt.adicionais_condicoes) || 0;
-
-                const deslocamentoResumo = `
-                    <ul class="table-meta-list">
-                        <li><span class="meta-label">Distância:</span> ${distanciaTexto}</li>
-                        <li><span class="meta-label">Taxa:</span> ${formatCurrency(taxaValue)}</li>
-                        <li><span class="meta-label">Adicionais:</span> ${formatCurrency(adicionaisValue)}</li>
-                    </ul>
-                `;
-
-                const condicoesLabels = Array.isArray(appt.condicoes_extremas?.selections)
-                    ? appt.condicoes_extremas.selections
-                        .map(item => item?.label || item?.id)
-                        .filter(Boolean)
-                    : [];
-                const condicoesTexto = condicoesLabels.length ? condicoesLabels.join(', ') : '';
-                const observacoesTexto = (appt.observacoes || '').trim();
-                const backofficeTexto = (appt.anotacoes_backoffice || '').trim();
-
-                const condicoesItens = [];
-                if (condicoesTexto) {
-                    condicoesItens.push(`<li><span class="meta-label">Condições:</span> ${escapeHtml(condicoesTexto)}</li>`);
-                }
-                if (observacoesTexto) {
-                    condicoesItens.push(`<li><span class="meta-label">Observações:</span> ${escapeHtml(observacoesTexto)}</li>`);
-                }
-                if (backofficeTexto) {
-                    condicoesItens.push(`<li><span class="meta-label">Backoffice:</span> ${escapeHtml(backofficeTexto)}</li>`);
-                }
-                if (!condicoesItens.length) {
-                    condicoesItens.push('<li>—</li>');
-                }
-
-                const condicoesResumo = `<ul class="table-meta-list">${condicoesItens.join('')}</ul>`;
-
-                const actionButtons = [
-                    `<button class="action-btn btn-assign" onclick="openAssignModal('${appt.id}')">Atribuir</button>`,
-                    `<button class="action-btn btn-view" onclick="viewAppointment('${appt.id}')">Ver</button>`
-                ];
-
-                if (appt.status_pagamento === 'Em Aprovação') {
-                    actionButtons.push(`<button class="action-btn btn-approve" onclick="updateBudgetStatus('${appt.id}', 'Aprovado')">Aprovar</button>`);
-                    actionButtons.push(`<button class="action-btn btn-reject" onclick="updateBudgetStatus('${appt.id}', 'Reprovado')">Reprovar</button>`);
-                } else if (appt.status_pagamento === 'Aprovado' && !appt.data_agendamento) {
-                    actionButtons.push(`<button class="action-btn btn-approve" onclick="updateBudgetStatus('${appt.id}', 'Aguardando Agendamento')">Liberar agenda</button>`);
-                } else if (appt.status_pagamento === 'Reprovado') {
-                    actionButtons.push(`<button class="action-btn btn-approve" onclick="updateBudgetStatus('${appt.id}', 'Em Aprovação')">Reabrir</button>`);
-                }
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>#${appt.id}</td>
-                    <td>${clienteNome}</td>
-                    <td>${dataFormatada}</td>
-                    <td>${tecnicoNome}</td>
-                    <td>${statusBadge}</td>
-                    <td>${valorFormatado}</td>
-                    <td>${deslocamentoResumo}</td>
-                    <td>${condicoesResumo}</td>
-                    <td>${actionButtons.join(' ')}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function renderTechniciansTable() {
-            const tbody = document.getElementById('tecnicos-tbody');
-
-            if (allTechnicians.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Nenhum técnico cadastrado</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = '';
-            allTechnicians.forEach(tech => {
-                // Contar serviços do técnico
-                const servicosAtivos = allAppointments.filter(a =>
-                    a.tecnico_id === tech.id &&
-                    a.status_pagamento !== 'Concluído' &&
-                    a.status_pagamento !== 'Cancelado'
-                ).length;
-
-                const servicosConcluidos = allAppointments.filter(a =>
-                    a.tecnico_id === tech.id &&
-                    a.status_pagamento === 'Concluído'
-                ).length;
-
-                const rolePill = formatRolePill(tech.user_type);
-                const manageButton = `<button class="action-btn btn-assign" onclick="openUserRoleModal('${tech.id}')">Gerenciar</button>`;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${tech.nome_completo || 'N/A'}</td>
-                    <td>${tech.email || 'N/A'}</td>
-                    <td>${tech.whatsapp || 'N/A'}</td>
-                    <td>${servicosAtivos}</td>
-                    <td>${servicosConcluidos}</td>
-                    <td>${rolePill}</td>
-                    <td>${manageButton}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function renderClientsTable() {
-            const tbody = document.getElementById('clientes-tbody');
-
-            if (allClients.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Nenhum cliente cadastrado</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = '';
-            allClients.forEach(client => {
-                // Calcular total gasto
-                const totalGasto = allAppointments
-                    .filter(a => a.cliente_id === client.id && a.status_pagamento !== 'Cancelado')
-                    .reduce((sum, a) => sum + (a.valor_total || 0), 0);
-
-                const rolePill = formatRolePill(client.user_type);
-                const manageButton = `<button class="action-btn btn-assign" onclick="openUserRoleModal('${client.id}')">Gerenciar</button>`;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${client.nome_completo || 'N/A'}</td>
-                    <td>${client.email || 'N/A'}</td>
-                    <td>${client.whatsapp || 'N/A'}</td>
-                    <td>${client.endereco || 'N/A'}</td>
-                    <td>${formatCurrency(totalGasto)}</td>
-                    <td>${rolePill}</td>
-                    <td>${manageButton}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function populateTechnicianSelect() {
-            const select = document.getElementById('select-tecnico');
-            if (!select) return;
-            select.innerHTML = '<option value="">Selecione um técnico</option>';
-
-            allTechnicians.forEach(tech => {
-                const option = document.createElement('option');
-                option.value = tech.id;
-                const labelBase = tech.nome_completo || tech.email || 'Técnico';
-                const isMaster = normalizeRole(tech.user_type) === 'tecnico_master';
-                option.textContent = isMaster ? `${labelBase} • Master` : labelBase;
-                select.appendChild(option);
-            });
-        }
-
-        function findUserById(userId) {
-            if (!userId) return null;
-            const collection = [...allTechnicians, ...allClients];
-            return collection.find(user => user.id === userId) || null;
-        }
-
-        function resetUserRoleModalState() {
-            if (roleSelect) {
-                roleSelect.value = '';
-            }
-            if (userRoleNameEl) {
-                userRoleNameEl.textContent = '-';
-            }
-            if (userRoleCurrentEl) {
-                userRoleCurrentEl.textContent = '-';
-            }
-            updateRoleDescription('');
-        }
-
-        function openUserRoleModal(userId) {
-            if (!userRoleModal) return;
-
-            const user = findUserById(userId);
-
-            if (!user) {
-                alert('Usuário não encontrado.');
-                return;
-            }
-
-            managedUser = { ...user };
-
-            if (userRoleNameEl) {
-                userRoleNameEl.textContent = user.nome_completo || user.email || 'Usuário';
-            }
-
-            if (userRoleCurrentEl) {
-                userRoleCurrentEl.textContent = getRoleLabel(user.user_type);
-            }
-
-            if (roleSelect) {
-                roleSelect.value = user.user_type || '';
-                updateRoleDescription(roleSelect.value);
-            }
-
-            userRoleModal.classList.add('active');
-        }
-
-        function closeUserRoleModal() {
-            if (userRoleModal) {
-                userRoleModal.classList.remove('active');
-            }
-            managedUser = null;
-            resetUserRoleModalState();
-        }
-
-        async function updateUserRole() {
-            if (!managedUser) {
-                alert('Selecione um usuário para atualizar.');
-                return;
-            }
-
-            if (!roleSelect) {
-                alert('Seletor de função indisponível.');
-                return;
-            }
-
-            const newRole = roleSelect.value;
-
-            if (!newRole) {
-                alert('Selecione uma função para continuar.');
-                return;
-            }
-
-            const normalizedNewRole = normalizeRole(newRole);
-            const previousRole = normalizeRole(managedUser.user_type);
-
-            if (normalizedNewRole === previousRole) {
-                alert('O usuário já possui essa função.');
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ user_type: normalizedNewRole })
-                    .eq('id', managedUser.id);
-
-                if (error) throw error;
-
-                alert('Função atualizada com sucesso!');
-                closeUserRoleModal();
-                await loadAllData();
-            } catch (error) {
-                console.error('Erro ao atualizar usuário:', error);
-                alert('Não foi possível atualizar o acesso: ' + error.message);
-            }
-        }
-
-        function getStatusClass(status) {
-            const map = {
-                'Em Aprovação': 'status-pendente',
-                'Aprovado': 'status-confirmado',
-                'Aguardando Agendamento': 'status-confirmado',
-                'Pendente': 'status-pendente',
-                'Pendente (Pagar no Local)': 'status-pendente',
-                'Pago e Confirmado': 'status-confirmado',
-                'Aguardando Execução': 'status-confirmado',
-                'Em Andamento': 'status-em-andamento',
-                'Concluído': 'status-concluido',
-                'Cancelado': 'status-cancelado',
-                'Reprovado': 'status-cancelado'
-            };
-            return map[status] || 'status-pendente';
-        }
-
-        // Funções globais
-        window.openUserRoleModal = openUserRoleModal;
-        window.closeUserRoleModal = closeUserRoleModal;
-        window.updateUserRole = updateUserRole;
-
-        window.switchTab = function(tabName, button) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById(tabName).classList.add('active');
-            button.classList.add('active');
-        };
-
-        window.openAssignModal = function(appointmentId) {
-            selectedAppointmentId = appointmentId;
-            document.getElementById('assign-modal').classList.add('active');
-        };
-
-        window.closeModal = function() {
-            document.getElementById('assign-modal').classList.remove('active');
-            selectedAppointmentId = null;
-        };
-
-        window.confirmAssignment = async function() {
-            const tecnicoId = document.getElementById('select-tecnico').value;
-            
-            if (!tecnicoId) {
-                alert('Por favor, selecione um técnico.');
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('agendamentos')
-                    .update({ tecnico_id: tecnicoId })
-                    .eq('id', selectedAppointmentId);
-
-                if (error) throw error;
-
-                alert('Técnico atribuído com sucesso!');
-                closeModal();
-                await loadAllData();
-            } catch (error) {
-                console.error('Erro ao atribuir técnico:', error);
-                alert('Erro ao atribuir técnico: ' + error.message);
-            }
-        };
-
-        window.viewAppointment = function(appointmentId) {
-            window.location.href = `tecnico-painel.html?os=${appointmentId}`;
-        };
-
-        window.updateBudgetStatus = async function(appointmentId, newStatus) {
-            try {
-                const appointment = allAppointments.find(appt => appt.id === appointmentId);
-
-                const payload = {
-                    status_pagamento: newStatus
-                };
-
-                if (['Em Aprovação', 'Aprovado', 'Aguardando Agendamento', 'Reprovado'].includes(newStatus)) {
-                    payload.data_agendamento = null;
-                    payload.hora_agendamento = null;
-                }
-
-                const { error } = await supabase
-                    .from('agendamentos')
-                    .update(payload)
-                    .eq('id', appointmentId);
-
-                if (error) throw error;
-
-                if (appointment && shouldRegistrarPromocao(newStatus)) {
-                    try {
-                        if (!promocoesManager && window?.PromocoesManager) {
-                            promocoesManager = new window.PromocoesManager();
-                        }
-
-                        if (promocoesManager) {
-                            await registrarUsoPromocaoSeAplicavel(promocoesManager, appointment, {
-                                clienteId: appointment.cliente_id,
-                            });
-                        }
-                    } catch (registroError) {
-                        console.error('Erro ao registrar uso da promoção após atualização:', registroError);
-                    }
-                }
-
-                alert('Status do orçamento atualizado com sucesso!');
-                await loadAllData();
-            } catch (error) {
-                console.error('Erro ao atualizar status:', error);
-                alert('Não foi possível atualizar o status. Tente novamente.');
-            }
-        };
-
-        // Iniciar
-        init();
+        // ... (JavaScript code)
     </script>
-
     <script type="module" src="js/shared-improved.js"></script>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container footer-grid">
             <div class="footer-col">

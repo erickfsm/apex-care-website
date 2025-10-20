@@ -1,4 +1,8 @@
-/* Variáveis CSS para Cores e Fontes */
+/**
+ * @fileoverview Main stylesheet for the application, containing global styles and layout definitions.
+ */
+
+/* --- CSS Variables for Colors and Fonts --- */
 :root {
     --color-graphite: #2c3e50;
     --color-cyan: #00A99D;
@@ -29,7 +33,7 @@
     --status-inativa-text: #721c24;
 }
 
-/* Reset e Estilos Globais */
+/* --- Global Reset and Styles --- */
 * {
     margin: 0;
     padding: 0;
@@ -42,16 +46,17 @@ body {
     color: var(--color-graphite);
 }
 
+/* --- Header --- */
 .main-header {
     background-color: transparent;
-    padding: 0 5%; /* Espaçamento lateral */
+    padding: 0 5%; /* Side padding */
     position: fixed;
     width: 100%;
     top: 0;
     left: 0;
     z-index: 100;
     transition: background-color 0.4s ease;
-    height: 90px; /* ALTURA FIXA DO HEADER */
+    height: 90px; /* Fixed header height */
 }
 
 .main-header.scrolled {
@@ -59,15 +64,15 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.main-nav { 
+.main-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 100%; /* Ocupa toda a altura do header */
+    height: 100%; /* Occupies the full header height */
 }
 
 .logo img {
-    height: 60px; 
+    height: 60px;
     width: auto;
 }
 
@@ -90,7 +95,7 @@ body {
     }
 
     .main-nav a {
-        display: block; 
+        display: block;
         padding: 10px 0;
         border-bottom: 1px solid rgba(0,0,0,0.05);
     }
@@ -131,6 +136,7 @@ body {
     opacity: 0.9;
 }
 
+/* --- Hero Section --- */
 .hero-section {
     background: url('../assets/images/hero-background.jpg') no-repeat center center/cover;
     color: var(--color-white);
@@ -152,19 +158,19 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.4); /* Sobreposição escura para melhorar a legibilidade */
-    z-index: -1; /* Fica atrás do conteúdo */
+    background-color: rgba(0, 0, 0, 0.4); /* Dark overlay for readability */
+    z-index: -1; /* Behind the content */
 }
 
 .hero-section h1 {
-    font-size: 3.5em; /* Título grande */
+    font-size: 3.5em; /* Large title */
     margin-bottom: 20px;
     font-weight: 900; /* Extra bold */
     line-height: 1.2;
 }
 
 .hero-section p {
-    font-size: 1.3em; /* Parágrafo legível */
+    font-size: 1.3em; /* Readable paragraph */
     margin-bottom: 40px;
     max-width: 700px;
 }
@@ -181,11 +187,11 @@ body {
 }
 
 .cta-button-hero:hover {
-    background-color: #008f83; /* Um tom um pouco mais escuro de ciano */
-    transform: translateY(-3px); /* Leve efeito de "elevar" */
+    background-color: #008f83; /* Slightly darker cyan */
+    transform: translateY(-3px); /* Slight "lift" effect */
 }
 
-/* Ajuste para telas menores */
+/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .hero-section h1 {
         font-size: 2.5em;
@@ -201,7 +207,7 @@ body {
     }
 }
 
-/* --- Estilo das Seções Padrão --- */
+/* --- Standard Section Styles --- */
 .section-padding {
     padding: 80px 5%;
 }
@@ -220,7 +226,7 @@ body {
     margin-bottom: 50px;
 }
 
-/* --- Estilo da Grade de Serviços --- */
+/* --- Services Grid --- */
 .services-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -257,12 +263,11 @@ body {
     color: #555;
 }
 
-/* --- Estilo da Seção "Planos e Pacotes" --- */
-
+/* --- "Plans and Packages" Section --- */
 .pricing-grid {
-    display: flex; /* Usando flexbox para melhor controle */    
-    justify-content: center; /* Centraliza os cards */
-    flex-wrap: wrap; /* Permite que os cards quebrem para a linha de baixo */
+    display: flex; /* Using flexbox for better control */
+    justify-content: center; /* Center the cards */
+    flex-wrap: wrap; /* Allow cards to wrap to the next line */
     gap: 30px;
     align-items: center;
     margin-top: 50px;
@@ -276,22 +281,21 @@ body {
     text-align: center;
     border: 2px solid transparent;
     transition: transform 0.3s, box-shadow 0.3s;
-    width: 100%; /* Ocupa o espaço disponível */
-    max-width: 320px; /* Limita a largura máxima de cada card */
-    display: flex; /* Adicionado para alinhar o botão no final */
-    flex-direction: column; /* Adicionado para alinhar o botão no final */
+    width: 100%; /* Occupy available space */
+    max-width: 320px; /* Limit the maximum width of each card */
+    display: flex; /* Added to align the button at the bottom */
+    flex-direction: column; /* Added to align the button at the bottom */
 }
 
-/* Garante que a lista ocupe o espaço necessário para empurrar o botão para baixo */
+/* Ensure the list takes up the necessary space to push the button down */
 .plan-features {
     list-style: none;
     margin-bottom: 30px;
     text-align: left;
-    flex-grow: 1; 
+    flex-grow: 1;
 }
 
-/* --- Estilo da Seção "O Método Apex" --- */
-
+/* --- "The Apex Method" Section --- */
 .section-subtitle {
     text-align: center;
     max-width: 700px;
@@ -307,7 +311,7 @@ body {
     margin: 0 auto;
 }
 
-/* A linha vertical da timeline */
+/* The vertical line of the timeline */
 .method-timeline::after {
     content: '';
     position: absolute;
@@ -316,7 +320,7 @@ body {
     opacity: 0.3;
     top: 0;
     bottom: 0;
-    left: 40px; /* Alinhado com o centro dos ícones */
+    left: 40px; /* Aligned with the center of the icons */
 }
 
 .method-step {
@@ -335,8 +339,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-shrink: 0; /* Impede que o círculo do ícone encolha */
-    z-index: 10; /* Garante que fique acima da linha */
+    flex-shrink: 0; /* Prevents the icon circle from shrinking */
+    z-index: 10; /* Ensures it stays above the line */
 }
 
 .step-icon {
@@ -359,7 +363,6 @@ body {
     line-height: 1.7;
     color: #555;
 }
-
 
 .plan-title {
     font-size: 1.6em;
@@ -438,8 +441,7 @@ body {
     color: var(--color-white);
 }
 
-
-/* --- Estilo do Plano em Destaque --- */
+/* --- Featured Plan --- */
 .pricing-card.featured {
     transform: scale(1.05);
     border: 2px solid var(--color-cyan);
@@ -459,11 +461,10 @@ body {
     font-weight: 700;
 }
 
-/* --- Estilo da Seção "Sobre Nós" --- */
-
+/* --- "About Us" Section --- */
 .about-grid {
     display: grid;
-    grid-template-columns: 1fr 1.5fr; /* Coluna da imagem menor que a do texto */
+    grid-template-columns: 1fr 1.5fr; /* Image column smaller than text column */
     gap: 60px;
     align-items: center;
 }
@@ -477,7 +478,7 @@ body {
 .about-content h3 {
     font-size: 1.5em;
     font-weight: 700;
-    margin-top: -30px; /* Sobe um pouco para perto do título principal */
+    margin-top: -30px; /* Moves up slightly towards the main title */
     margin-bottom: 20px;
 }
 
@@ -488,13 +489,13 @@ body {
     margin-bottom: 20px;
 }
 
-/* Ajuste para telas menores */
+/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .about-grid {
-        grid-template-columns: 1fr; /* Uma coluna só no mobile */
+        grid-template-columns: 1fr; /* Single column on mobile */
         gap: 40px;
     }
-    
+
     .about-content h2 {
         text-align: center !important;
     }
@@ -509,8 +510,7 @@ body {
     }
 }
 
-/* --- Estilo da Seção de Pacotes --- */
-
+/* --- Packages Section --- */
 .packages-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -537,7 +537,7 @@ body {
     font-size: 1em;
     line-height: 1.6;
     color: #555;
-    flex-grow: 1; /* Faz a descrição ocupar o espaço e alinhar os botões */
+    flex-grow: 1; /* Makes the description occupy space and align buttons */
     margin-bottom: 20px;
 }
 
@@ -548,7 +548,8 @@ body {
     margin-bottom: 25px;
     text-align: center;
 }
-/* --- Estilo da Seção de Orçamento (CTA Final) --- */
+
+/* --- Final CTA Section --- */
 .cta-section {
     background-color: var(--color-graphite);
     text-align: center;
@@ -579,7 +580,7 @@ body {
     text-decoration: none;
 }
 
-/* --- Estilo do Rodapé (Footer) --- */
+/* --- Footer --- */
 .main-footer {
     background-color: var(--color-graphite);
     color: rgba(255,255,255,0.7);
@@ -588,7 +589,7 @@ body {
 
 .footer-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr; /* Coluna do logo maior */
+    grid-template-columns: 2fr 1fr 1fr; /* Logo column larger */
     gap: 50px;
     margin-bottom: 50px;
 }
@@ -629,7 +630,7 @@ body {
     font-size: 0.9em;
 }
 
-/* Ajuste do Footer para Telas Menores */
+/* Responsive footer adjustments for smaller screens */
 @media (max-width: 768px) {
     .footer-grid {
         grid-template-columns: 1fr;
@@ -637,6 +638,7 @@ body {
     }
 }
 
+/* --- General Button Styles --- */
 .btn {
     min-height: 44px;
     display: inline-flex;

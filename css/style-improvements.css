@@ -1,7 +1,10 @@
-/* ==========================================
-   HEADER MELHORADO COM AUTENTICAÇÃO
-   ========================================== */
+/**
+ * @fileoverview This file contains various style improvements and bug fixes for the application.
+ */
 
+/* ==========================================
+   Improved Header with Authentication
+   ========================================== */
 .auth-container-header {
     display: flex;
     align-items: center;
@@ -107,9 +110,8 @@
 }
 
 /* ==========================================
-   STATUS DE PAGAMENTO APRIMORADOS
+   Enhanced Payment Statuses
    ========================================== */
-
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -180,9 +182,8 @@
 }
 
 /* ==========================================
-   CARDS DE AGENDAMENTO MELHORADOS
+   Improved Appointment Cards
    ========================================== */
-
 .appointment-card {
     background: linear-gradient(135deg, #fff 0%, #f9fafb 100%);
     border: 1px solid #e5e7eb;
@@ -324,9 +325,8 @@
 }
 
 /* ==========================================
-   TABELA DE TAXAS ADICIONAIS
+   Additional Fees Table
    ========================================== */
-
 .taxa-section {
     background-color: var(--color-light-gray);
     padding: 25px;
@@ -385,9 +385,8 @@
 }
 
 /* ==========================================
-   SEÇÃO DE DESCONTOS E PROMOÇÕES
+   Discounts and Promotions Section
    ========================================== */
-
 .discount-banner {
     background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%);
     color: white;
@@ -418,9 +417,8 @@
 }
 
 /* ==========================================
-   PORTAL DO CLIENTE - DASHBOARD
+   Client Portal - Dashboard
    ========================================== */
-
 .dashboard-header {
     background-color: var(--color-light-gray);
     padding: 30px;
@@ -476,9 +474,8 @@
 }
 
 /* ==========================================
-   CARDS DE ESTATÍSTICAS
+   Statistics Cards
    ========================================== */
-
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -519,9 +516,8 @@
 }
 
 /* ==========================================
-   MODAL DE CONFIRMAÇÃO
+   Confirmation Modal
    ========================================== */
-
 .modal {
     display: none;
     position: fixed;
@@ -613,9 +609,8 @@
 }
 
 /* ==========================================
-   PRECIFICAÇÃO DINÂMICA
+   Dynamic Pricing
    ========================================== */
-
 .plan-price-note {
     font-size: 0.95em;
     color: #666;
@@ -761,9 +756,8 @@
 }
 
 /* ==========================================
-   RESPONSIVIDADE
+   Responsiveness
    ========================================== */
-
 @media (max-width: 768px) {
     .appointment-card {
         grid-template-columns: 1fr;
@@ -824,14 +818,13 @@
         padding: 12px 14px;
     }
 }
-/* ==========================================
-   CORREÇÃO CRÍTICA DE BUGS MOBILE
-   Adicionar no FINAL de style-improvements.css
-   ========================================== */
 
-/* BUG FIX 1: Esconder dropdown do menu quando não está no header fixo */
+/* ==========================================
+   Critical Mobile Bug Fixes
+   ========================================== */
+/* BUG FIX 1: Hide dropdown menu when not in fixed header */
 @media (max-width: 768px) {
-    /* Fix header mobile - altura automática */
+    /* Fix mobile header - auto height */
     .main-header {
         height: auto !important;
         padding: 15px 5% !important;
@@ -847,16 +840,16 @@
     }
 
     .main-nav ul {
-        display: none; /* Esconde menu completo no mobile */
+        display: none; /* Hide full menu on mobile */
     }
 
-    /* Logo menor no mobile */
+    /* Smaller logo on mobile */
     .logo img {
         height: 50px !important;
         width: auto;
     }
 
-    /* Auth container ocupa espaço restante */
+    /* Auth container takes up remaining space */
     .auth-container-header {
         flex: 1;
         display: flex;
@@ -864,7 +857,7 @@
         max-width: 60%;
     }
 
-    /* Dropdown ajustado */
+    /* Adjusted dropdown */
     .auth-dropdown {
         width: 100%;
     }
@@ -885,7 +878,7 @@
         width: auto;
     }
 
-    /* Links de login para não logado */
+    /* Login links for logged-out users */
     .auth-link-login {
         font-size: 0.9em;
         white-space: nowrap;
@@ -898,7 +891,7 @@
     }
 }
 
-/* BUG FIX 2: Hero section mobile */
+/* BUG FIX 2: Mobile hero section */
 @media (max-width: 768px) {
     .hero-section {
         padding: 80px 20px 40px 20px !important;
@@ -927,7 +920,7 @@
     }
 }
 
-/* BUG FIX 3: Section CTA (Orçamento) mobile */
+/* BUG FIX 3: Mobile CTA section (Budget) */
 @media (max-width: 768px) {
     .cta-section {
         padding: 40px 20px !important;
@@ -966,7 +959,7 @@
     }
 }
 
-/* BUG FIX 4: Container geral mobile */
+/* BUG FIX 4: General mobile container */
 @media (max-width: 768px) {
     .container {
         max-width: 100%;
@@ -991,7 +984,7 @@
     }
 }
 
-/* BUG FIX 5: Portal mobile - tabs scroll horizontal */
+/* BUG FIX 5: Mobile portal - horizontal scroll tabs */
 @media (max-width: 768px) {
     .section-tabs {
         display: flex;
@@ -1027,7 +1020,7 @@
     }
 }
 
-/* BUG FIX 6: Stats grid mobile */
+/* BUG FIX 6: Mobile stats grid */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: 1fr;
@@ -1052,7 +1045,7 @@
     }
 }
 
-/* BUG FIX 7: Appointment cards mobile */
+/* BUG FIX 7: Mobile appointment cards */
 @media (max-width: 768px) {
     .appointment-card {
         grid-template-columns: 1fr;
@@ -1086,7 +1079,7 @@
     }
 }
 
-/* BUG FIX 8: Tabela de taxas mobile - REFORMULADO */
+/* BUG FIX 8: Mobile fees table - REWORKED */
 @media (max-width: 768px) {
     .taxa-table {
         font-size: 0.85em;
@@ -1138,7 +1131,7 @@
     }
 }
 
-/* BUG FIX 9: Pricing cards mobile */
+/* BUG FIX 9: Mobile pricing cards */
 @media (max-width: 768px) {
     .pricing-grid {
         flex-direction: column;
@@ -1154,7 +1147,7 @@
 
     .pricing-card.featured {
         transform: scale(1);
-        order: -1; /* Coloca em destaque no topo */
+        order: -1; /* Highlighted on top */
     }
 
     .plan-price {
@@ -1166,7 +1159,7 @@
     }
 }
 
-/* BUG FIX 10: Services grid mobile */
+/* BUG FIX 10: Mobile services grid */
 @media (max-width: 768px) {
     .services-grid {
         grid-template-columns: 1fr;
@@ -1190,7 +1183,7 @@
     }
 }
 
-/* BUG FIX 11: Method timeline mobile */
+/* BUG FIX 11: Mobile method timeline */
 @media (max-width: 768px) {
     .method-timeline::after {
         left: 30px;
@@ -1223,7 +1216,7 @@
     }
 }
 
-/* BUG FIX 12: About section mobile */
+/* BUG FIX 12: Mobile about section */
 @media (max-width: 768px) {
     .about-grid {
         grid-template-columns: 1fr;
@@ -1247,7 +1240,7 @@
     }
 }
 
-/* BUG FIX 13: Packages grid mobile */
+/* BUG FIX 13: Mobile packages grid */
 @media (max-width: 768px) {
     .packages-grid {
         grid-template-columns: 1fr;
@@ -1271,7 +1264,7 @@
     }
 }
 
-/* BUG FIX 14: Footer mobile */
+/* BUG FIX 14: Mobile footer */
 @media (max-width: 768px) {
     .main-footer {
         padding: 40px 0 0 0;
@@ -1360,8 +1353,9 @@
         }
     }
 }
+
 /* ==========================================
-   NOTIFICAÇÕES GLOBAIS E ESTADOS DE CARREGAMENTO
+   Global Notifications and Loading States
    ========================================== */
 .apex-toast-container {
     position: fixed;

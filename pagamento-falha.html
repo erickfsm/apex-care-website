@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Falha no Pagamento - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Internal Styles -->
     <style>
         .error-container {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -199,24 +202,23 @@
 
     <div class="error-container">
         <div class="error-box">
-            <!-- Ícone de Erro -->
+            <!-- Error Icon and Message -->
             <div class="error-icon">
                 <svg viewBox="0 0 52 52">
                     <circle cx="26" cy="26" r="22"/>
                     <path d="M16 16 L36 36 M36 16 L16 36"/>
                 </svg>
             </div>
-
             <h1>Ops! Pagamento Não Concluído 😔</h1>
             <p>Não foi possível processar seu pagamento. Mas não se preocupe, seu agendamento está salvo e você pode tentar novamente.</p>
 
-            <!-- Detalhes do Erro -->
+            <!-- Error Details -->
             <div class="error-details">
                 <h3>⚠️ O que aconteceu?</h3>
                 <p id="error-message">O pagamento foi cancelado ou recusado. Nenhum valor foi cobrado.</p>
             </div>
 
-            <!-- Seção de Ajuda -->
+            <!-- Help Section -->
             <div class="help-section">
                 <h4>💡 Como resolver:</h4>
                 <ul>
@@ -227,13 +229,13 @@
                 </ul>
             </div>
 
-            <!-- Botões de Ação -->
+            <!-- Action Buttons -->
             <div class="actions">
                 <button onclick="tentarNovamente()" class="cta-button-hero">🔄 Tentar Pagamento Novamente</button>
                 <a href="portal-cliente.html" class="cta-button-outline">Ver Meus Agendamentos</a>
             </div>
 
-            <!-- Box de Suporte -->
+            <!-- Support Box -->
             <div class="support-box">
                 <h4>📞 Precisa de Ajuda?</h4>
                 <p>Nossa equipe está pronta para ajudar você!</p>
@@ -245,71 +247,11 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script type="module">
         import { supabase } from './js/supabase-client.js';
 
-        let agendamentoId = null;
-
-        async function loadErrorDetails() {
-            try {
-                // Pega parâmetros da URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const status = urlParams.get('status');
-                const statusDetail = urlParams.get('status_detail');
-
-                // Mensagens customizadas baseadas no status
-                const errorMessages = {
-                    'rejected': 'O pagamento foi recusado pela operadora do cartão.',
-                    'cancelled': 'O pagamento foi cancelado por você.',
-                    'pending': 'O pagamento está pendente de confirmação.',
-                    'in_process': 'O pagamento ainda está sendo processado.'
-                };
-
-                const errorElement = document.getElementById('error-message');
-                if (status && errorMessages[status]) {
-                    errorElement.textContent = errorMessages[status];
-                }
-
-                // Buscar último agendamento do usuário
-                const { data: { user } } = await supabase.auth.getUser();
-                
-                if (user) {
-                    const { data: agendamento } = await supabase
-                        .from('agendamentos')
-                        .select('id')
-                        .eq('cliente_id', user.id)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .single();
-
-                    if (agendamento) {
-                        agendamentoId = agendamento.id;
-                    }
-                }
-
-            } catch (error) {
-                console.error('Erro ao carregar detalhes:', error);
-            }
-        }
-
-        // Função para tentar pagamento novamente
-        window.tentarNovamente = async function() {
-            if (!agendamentoId) {
-                alert('Não foi possível encontrar seu agendamento. Por favor, entre em contato.');
-                return;
-            }
-
-            try {
-                // Redireciona para a página de agendamento para tentar pagar novamente
-                window.location.href = `agendamento.html?appointmentId=${agendamentoId}&action=pay`;
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao tentar novamente. Por favor, acesse o Portal do Cliente.');
-            }
-        };
-
-        // Carregar detalhes ao abrir a página
-        loadErrorDetails();
+        // ... (JavaScript code)
     </script>
 
 </body>

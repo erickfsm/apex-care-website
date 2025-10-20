@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatórios - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Internal Styles -->
     <style>
         .relatorios-main {
             padding-top: 120px;
@@ -173,6 +176,7 @@
 </head>
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="admin-dashboard.html" class="logo">
@@ -185,15 +189,17 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="relatorios-main">
         <div class="container">
-            
+
+            <!-- Report Header -->
             <div class="report-header">
                 <h1>📊 Relatórios e Análises</h1>
                 <p>Visualize e exporte dados do seu negócio</p>
             </div>
 
-            <!-- FILTROS -->
+            <!-- Filters -->
             <div class="filters-card">
                 <h3 style="margin-bottom: 20px;">🔍 Filtros</h3>
                 <div class="filter-grid">
@@ -220,3 +226,49 @@
                         <select id="tecnico-filter">
                             <option value="todos">Todos</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Content -->
+            <div class="report-content">
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <!-- Summary cards will be dynamically generated here -->
+                </div>
+
+                <!-- Charts -->
+                <div class="chart-container">
+                    <!-- Charts will be dynamically generated here -->
+                </div>
+
+                <!-- Detailed Table -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Data</th>
+                            <th>Status</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Table rows will be dynamically generated here -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script type="module">
+        import { supabase } from './js/supabase-client.js';
+
+        // ... (JavaScript code)
+    </script>
+    <script type="module" src="js/shared-improved.js"></script>
+
+</body>
+</html>

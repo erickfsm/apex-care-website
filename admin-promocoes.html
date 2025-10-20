@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Promoções - Admin Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Internal Styles -->
     <style>
         .admin-main {
             padding-top: 120px;
@@ -384,6 +387,7 @@
 </head>
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="admin-dashboard.html" class="logo">
@@ -396,15 +400,17 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="admin-main">
         <div class="container">
-            
+
+            <!-- Admin Header -->
             <div class="admin-header">
                 <h1>🎁 Gerenciar Promoções</h1>
                 <p>Crie, edite e controle todas as promoções ativas</p>
             </div>
 
-            <!-- Estatísticas -->
+            <!-- Statistics -->
             <div class="stats-admin">
                 <div class="stat-box-admin">
                     <h3 style="margin: 0 0 10px 0; color: #666; font-size: 0.9em;">Promoções Ativas</h3>
@@ -420,14 +426,14 @@
                 </div>
             </div>
 
-            <!-- Botão Nova Promoção -->
+            <!-- New Promotion Button -->
             <div style="text-align: center; margin: 30px 0;">
                 <button class="btn-nova" onclick="abrirModalNova()">
                     ➕ Nova Promoção
                 </button>
             </div>
 
-            <!-- Lista de Promoções -->
+            <!-- Promotions List -->
             <div id="promocoes-lista" class="promo-grid">
                 <p style="text-align: center; padding: 40px; background: white; border-radius: 8px;">
                     ⏳ Carregando promoções...
@@ -437,13 +443,13 @@
         </div>
     </main>
 
-    <!-- MODAL: Nova/Editar Promoção -->
+    <!-- Modal: New/Edit Promotion -->
     <div id="modal-promo" class="modal-admin">
         <div class="modal-content-admin">
             <h2 id="modal-title">Nova Promoção</h2>
             <form id="form-promo">
                 <input type="hidden" id="promo-id">
-                
+
                 <div class="form-group-admin">
                     <label>Nome da Promoção*</label>
                     <input type="text" id="promo-nome" required placeholder="Ex: Black Friday 2025">
@@ -566,6 +572,7 @@
         </div>
     </div>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container footer-grid">
             <div class="footer-col">
@@ -578,702 +585,12 @@
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script type="module">
         import { supabase } from './js/supabase-client.js';
 
-        let currentUser = null;
-        let editandoPromo = null;
-        let todosServicos = [];
-        let comboFaixas = [];
-
-        // Inicialização
-        async function init() {
-            const { data: { user } } = await supabase.auth.getUser();
-            
-            if (!user) {
-                alert('Acesso negado.');
-                window.location.href = 'login.html';
-                return;
-            }
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('user_type')
-                .eq('id', user.id)
-                .single();
-
-            const allowedRoles = ['admin', 'tecnico_master'];
-            if (!allowedRoles.includes(profile?.user_type)) {
-                alert('Apenas administradores autorizados podem acessar esta página.');
-                window.location.href = 'index.html';
-                return;
-            }
-
-            currentUser = user;
-            await carregarServicos();
-            preencherSelectServicos();
-            atualizarComboCampos();
-            await carregarPromocoes();
-            await carregarEstatisticas();
-        }
-
-        async function carregarPromocoes() {
-            try {
-                const { data, error } = await supabase
-                    .from('promocoes')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                renderizarPromocoes(data || []);
-            } catch (error) {
-                console.error('Erro ao carregar promoções:', error);
-                document.getElementById('promocoes-lista').innerHTML = `
-                    <p style="text-align: center; color: red;">Erro ao carregar promoções: ${error.message}</p>
-                `;
-            }
-        }
-
-        async function carregarEstatisticas() {
-            try {
-                // Contar promoções ativas
-                const hoje = new Date().toISOString().split('T')[0];
-                const { count: ativas } = await supabase
-                    .from('promocoes')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('ativo', true)
-                    .lte('data_inicio', hoje)
-                    .gte('data_fim', hoje);
-
-                document.getElementById('stat-ativas').textContent = ativas || 0;
-
-                // Total de usos e desconto concedido
-                const { data: usos } = await supabase
-                    .from('promocoes_uso')
-                    .select('valor_desconto');
-
-                const totalUsos = usos?.length || 0;
-                const totalDesconto = usos?.reduce((sum, u) => sum + (u.valor_desconto || 0), 0) || 0;
-
-                document.getElementById('stat-usos').textContent = totalUsos;
-                document.getElementById('stat-desconto').textContent = 
-                    `R$ ${totalDesconto.toFixed(2).replace('.', ',')}`;
-
-            } catch (error) {
-                console.error('Erro ao carregar estatísticas:', error);
-            }
-        }
-
-        async function carregarServicos() {
-            try {
-                const { data, error } = await supabase
-                    .from('servicos')
-                    .select('id, name, nome, titulo, category, tipo, is_active')
-                    .order('id', { ascending: true });
-
-                if (error) throw error;
-
-                todosServicos = (data || [])
-                    .filter(item => item?.is_active !== false)
-                    .map(item => ({
-                        id: item.id,
-                        name: item.name || item.nome || item.titulo || `Serviço ${item.id}`,
-                        category: item.category || item.tipo || null
-                    }));
-
-                const selecionados = Array.isArray(editandoPromo?.servicos_ids)
-                    ? editandoPromo.servicos_ids
-                    : [];
-                preencherSelectServicos(selecionados);
-            } catch (error) {
-                console.error('Erro ao carregar serviços:', error);
-                todosServicos = [];
-                const select = document.getElementById('promo-servicos');
-                if (select) {
-                    select.innerHTML = '<option disabled>Erro ao carregar serviços</option>';
-                }
-            }
-        }
-
-        function preencherSelectServicos(selecionados = []) {
-            const select = document.getElementById('promo-servicos');
-            if (!select) return;
-
-            const selecionadosSet = new Set((selecionados || []).map(id => Number(id)));
-
-            if (!todosServicos.length) {
-                select.innerHTML = '<option disabled>Nenhum serviço disponível</option>';
-                return;
-            }
-
-            select.innerHTML = todosServicos.map(servico => {
-                const categoria = servico.category ? ` • ${servico.category}` : '';
-                const selected = selecionadosSet.has(Number(servico.id)) ? 'selected' : '';
-                return `<option value="${servico.id}" ${selected}>${servico.name}${categoria}</option>`;
-            }).join('');
-        }
-
-        function atualizarComboCampos() {
-            const tipo = document.getElementById('combo-tipo')?.value || '';
-            const buyX = document.getElementById('combo-campos-buy-x');
-            const faixas = document.getElementById('combo-campos-faixas');
-            const primeira = document.getElementById('combo-campos-primeira');
-            const valorMinimo = document.getElementById('combo-valor-minimo-wrapper');
-
-            if (buyX) buyX.style.display = tipo === 'buy_x_get_y' ? 'block' : 'none';
-            if (faixas) {
-                faixas.style.display = tipo === 'desconto_progressivo' ? 'block' : 'none';
-                if (tipo === 'desconto_progressivo' && comboFaixas.length === 0) {
-                    comboFaixas.push({ min: 1, max: null, desconto: 5 });
-                }
-            }
-            if (primeira) primeira.style.display = tipo === 'primeira_compra' ? 'block' : 'none';
-
-            if (valorMinimo) {
-                const temValor = document.getElementById('combo-valor-minimo')?.value;
-                valorMinimo.style.display = tipo || temValor ? 'block' : 'none';
-            }
-
-            renderComboFaixas();
-        }
-
-        function renderComboFaixas() {
-            const container = document.getElementById('combo-faixas-list');
-            if (!container) return;
-
-            const tipo = document.getElementById('combo-tipo')?.value || '';
-            if (tipo !== 'desconto_progressivo') {
-                container.innerHTML = '';
-                return;
-            }
-
-            if (!comboFaixas.length) {
-                container.innerHTML = '<p style="margin: 0; color: #475569;">Adicione faixas para configurar descontos progressivos.</p>';
-                return;
-            }
-
-            container.innerHTML = comboFaixas.map((faixa, index) => `
-                <div class="combo-faixa-item" data-index="${index}">
-                    <div>
-                        <label>Qtd mínima</label>
-                        <input type="number" class="combo-faixa-min" data-index="${index}" min="1" value="${faixa.min ?? ''}">
-                    </div>
-                    <div>
-                        <label>Qtd máxima</label>
-                        <input type="number" class="combo-faixa-max" data-index="${index}" min="1" value="${faixa.max ?? ''}" placeholder="∞">
-                    </div>
-                    <div>
-                        <label>% de desconto</label>
-                        <input type="number" class="combo-faixa-desconto" data-index="${index}" min="0" step="0.01" value="${faixa.desconto ?? ''}">
-                    </div>
-                    <button type="button" class="combo-faixa-remove" data-index="${index}">Remover</button>
-                </div>
-            `).join('');
-
-            container.querySelectorAll('.combo-faixa-min').forEach(input => {
-                input.addEventListener('input', (event) => {
-                    const idx = Number(event.target.dataset.index);
-                    comboFaixas[idx].min = event.target.value ? Number(event.target.value) : null;
-                });
-            });
-
-            container.querySelectorAll('.combo-faixa-max').forEach(input => {
-                input.addEventListener('input', (event) => {
-                    const idx = Number(event.target.dataset.index);
-                    comboFaixas[idx].max = event.target.value ? Number(event.target.value) : null;
-                });
-            });
-
-            container.querySelectorAll('.combo-faixa-desconto').forEach(input => {
-                input.addEventListener('input', (event) => {
-                    const idx = Number(event.target.dataset.index);
-                    comboFaixas[idx].desconto = event.target.value ? Number(event.target.value) : null;
-                });
-            });
-
-            container.querySelectorAll('.combo-faixa-remove').forEach(button => {
-                button.addEventListener('click', (event) => {
-                    const idx = Number(event.target.dataset.index);
-                    comboFaixas.splice(idx, 1);
-                    renderComboFaixas();
-                });
-            });
-        }
-
-        document.getElementById('combo-tipo').addEventListener('change', () => {
-            atualizarComboCampos();
-        });
-
-        document.getElementById('combo-add-faixa').addEventListener('click', () => {
-            const tipoAtual = document.getElementById('combo-tipo').value;
-            if (tipoAtual !== 'desconto_progressivo') {
-                document.getElementById('combo-tipo').value = 'desconto_progressivo';
-                comboFaixas = [];
-            }
-            comboFaixas.push({ min: 1, max: null, desconto: 5 });
-            atualizarComboCampos();
-        });
-
-        document.getElementById('combo-valor-minimo').addEventListener('input', () => {
-            atualizarComboCampos();
-        });
-
-        function renderizarPromocoes(promocoes) {
-            const container = document.getElementById('promocoes-lista');
-
-            if (promocoes.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 60px; background: white; border-radius: 10px;">
-                        <h3 style="color: #666; margin-bottom: 20px;">📭 Nenhuma promoção cadastrada</h3>
-                        <p style="color: #999;">Clique em "Nova Promoção" para criar sua primeira campanha!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = promocoes.map(promo => {
-                const hoje = new Date().toISOString().split('T')[0];
-                const estaAtiva = promo.ativo &&
-                                 promo.data_inicio <= hoje &&
-                                 promo.data_fim >= hoje;
-
-                const comboConfig = parseComboConfig(promo.combo_config);
-                const valorBase = Number(promo.valor_desconto || 0);
-
-                let valorDisplay = '';
-                let legendaDisplay = '';
-
-                if (promo.tipo_desconto === 'percentual') {
-                    valorDisplay = `${valorBase}%`;
-                    legendaDisplay = 'DE DESCONTO';
-                } else if (promo.tipo_desconto === 'valor_fixo') {
-                    valorDisplay = `R$ ${formatCurrency(valorBase)}`;
-                    legendaDisplay = 'DE DESCONTO';
-                } else if (promo.tipo_desconto === 'combo') {
-                    if (valorBase > 0) {
-                        valorDisplay = `R$ ${formatCurrency(valorBase)}`;
-                        legendaDisplay = 'BÔNUS';
-                    } else {
-                        valorDisplay = 'Combo Especial';
-                        legendaDisplay = 'COMBO';
-                    }
-                } else {
-                    valorDisplay = valorBase ? `R$ ${formatCurrency(valorBase)}` : promo.tipo_desconto;
-                    legendaDisplay = '';
-                }
-
-                const extraTags = [];
-                const servicosTag = formatServicosTag(promo.servicos_ids);
-                if (servicosTag) {
-                    extraTags.push(`<span><i>🛠️</i>${servicosTag}</span>`);
-                }
-
-                const comboResumo = formatComboResumo(promo, comboConfig);
-                if (comboResumo) {
-                    extraTags.push(`<span><i>🧩</i>${comboResumo}</span>`);
-                }
-
-                if (promo.quantidade_minima && promo.quantidade_minima > 1) {
-                    extraTags.push(`<span><i>📦</i>Mínimo de ${promo.quantidade_minima} serviços</span>`);
-                }
-
-                if (promo.valor_minimo) {
-                    extraTags.push(`<span><i>💰</i>Pedido mínimo de R$ ${formatCurrency(promo.valor_minimo)}</span>`);
-                } else if (comboConfig?.valor_minimo) {
-                    extraTags.push(`<span><i>💰</i>Aplicável acima de R$ ${formatCurrency(comboConfig.valor_minimo)}</span>`);
-                }
-
-                const tipoLabel = formatarTipoDesconto(promo.tipo_desconto);
-
-                return `
-                    <div class="promo-card ${promo.tipo_desconto}">
-                        <div class="promo-header">
-                            <div class="promo-title">${promo.nome}</div>
-                            <span class="status-badge ${estaAtiva ? 'status-ativa' : 'status-inativa'}">
-                                ${estaAtiva ? '✅ ATIVA' : '❌ INATIVA'}
-                            </span>
-                        </div>
-
-                        ${promo.descricao ? `<p style="color: #666; margin: 10px 0;">${promo.descricao}</p>` : ''}
-
-                        <div class="promo-desconto">
-                            <div class="promo-desconto-valor">${valorDisplay}</div>
-                            ${legendaDisplay ? `<div style="font-size: 0.9em; margin-top: 5px; opacity: 0.9;">${legendaDisplay}</div>` : ''}
-                        </div>
-
-                        <div class="promo-info">
-                            <div class="promo-info-item">
-                                <span class="promo-info-label">Início</span>
-                                <span class="promo-info-value">${new Date(promo.data_inicio).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <div class="promo-info-item">
-                                <span class="promo-info-label">Término</span>
-                                <span class="promo-info-value">${new Date(promo.data_fim).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                            <div class="promo-info-item">
-                                <span class="promo-info-label">Limite total</span>
-                                <span class="promo-info-value">${promo.limite_uso || '∞'} usos</span>
-                            </div>
-                            <div class="promo-info-item">
-                                <span class="promo-info-label">Uso/cliente</span>
-                                <span class="promo-info-value">${promo.uso_por_cliente || '∞'}</span>
-                            </div>
-                            <div class="promo-info-item">
-                                <span class="promo-info-label">Tipo</span>
-                                <span class="promo-info-value">${tipoLabel}</span>
-                            </div>
-                        </div>
-
-                        ${extraTags.length ? `<div class="promo-extra-tags">${extraTags.join('')}</div>` : ''}
-
-                        <div class="promo-actions">
-                            <button class="btn-admin btn-edit" onclick="editarPromocao('${promo.id}')">
-                                ✏️ Editar
-                            </button>
-                            <button class="btn-admin btn-toggle" onclick="togglePromocao('${promo.id}', ${!promo.ativo})">
-                                ${promo.ativo ? '⏸️ Desativar' : '▶️ Ativar'}
-                            </button>
-                            <button class="btn-admin btn-delete" onclick="deletarPromocao('${promo.id}')">
-                                🗑️ Excluir
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function parseComboConfig(rawConfig) {
-            if (!rawConfig) return null;
-            if (typeof rawConfig === 'string') {
-                try {
-                    return JSON.parse(rawConfig);
-                } catch (error) {
-                    console.warn('Não foi possível converter combo_config:', error);
-                    return null;
-                }
-            }
-            return rawConfig;
-        }
-
-        function formatCurrency(valor) {
-            const numero = Number(valor || 0);
-            return numero.toFixed(2).replace('.', ',');
-        }
-
-        function formatarTipoDesconto(tipo) {
-            switch (tipo) {
-                case 'percentual':
-                    return 'Percentual';
-                case 'valor_fixo':
-                    return 'Valor Fixo';
-                case 'combo':
-                    return 'Combo Especial';
-                default:
-                    return tipo || '-';
-            }
-        }
-
-        function formatServicosTag(servicosIds) {
-            if (!servicosIds || !servicosIds.length) {
-                return 'Todos os serviços';
-            }
-
-            const ids = servicosIds.map(id => Number(id));
-            const nomes = ids
-                .map(id => {
-                    const servico = todosServicos.find(s => Number(s.id) === id);
-                    return servico?.name;
-                })
-                .filter(Boolean);
-
-            if (!nomes.length) {
-                return `Serviços IDs: ${ids.join(', ')}`;
-            }
-
-            return `Válido para ${nomes.join(' + ')}`;
-        }
-
-        function formatComboResumo(promo, comboConfig) {
-            if (!comboConfig) return '';
-
-            if (Array.isArray(comboConfig.faixas) && comboConfig.faixas.length) {
-                return comboConfig.faixas
-                    .map(faixa => {
-                        const minimo = faixa.min ?? 0;
-                        const maximo = faixa.max ?? null;
-                        const desconto = faixa.desconto ?? 0;
-
-                        const faixaTexto = maximo
-                            ? `${minimo} a ${maximo} itens`
-                            : `${minimo}+ itens`;
-
-                        return `${faixaTexto}: ${desconto}% off`;
-                    })
-                    .join(' · ');
-            }
-
-            if (comboConfig.tipo === 'buy_x_get_y') {
-                const compre = comboConfig.compre;
-                const ganhe = comboConfig.ganhe;
-                if (compre && ganhe) {
-                    const paga = Math.max(compre - ganhe, 0);
-                    return paga > 0
-                        ? `Leve ${compre} pague ${paga}`
-                        : `Leve ${compre} e ganhe ${ganhe}`;
-                }
-            }
-
-            if (comboConfig.tipo === 'primeira_compra') {
-                if (comboConfig.valor_minimo) {
-                    return `Primeira compra acima de R$ ${formatCurrency(comboConfig.valor_minimo)}`;
-                }
-                return 'Válido na primeira compra';
-            }
-
-            if (comboConfig.valor_minimo && promo.tipo_desconto !== 'combo') {
-                return `Aplicável acima de R$ ${formatCurrency(comboConfig.valor_minimo)}`;
-            }
-
-            return '';
-        }
-
-        // Abrir modal para nova promoção
-        window.abrirModalNova = function() {
-            editandoPromo = null;
-            document.getElementById('modal-title').textContent = 'Nova Promoção';
-            document.getElementById('form-promo').reset();
-            document.getElementById('promo-id').value = '';
-            comboFaixas = [];
-            document.getElementById('combo-tipo').value = '';
-            document.getElementById('combo-compre').value = '';
-            document.getElementById('combo-ganhe').value = '';
-            document.getElementById('combo-valor-minimo').value = '';
-            preencherSelectServicos([]);
-            atualizarComboCampos();
-            document.getElementById('modal-promo').classList.add('active');
-        };
-
-        // Fechar modal
-        window.fecharModal = function() {
-            document.getElementById('modal-promo').classList.remove('active');
-        };
-
-        // Editar promoção
-        window.editarPromocao = async function(id) {
-            try {
-                const { data, error } = await supabase
-                    .from('promocoes')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-
-                if (error) throw error;
-
-                editandoPromo = data;
-                const comboConfig = parseComboConfig(data.combo_config);
-
-                if (!todosServicos.length) {
-                    await carregarServicos();
-                }
-
-                document.getElementById('modal-title').textContent = 'Editar Promoção';
-                document.getElementById('promo-id').value = data.id;
-                document.getElementById('promo-nome').value = data.nome;
-                document.getElementById('promo-descricao').value = data.descricao || '';
-                document.getElementById('promo-tipo').value = data.tipo_desconto;
-                document.getElementById('promo-valor').value = data.valor_desconto;
-                document.getElementById('promo-valor-minimo').value = data.valor_minimo || '';
-                document.getElementById('promo-qtd-minima').value = data.quantidade_minima || 1;
-                document.getElementById('promo-inicio').value = data.data_inicio;
-                document.getElementById('promo-fim').value = data.data_fim;
-                document.getElementById('promo-limite-uso').value = data.limite_uso || '';
-                document.getElementById('promo-uso-cliente').value = data.uso_por_cliente || 1;
-                document.getElementById('promo-ativo').checked = data.ativo;
-
-                const servicosSelecionados = Array.isArray(data.servicos_ids) ? data.servicos_ids : [];
-                preencherSelectServicos(servicosSelecionados);
-
-                const comboTipo = comboConfig?.tipo || (comboConfig?.faixas?.length ? 'desconto_progressivo' : '');
-                document.getElementById('combo-tipo').value = comboTipo || '';
-                document.getElementById('combo-compre').value = comboConfig?.compre || '';
-                document.getElementById('combo-ganhe').value = comboConfig?.ganhe || '';
-                if (comboConfig && Object.prototype.hasOwnProperty.call(comboConfig, 'valor_minimo')) {
-                    document.getElementById('combo-valor-minimo').value = comboConfig.valor_minimo ?? '';
-                } else {
-                    document.getElementById('combo-valor-minimo').value = '';
-                }
-
-                comboFaixas = Array.isArray(comboConfig?.faixas)
-                    ? comboConfig.faixas.map(faixa => ({
-                        min: faixa.min ?? null,
-                        max: faixa.max ?? null,
-                        desconto: faixa.desconto ?? null
-                    }))
-                    : [];
-
-                atualizarComboCampos();
-                document.getElementById('modal-promo').classList.add('active');
-            } catch (error) {
-                alert('Erro ao carregar promoção: ' + error.message);
-            }
-        };
-
-        // Salvar promoção (criar ou atualizar)
-        document.getElementById('form-promo').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const id = document.getElementById('promo-id').value;
-
-            const valorDescontoInput = parseFloat(document.getElementById('promo-valor').value);
-            const valorMinimoPedidoInput = document.getElementById('promo-valor-minimo').value;
-
-            const dados = {
-                nome: document.getElementById('promo-nome').value,
-                descricao: document.getElementById('promo-descricao').value || null,
-                tipo_desconto: document.getElementById('promo-tipo').value,
-                valor_desconto: Number.isNaN(valorDescontoInput) ? 0 : valorDescontoInput,
-                valor_minimo: valorMinimoPedidoInput !== '' ? parseFloat(valorMinimoPedidoInput) : null,
-                quantidade_minima: parseInt(document.getElementById('promo-qtd-minima').value, 10) || 1,
-                data_inicio: document.getElementById('promo-inicio').value,
-                data_fim: document.getElementById('promo-fim').value,
-                limite_uso: parseInt(document.getElementById('promo-limite-uso').value, 10) || null,
-                uso_por_cliente: parseInt(document.getElementById('promo-uso-cliente').value, 10) || 1,
-                ativo: document.getElementById('promo-ativo').checked
-            };
-
-            const servicosSelecionados = Array.from(document.getElementById('promo-servicos').selectedOptions || [])
-                .map(option => Number(option.value))
-                .filter(value => !Number.isNaN(value));
-
-            dados.servicos_ids = servicosSelecionados.length ? servicosSelecionados : null;
-
-            const comboTipo = document.getElementById('combo-tipo').value;
-            const valorMinimoComboEntrada = document.getElementById('combo-valor-minimo').value;
-            const valorMinimoCombo = valorMinimoComboEntrada !== '' ? parseFloat(valorMinimoComboEntrada) : null;
-            let comboConfig = null;
-
-            if (comboTipo === 'buy_x_get_y') {
-                const compre = parseInt(document.getElementById('combo-compre').value, 10);
-                const ganhe = parseInt(document.getElementById('combo-ganhe').value, 10);
-
-                if (!compre || !ganhe) {
-                    alert('Informe os valores de "Quantidade para ativar" e "Itens gratuitos" para o combo.');
-                    return;
-                }
-
-                comboConfig = { tipo: 'buy_x_get_y', compre, ganhe };
-            } else if (comboTipo === 'desconto_progressivo') {
-                const faixasValidas = comboFaixas
-                    .map(faixa => ({
-                        min: faixa.min ? Number(faixa.min) : null,
-                        max: faixa.max ? Number(faixa.max) : null,
-                        desconto: faixa.desconto ? Number(faixa.desconto) : null
-                    }))
-                    .filter(f => f.min && f.desconto);
-
-                if (!faixasValidas.length) {
-                    alert('Adicione pelo menos uma faixa válida de desconto progressivo.');
-                    return;
-                }
-
-                faixasValidas.sort((a, b) => a.min - b.min);
-
-                comboConfig = {
-                    tipo: 'desconto_progressivo',
-                    faixas: faixasValidas.map(f => ({
-                        min: f.min,
-                        max: f.max,
-                        desconto: f.desconto
-                    }))
-                };
-            } else if (comboTipo === 'primeira_compra') {
-                comboConfig = { tipo: 'primeira_compra' };
-            }
-
-            if (valorMinimoCombo !== null && !Number.isNaN(valorMinimoCombo)) {
-                comboConfig = comboConfig || {};
-                comboConfig.valor_minimo = valorMinimoCombo;
-            }
-
-            if (comboConfig && Object.keys(comboConfig).length === 0) {
-                comboConfig = null;
-            }
-
-            dados.combo_config = comboConfig;
-
-            try {
-                if (id) {
-                    // Atualizar
-                    const { error } = await supabase
-                        .from('promocoes')
-                        .update(dados)
-                        .eq('id', id);
-
-                    if (error) throw error;
-                    alert('✅ Promoção atualizada com sucesso!');
-                } else {
-                    // Criar nova
-                    const { error } = await supabase
-                        .from('promocoes')
-                        .insert(dados);
-
-                    if (error) throw error;
-                    alert('✅ Promoção criada com sucesso!');
-                }
-
-                fecharModal();
-                await carregarPromocoes();
-                await carregarEstatisticas();
-
-            } catch (error) {
-                alert('Erro ao salvar promoção: ' + error.message);
-            }
-        });
-
-        // Ativar/Desativar promoção
-        window.togglePromocao = async function(id, novoStatus) {
-            try {
-                const { error } = await supabase
-                    .from('promocoes')
-                    .update({ ativo: novoStatus })
-                    .eq('id', id);
-
-                if (error) throw error;
-
-                await carregarPromocoes();
-                await carregarEstatisticas();
-            } catch (error) {
-                alert('Erro ao alterar status: ' + error.message);
-            }
-        };
-
-        // Deletar promoção
-        window.deletarPromocao = async function(id) {
-            if (!confirm('Tem certeza que deseja excluir esta promoção? Esta ação não pode ser desfeita.')) {
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('promocoes')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) throw error;
-
-                alert('✅ Promoção excluída com sucesso!');
-                await carregarPromocoes();
-                await carregarEstatisticas();
-
-            } catch (error) {
-                alert('Erro ao excluir promoção: ' + error.message);
-            }
-        };
-
-        init();
+        // ... (JavaScript code)
     </script>
-
     <script type="module" src="js/shared-improved.js"></script>
 </body>
 </html>

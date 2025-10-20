@@ -1,6 +1,11 @@
-.portal-main { 
-    padding-top: 120px; 
-    padding-bottom: 80px; 
+/**
+ * @fileoverview Styles for the client portal page.
+ */
+
+/* --- Main Layout and Welcome Message --- */
+.portal-main {
+    padding-top: 120px;
+    padding-bottom: 80px;
     background-color: var(--color-light-gray);
 }
 
@@ -8,40 +13,46 @@
     font-size: 2.8em;
     margin-bottom: 5px;
 }
+
 .welcome-message p {
     font-size: 1.2em;
     color: #555;
 }
-.welcome-message { 
-    margin-bottom: 50px; 
+
+.welcome-message {
+    margin-bottom: 50px;
     border-bottom: 1px solid #ddd;
     padding-bottom: 30px;
 }
 
+/* --- Appointments Section --- */
 .appointments-section h2 {
     font-size: 1.8em;
     margin-bottom: 20px;
 }
 
-.appointment-card { 
-    background-color: #fff; 
-    padding: 25px; 
-    border-radius: 8px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05); 
-    margin-bottom: 20px; 
-    display: flex; 
-    justify-content: space-between; 
+.appointment-card {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 15px;
 }
-.appointment-card h4 { 
-    margin-bottom: 10px; 
+
+.appointment-card h4 {
+    margin-bottom: 10px;
     font-size: 1.1em;
 }
+
 .appointment-card p {
     color: #555;
 }
+
 .appointment-card span {
     font-weight: 700;
     padding: 5px 10px;
@@ -49,7 +60,7 @@
     font-size: 0.9em;
 }
 
-/* Status Badges */
+/* --- Status Badges --- */
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -69,7 +80,7 @@
 .status-cancelado { background-color: var(--status-cancelado-bg); color: var(--status-cancelado-text); }
 .status-reprovado { background-color: var(--status-reprovado-bg); color: var(--status-reprovado-text); }
 
-
+/* --- Action Buttons --- */
 .cancel-btn, .rebook-btn {
     border: none;
     padding: 10px 20px;
@@ -78,6 +89,7 @@
     font-weight: 700;
     transition: opacity 0.3s;
 }
+
 .cancel-btn:hover, .rebook-btn:hover {
     opacity: 0.8;
 }
@@ -89,6 +101,7 @@
     margin-top: 40px;
 }
 
+/* --- Budget Alerts --- */
 .budget-alerts {
     display: grid;
     gap: 16px;
@@ -164,6 +177,7 @@
     opacity: 0.85;
 }
 
+/* --- General Alert Box --- */
 .alert-box {
     margin-top: 20px;
     background: #fff4e5;
@@ -194,6 +208,7 @@
     opacity: 0.85;
 }
 
+/* --- Toast Notifications --- */
 .portal-status-toast {
     position: fixed;
     bottom: 32px;
@@ -253,6 +268,7 @@
     color: #1f1f1f;
 }
 
+/* --- Responsive Adjustments --- */
 @media (max-width: 768px) {
     .budget-alert-actions {
         flex-direction: column;

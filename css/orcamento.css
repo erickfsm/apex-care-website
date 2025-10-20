@@ -1,5 +1,8 @@
-/* Estilos específicos para a página de orçamento */
+/**
+ * @fileoverview Styles specific to the multi-step budgeting page.
+ */
 
+/* --- Main Layout --- */
 .orcamento-main {
     padding-top: 120px;
     padding-bottom: 80px;
@@ -22,6 +25,7 @@
     text-align: center;
 }
 
+/* --- Login Warning --- */
 .login-warning {
     background: rgba(255, 193, 7, 0.16);
     border: 1px solid rgba(255, 193, 7, 0.6);
@@ -36,6 +40,7 @@
     display: none;
 }
 
+/* --- Accessibility --- */
 .visually-hidden {
     position: absolute !important;
     width: 1px;
@@ -52,6 +57,7 @@
     display: none !important;
 }
 
+/* --- Step Indicator --- */
 .step-indicator {
     display: inline-flex;
     align-items: center;
@@ -70,6 +76,7 @@
     font-size: 1.05rem;
 }
 
+/* --- Progress Bar --- */
 .steps-progress {
     position: relative;
     display: grid;
@@ -146,6 +153,7 @@
     border-color: var(--color-cyan);
 }
 
+/* --- Step Content --- */
 .steps-body {
     display: flex;
     align-items: flex-start;
@@ -179,6 +187,7 @@
     color: var(--color-dark-blue);
 }
 
+/* --- Form Elements --- */
 .step-form {
     display: grid;
     gap: 20px;
@@ -228,6 +237,7 @@
     box-shadow: 0 0 0 3px rgba(0, 187, 221, 0.2);
 }
 
+/* --- Service Selection --- */
 .step-description {
     color: #6a6a6a;
 }
@@ -298,6 +308,7 @@
     opacity: 0.6;
 }
 
+/* --- Address Section --- */
 .address-card {
     margin-top: 8px;
     background: rgba(0, 0, 0, 0.03);
@@ -313,6 +324,7 @@
     color: var(--color-dark-blue);
 }
 
+/* --- Action Buttons --- */
 .step-actions {
     display: flex;
     justify-content: space-between;
@@ -340,6 +352,7 @@
     color: var(--color-white);
 }
 
+/* --- Resume Section --- */
 .resume-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -381,6 +394,7 @@
     color: var(--color-dark-blue);
 }
 
+/* --- Summary Panel --- */
 .summary {
     background-color: var(--color-light-gray);
     padding: 24px;
@@ -446,6 +460,7 @@
     margin-bottom: 30px;
 }
 
+/* --- Status Indicator --- */
 .status-indicator {
     display: inline-flex;
     align-items: center;
@@ -482,6 +497,7 @@
     cursor: not-allowed;
 }
 
+/* --- Responsive Adjustments --- */
 @media (max-width: 768px) {
     .steps-wrapper {
         padding: 28px 20px;
