@@ -101,6 +101,20 @@ let extremeConditionChargesTotal = 0;
 let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
 
+async function ensurePromocoesManagerInitialized() {
+  if (!currentSession?.user?.id) {
+    return null;
+  }
+
+  if (!promocoesManager) {
+    promocoesManager = new window.PromocoesManager();
+    await promocoesManager.init(currentSession.user.id);
+    promocoesManager.renderBannerPromocoes("promocoes-banner");
+  }
+
+  return promocoesManager;
+}
+
 function formatCurrency(value) {
   return `R$ ${Number(value || 0)
     .toFixed(2)
@@ -695,14 +709,14 @@ function clearResumeState() {
   localStorage.removeItem(RESUME_STATE_KEY);
 }
 
-function queueResumeState() {
+async function queueResumeState() {
   pendingResumeState = getResumeState();
   if (currentSession) {
-    applyResumeState();
+    await applyResumeState();
   }
 }
 
-function applyResumeState() {
+async function applyResumeState() {
   if (!pendingResumeState || resumeStateRestored) return;
 
   stepData.step1 = pendingResumeState.step1 || {};
@@ -733,6 +747,9 @@ function applyResumeState() {
     pendingResumeState.targetStep || 1,
     stepSections.length
   );
+  if (currentSession) {
+    await ensurePromocoesManagerInitialized();
+  }
   showStep(targetStep);
   renderChargesSummary();
 
@@ -1317,7 +1334,7 @@ async function initializeAuth() {
 
     if (session) {
       if (pendingResumeState) {
-        applyResumeState();
+        await applyResumeState();
       }
       const contactReady = await hydrateStep1FromSession({ force: true });
       if (
@@ -1613,7 +1630,7 @@ async function init() {
   if (!stepsWrapper) return;
 
   await initializeAuth();
-  queueResumeState();
+  await queueResumeState();
 
   registerNavigationListeners();
   registerAddressListeners();
@@ -1625,20 +1642,15 @@ async function init() {
   await ensureBaseCoordinates();
   await loadServices();
 
-  if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
-  }
-
   if (pendingResumeState && currentSession) {
-    applyResumeState();
+    await applyResumeState();
     return;
   }
 
   if (resumeStateRestored) {
+    if (currentSession) {
+      await ensurePromocoesManagerInitialized();
+    }
     showStep(currentStep);
     return;
   }
@@ -1650,14 +1662,10 @@ async function init() {
 
   const initialStep =
     currentSession && shouldAutoAdvanceAfterAuth && contactReady ? 2 : 1;
-  showStep(initialStep);
   if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
+    await ensurePromocoesManagerInitialized();
   }
+  showStep(initialStep);
 }
 
 init();
