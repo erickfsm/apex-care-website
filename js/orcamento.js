@@ -101,6 +101,20 @@ let extremeConditionChargesTotal = 0;
 let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
 
+async function ensurePromocoesManagerInitialized() {
+  if (!currentSession?.user?.id) {
+    return null;
+  }
+
+  if (!promocoesManager) {
+    promocoesManager = new window.PromocoesManager();
+    await promocoesManager.init(currentSession.user.id);
+    promocoesManager.renderBannerPromocoes("promocoes-banner");
+  }
+
+  return promocoesManager;
+}
+
 function formatCurrency(value) {
   return `R$ ${Number(value || 0)
     .toFixed(2)
@@ -695,14 +709,14 @@ function clearResumeState() {
   localStorage.removeItem(RESUME_STATE_KEY);
 }
 
-function queueResumeState() {
+async function queueResumeState() {
   pendingResumeState = getResumeState();
   if (currentSession) {
-    applyResumeState();
+    await applyResumeState();
   }
 }
 
-function applyResumeState() {
+async function applyResumeState() {
   if (!pendingResumeState || resumeStateRestored) return;
 
   stepData.step1 = pendingResumeState.step1 || {};
@@ -733,6 +747,9 @@ function applyResumeState() {
     pendingResumeState.targetStep || 1,
     stepSections.length
   );
+  if (currentSession) {
+    await ensurePromocoesManagerInitialized();
+  }
   showStep(targetStep);
   renderChargesSummary();
 
@@ -1317,7 +1334,7 @@ async function initializeAuth() {
 
     if (session) {
       if (pendingResumeState) {
-        applyResumeState();
+        await applyResumeState();
       }
       const contactReady = await hydrateStep1FromSession({ force: true });
       if (
@@ -1496,6 +1513,34 @@ function registerScheduleListener() {
       });
     }
 
+    const extremeSelections = stepData.extremeConditions?.selections ?? [];
+    const formattedExtremeSelections = extremeSelections
+      .map((item) => item.label || item.id || "")
+      .filter(Boolean)
+      .join(", ");
+
+    const backofficeAnnotations = [
+      Number.isFinite(distanceKm)
+        ? `Distância estimada: ${distanceKm.toFixed(1)} km`
+        : null,
+      Number.isFinite(distanceSurcharge)
+        ? `Taxa de deslocamento: ${formatCurrency(distanceSurcharge)}`
+        : null,
+      Number.isFinite(extremeConditionChargesTotal)
+        ? `Adicionais condições: ${formatCurrency(
+            extremeConditionChargesTotal
+          )}`
+        : null,
+      formattedExtremeSelections
+        ? `Condições extremas selecionadas: ${formattedExtremeSelections}`
+        : null,
+      stepData.extremeConditions?.observations
+        ? `Observações do cliente: ${stepData.extremeConditions.observations}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
     const orcamentoData = {
       cliente: stepData.step1,
       imovel: stepData.step2,
@@ -1505,6 +1550,8 @@ function registerScheduleListener() {
       taxa_deslocamento: distanceSurcharge,
       adicionais_condicoes: extremeConditionChargesTotal,
       condicoes_extremas: stepData.extremeConditions,
+      observacoes: stepData.extremeConditions?.observations || "",
+      anotacoes_backoffice: backofficeAnnotations,
       desconto_promocional: lastPromotionDiscount,
       valor_total: totalPrice,
       criado_em: new Date().toISOString(),
@@ -1545,7 +1592,7 @@ async function persistBudgetForApproval(orcamentoData) {
 
   const { data: existingList, error: fetchError } = await supabase
     .from("agendamentos")
-    .select("id, status_pagamento")
+    .select("id, status_pagamento, data_agendamento, hora_agendamento")
     .eq("cliente_id", clienteId)
     .in("status_pagamento", [
       "Em Aprovação",
@@ -1561,20 +1608,52 @@ async function persistBudgetForApproval(orcamentoData) {
 
   const existingAppointment = existingList?.[0] || null;
 
+  const sanitizedDistance = Number.isFinite(orcamentoData.distancia_km)
+    ? Number(orcamentoData.distancia_km)
+    : null;
+  const sanitizedSurcharge = Number(orcamentoData.taxa_deslocamento) || 0;
+  const sanitizedExtremeCharges = Number(
+    orcamentoData.adicionais_condicoes
+  ) || 0;
+
   const basePayload = {
     cliente_id: clienteId,
     servicos_escolhidos: orcamentoData.servicos,
     valor_total: orcamentoData.valor_total,
     status_pagamento: "Em Aprovação",
     desconto_aplicado: orcamentoData.desconto_promocional || 0,
+    distancia_km: sanitizedDistance,
+    taxa_deslocamento: sanitizedSurcharge,
+    adicionais_condicoes: sanitizedExtremeCharges,
+    condicoes_extremas: orcamentoData.condicoes_extremas || null,
+    observacoes: orcamentoData.observacoes || "",
+    anotacoes_backoffice: orcamentoData.anotacoes_backoffice || "",
     data_agendamento: null,
     hora_agendamento: null,
   };
 
   if (existingAppointment) {
+    const updatePayload = { ...basePayload };
+
+    if (
+      ["Aprovado", "Aguardando Agendamento"].includes(
+        existingAppointment.status_pagamento
+      )
+    ) {
+      updatePayload.status_pagamento = existingAppointment.status_pagamento;
+    }
+
+    if (existingAppointment.data_agendamento) {
+      updatePayload.data_agendamento = existingAppointment.data_agendamento;
+    }
+
+    if (existingAppointment.hora_agendamento) {
+      updatePayload.hora_agendamento = existingAppointment.hora_agendamento;
+    }
+
     const { data, error } = await supabase
       .from("agendamentos")
-      .update(basePayload)
+      .update(updatePayload)
       .eq("id", existingAppointment.id)
       .select()
       .single();
@@ -1613,7 +1692,7 @@ async function init() {
   if (!stepsWrapper) return;
 
   await initializeAuth();
-  queueResumeState();
+  await queueResumeState();
 
   registerNavigationListeners();
   registerAddressListeners();
@@ -1625,20 +1704,15 @@ async function init() {
   await ensureBaseCoordinates();
   await loadServices();
 
-  if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
-  }
-
   if (pendingResumeState && currentSession) {
-    applyResumeState();
+    await applyResumeState();
     return;
   }
 
   if (resumeStateRestored) {
+    if (currentSession) {
+      await ensurePromocoesManagerInitialized();
+    }
     showStep(currentStep);
     return;
   }
@@ -1650,14 +1724,10 @@ async function init() {
 
   const initialStep =
     currentSession && shouldAutoAdvanceAfterAuth && contactReady ? 2 : 1;
-  showStep(initialStep);
   if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
+    await ensurePromocoesManagerInitialized();
   }
+  showStep(initialStep);
 }
 
 init();

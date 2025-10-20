@@ -179,6 +179,40 @@
     margin: 5px 0;
 }
 
+.appointment-meta {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    color: #555;
+    font-size: 0.9em;
+}
+
+.appointment-meta li + li {
+    margin-top: 4px;
+}
+
+.appointment-meta strong {
+    color: var(--color-graphite);
+}
+
+.table-meta-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85em;
+    color: #4b5563;
+}
+
+.table-meta-list li + li {
+    margin-top: 4px;
+}
+
+.table-meta-list .meta-label {
+    font-weight: 600;
+    color: var(--color-graphite);
+    margin-right: 4px;
+}
+
 .appointment-actions {
     display: flex;
     gap: 10px;

@@ -222,7 +222,7 @@ async function iniciarServico() {
         // Atualizar status no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Em Andamento',
                 data_inicio: new Date().toISOString()
             })
@@ -230,11 +230,15 @@ async function iniciarServico() {
 
         if (error) throw error;
 
-        // Enviar email para o cliente
-        await sendEmail('started');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('started');
 
-        alert('✅ Serviço iniciado! Cliente notificado por email.');
-        
+        if (notificationsSent) {
+            alert('✅ Serviço iniciado! Cliente notificado.');
+        } else {
+            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
+        }
+
         // Atualizar interface
         document.getElementById('os-status').textContent = '🔄 Em Andamento';
         document.getElementById('btn-iniciar-servico').disabled = true;
@@ -265,7 +269,7 @@ async function concluirServico() {
         // Atualizar no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Concluído',
                 data_conclusao: new Date().toISOString(),
                 fotos_antes: uploadedPhotos.antes,
@@ -277,49 +281,20 @@ async function concluirServico() {
 
         if (error) throw error;
 
-        // Enviar email de conclusão
-        await sendEmail('completed');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('completed');
 
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        if (notificationsSent) {
+            alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        } else {
+            alert('⚠️ Ordem de Serviço concluída, mas houve erro ao enviar notificações.');
+        }
+
         window.location.href = 'tecnico-dashboard.html';
 
     } catch (error) {
         console.error('Erro ao concluir serviço:', error);
         alert('Erro ao concluir serviço: ' + error.message);
-    }
-}
-
-async function sendEmail(tipo) {
-    try {
-        const dataFormatada = currentOS.data_agendamento 
-            ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
-            : 'N/A';
-
-        const emailData = {
-            to: currentOS.cliente.email,
-            subject: tipo === 'started' ? '🔧 Seu serviço foi iniciado!' : '🎉 Serviço concluído!',
-            emailType: tipo,
-            appointmentData: {
-                clienteNome: currentOS.cliente.nome_completo,
-                dataAgendamento: dataFormatada,
-                horaAgendamento: currentOS.hora_agendamento,
-                servicos: currentOS.servicos_escolhidos,
-                valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
-                osId: currentOS.id
-            }
-        };
-
-        const { error } = await supabase.functions.invoke('send-email', {
-            body: emailData
-        });
-
-        if (error) {
-            console.error('Erro ao enviar email:', error);
-            // Não bloqueia o fluxo se o email falhar
-        }
-
-    } catch (error) {
-        console.error('Erro na função de email:', error);
     }
 }
 
@@ -350,13 +325,13 @@ async function sendNotifications(tipo) {
             : 'N/A';
 
         const notificationData = {
-            clienteNome: currentOS.cliente.nome_completo,
+            clienteNome: currentOS.cliente?.nome_completo,
             dataAgendamento: dataFormatada,
             horaAgendamento: currentOS.hora_agendamento,
             servicos: currentOS.servicos_escolhidos,
-            valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
+            valorTotal: Number(currentOS?.valor_total || 0).toFixed(2).replace('.', ','),
             osId: currentOS.id,
-            endereco: currentOS.cliente.endereco
+            endereco: currentOS.cliente?.endereco
         };
 
         // 1. ENVIAR EMAIL
@@ -373,7 +348,7 @@ async function sendNotifications(tipo) {
 
         // 2. ENVIAR WHATSAPP
         let whatsappMessage = '';
-        
+
         if (tipo === 'started') {
             whatsappMessage = `🔧 *Serviço Iniciado - Apex Care*
 
@@ -401,114 +376,73 @@ ${window.location.origin}/avaliacao.html?os=${notificationData.osId}
 Obrigado pela confiança!`;
         }
 
-        // Formatar número de WhatsApp (remover caracteres especiais e adicionar código do país)
-        let whatsappNumber = currentOS.cliente.whatsapp.replace(/\D/g, '');
-        if (!whatsappNumber.startsWith('55')) {
-            whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+        const promises = [{ channel: 'email', promise: emailPromise }];
+        let whatsappResult;
+
+        const rawWhatsapp = currentOS.cliente?.whatsapp;
+        if (rawWhatsapp) {
+            let whatsappNumber = rawWhatsapp.replace(/\D/g, '');
+
+            if (whatsappNumber.length > 0) {
+                if (!whatsappNumber.startsWith('55')) {
+                    whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+                }
+
+                const whatsappData = {
+                    to: `whatsapp:+${whatsappNumber}`,
+                    message: whatsappMessage,
+                    messageType: tipo
+                };
+
+                const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
+                    body: whatsappData
+                });
+
+                promises.push({ channel: 'whatsapp', promise: whatsappPromise });
+            } else {
+                console.warn('⚠️ Número de WhatsApp inválido fornecido:', rawWhatsapp);
+            }
+        } else {
+            console.info('ℹ️ Cliente sem número de WhatsApp cadastrado. Notificação enviada apenas por email.');
         }
 
-        const whatsappData = {
-            to: `whatsapp:+${whatsappNumber}`,
-            message: whatsappMessage,
-            messageType: tipo
-        };
+        // 3. AGUARDAR CANAIS DISPONÍVEIS (mas não bloquear se algum falhar)
+        const settledResults = await Promise.allSettled(promises.map(item => item.promise));
 
-        const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
-            body: whatsappData
+        let emailResult;
+        settledResults.forEach((result, index) => {
+            const channel = promises[index].channel;
+            if (channel === 'email') {
+                emailResult = result;
+            } else if (channel === 'whatsapp') {
+                whatsappResult = result;
+            }
         });
 
-        // 3. AGUARDAR AMBOS (mas não bloquear se algum falhar)
-        const [emailResult, whatsappResult] = await Promise.allSettled([
-            emailPromise,
-            whatsappPromise
-        ]);
-
         // Log dos resultados
-        if (emailResult.status === 'fulfilled') {
+        if (emailResult?.status === 'fulfilled') {
             console.log('✅ Email enviado com sucesso');
         } else {
-            console.error('❌ Erro ao enviar email:', emailResult.reason);
+            console.error('❌ Erro ao enviar email:', emailResult?.reason);
         }
 
-        if (whatsappResult.status === 'fulfilled') {
-            console.log('✅ WhatsApp enviado com sucesso');
-        } else {
-            console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+        if (whatsappResult) {
+            if (whatsappResult.status === 'fulfilled') {
+                console.log('✅ WhatsApp enviado com sucesso');
+            } else {
+                console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+            }
         }
 
         // Retornar sucesso se pelo menos uma notificação foi enviada
-        return emailResult.status === 'fulfilled' || whatsappResult.status === 'fulfilled';
+        const emailSuccess = emailResult?.status === 'fulfilled';
+        const whatsappSuccess = whatsappResult?.status === 'fulfilled';
+
+        return emailSuccess || whatsappSuccess;
 
     } catch (error) {
         console.error('Erro geral ao enviar notificações:', error);
         return false;
-    }
-}
-
-// Atualizar função iniciarServico
-async function iniciarServico() {
-    if (!confirm('Deseja iniciar este serviço agora?')) return;
-
-    try {
-        // Atualizar status no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Em Andamento',
-                data_inicio: new Date().toISOString()
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        const notificationsSent = await sendNotifications('started');
-        
-        if (notificationsSent) {
-            alert('✅ Serviço iniciado! Cliente notificado.');
-        } else {
-            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
-        }
-        
-        // Atualizar interface
-        document.getElementById('os-status').textContent = '🔄 Em Andamento';
-        document.getElementById('btn-iniciar-servico').disabled = true;
-
-    } catch (error) {
-        console.error('Erro ao iniciar serviço:', error);
-        alert('Erro ao iniciar serviço: ' + error.message);
-    }
-}
-
-// Atualizar função concluirServico
-async function concluirServico() {
-    // ... validações existentes ...
-
-    try {
-        // Atualizar no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Concluído',
-                data_conclusao: new Date().toISOString(),
-                fotos_antes: uploadedPhotos.antes,
-                fotos_durante: uploadedPhotos.durante,
-                fotos_depois: uploadedPhotos.depois,
-                observacoes_tecnico: observacoes
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        await sendNotifications('completed');
-
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
-        window.location.href = 'tecnico-dashboard.html';
-
-    } catch (error) {
-        console.error('Erro ao concluir serviço:', error);
-        alert('Erro ao concluir serviço: ' + error.message);
     }
 }
 
