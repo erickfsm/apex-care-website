@@ -100,6 +100,7 @@ let promocoesManager = null;
 let extremeConditionChargesTotal = 0;
 let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
+let lastPromotionInfo = null;
 
 async function ensurePromocoesManagerInitialized() {
   if (!currentSession?.user?.id) {
@@ -651,6 +652,7 @@ async function renderChargesSummary() {
 
   let descontoPromocao = 0;
   let mensagemPromocao = null;
+  lastPromotionInfo = null;
 
   if (promocoesManager && selectedServices.length > 0) {
     try {
@@ -660,6 +662,13 @@ async function renderChargesSummary() {
       );
       descontoPromocao = resultado.desconto;
       mensagemPromocao = resultado.mensagem;
+      if (resultado.promocao && descontoPromocao > 0) {
+        lastPromotionInfo = {
+          id: resultado.promocao.id,
+          nome: resultado.promocao.nome,
+          valor: descontoPromocao,
+        };
+      }
     } catch (error) {
       console.warn("Não foi possível calcular promoções:", error);
     }
@@ -1542,6 +1551,9 @@ function registerScheduleListener() {
         quantity: 1,
         line_total: -lastPromotionDiscount,
         type: "discount",
+        promotion_id: lastPromotionInfo?.id || null,
+        promotion_nome: lastPromotionInfo?.nome || null,
+        promotion_valor: lastPromotionInfo?.valor || lastPromotionDiscount,
       });
     }
 
@@ -1629,6 +1641,7 @@ function registerScheduleListener() {
       observacoes: stepData.extremeConditions?.observations || "",
       anotacoes_backoffice: backofficeAnnotations,
       desconto_promocional: lastPromotionDiscount,
+      promocao_aplicada: lastPromotionInfo,
       valor_total: totalPrice,
       criado_em: new Date().toISOString(),
     };

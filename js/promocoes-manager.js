@@ -16,6 +16,10 @@ class PromocoesManager {
         await this.carregarPromocoesAtivas();
     }
 
+    setUser(userId) {
+        this.userId = userId;
+    }
+
     async carregarPromocoesAtivas() {
         try {
             const hoje = new Date().toISOString().split('T')[0];
@@ -213,23 +217,45 @@ class PromocoesManager {
     }
 
     // Registrar uso de promoção após confirmação do agendamento
-    async registrarUso(promocaoId, agendamentoId, valorDesconto) {
-        if (!this.userId) return;
+    async registrarUso(promocaoId, agendamentoId, valorDesconto, options = {}) {
+        const clienteId = options?.clienteId || this.userId;
+        const descontoNumerico = Math.abs(Number(valorDesconto || 0));
+
+        if (!clienteId || !promocaoId || !agendamentoId || descontoNumerico <= 0) {
+            console.warn('Informações insuficientes para registrar uso de promoção.');
+            return { inserted: false };
+        }
 
         try {
+            const { count, error: countError } = await supabase
+                .from('promocoes_uso')
+                .select('id', { count: 'exact', head: true })
+                .eq('promocao_id', promocaoId)
+                .eq('agendamento_id', agendamentoId)
+                .eq('cliente_id', clienteId);
+
+            if (countError) throw countError;
+
+            if (count && count > 0) {
+                console.log('⚠️ Uso de promoção já registrado anteriormente.');
+                return { inserted: false, alreadyExists: true };
+            }
+
             const { error } = await supabase
                 .from('promocoes_uso')
                 .insert({
                     promocao_id: promocaoId,
-                    cliente_id: this.userId,
+                    cliente_id: clienteId,
                     agendamento_id: agendamentoId,
-                    valor_desconto: valorDesconto
+                    valor_desconto: descontoNumerico
                 });
 
             if (error) throw error;
             console.log('✅ Uso de promoção registrado');
+            return { inserted: true };
         } catch (error) {
             console.error('Erro ao registrar uso:', error);
+            throw error;
         }
     }
 

@@ -1,4 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import './promocoes-manager.js';
+import { extractPromotionFromAppointment, registrarUsoPromocaoSeAplicavel } from './promocoes-helpers.js';
 
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
@@ -17,6 +19,27 @@ let pendingAppointment = null;
 let selectedDate = null;
 let selectedTime = null;
 let currentDate = new Date();
+let promocoesManager = null;
+
+async function ensurePromocoesManager() {
+    if (!currentUser) return null;
+    if (promocoesManager) {
+        return promocoesManager;
+    }
+
+    if (!window?.PromocoesManager) {
+        console.warn('PromocoesManager não disponível no contexto atual.');
+        return null;
+    }
+
+    promocoesManager = new window.PromocoesManager();
+    try {
+        await promocoesManager.init(currentUser.id);
+    } catch (error) {
+        console.warn('Não foi possível inicializar o PromocoesManager:', error);
+    }
+    return promocoesManager;
+}
 
 const calendarDays = document.getElementById('calendar-days');
 const timeSlotsDiv = document.getElementById('time-slots');
@@ -30,10 +53,12 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'INITIAL_SESSION' && session?.user) {
         console.log("✅ Sessão válida encontrada!", session.user.email);
         currentUser = session.user;
+        ensurePromocoesManager();
         findPendingAppointment();
     } else if (event === 'SIGNED_IN') {
         console.log("✅ Usuário acabou de logar!", session.user.email);
         currentUser = session.user;
+        ensurePromocoesManager();
         findPendingAppointment();
     } else if (event === 'SIGNED_OUT') {
         redirectToLogin();
@@ -77,6 +102,13 @@ async function findPendingAppointment() {
 
     pendingAppointment = data;
     console.log("✅ Agendamento encontrado:", pendingAppointment);
+
+    await ensurePromocoesManager();
+
+    const promocaoAplicada = extractPromotionFromAppointment(pendingAppointment);
+    if (promocaoAplicada) {
+        console.log('🎯 Promoção vinculada ao agendamento:', promocaoAplicada);
+    }
 
     if (pendingAppointment.status_pagamento === 'Em Aprovação') {
         alert('Seu orçamento ainda está em análise. Assim que for aprovado, liberaremos a agenda para escolha de horários.');
@@ -251,7 +283,7 @@ payOnSiteBtn.addEventListener('click', async () => {
 
     const { error } = await supabase
         .from('agendamentos')
-        .update({ 
+        .update({
             data_agendamento: selectedDate,
             hora_agendamento: selectedTime,
             status_pagamento: 'Pendente (Pagar no Local)'
@@ -265,6 +297,21 @@ payOnSiteBtn.addEventListener('click', async () => {
         payOnlineBtn.disabled = false;
         payOnSiteBtn.textContent = "Agendar e Pagar no Local";
     } else {
+        pendingAppointment.data_agendamento = selectedDate;
+        pendingAppointment.hora_agendamento = selectedTime;
+        pendingAppointment.status_pagamento = 'Pendente (Pagar no Local)';
+
+        try {
+            const managerInstance = await ensurePromocoesManager();
+            if (managerInstance) {
+                await registrarUsoPromocaoSeAplicavel(managerInstance, pendingAppointment, {
+                    clienteId: pendingAppointment.cliente_id || currentUser?.id || null,
+                });
+            }
+        } catch (registroError) {
+            console.error('Erro ao registrar uso da promoção (pagamento local):', registroError);
+        }
+
         alert("✅ Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
         window.location.href = 'portal-cliente.html';
     }
