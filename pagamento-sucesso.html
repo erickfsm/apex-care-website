@@ -256,10 +256,33 @@
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        import './js/promocoes-manager.js';
+        import { registrarUsoPromocaoSeAplicavel } from './js/promocoes-helpers.js';
 
         const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let promocoesManager = null;
+
+        async function ensurePromocoesManager(userId) {
+            if (!window?.PromocoesManager) {
+                return null;
+            }
+
+            if (!promocoesManager) {
+                promocoesManager = new window.PromocoesManager();
+            }
+
+            if (promocoesManager.userId !== userId) {
+                try {
+                    await promocoesManager.init(userId);
+                } catch (error) {
+                    console.warn('Não foi possível carregar promoções para o cliente:', error);
+                }
+            }
+
+            return promocoesManager;
+        }
 
         async function loadPaymentDetails() {
             try {
@@ -296,12 +319,24 @@
                 }
 
                 if (agendamento) {
-                    // Atualizar status do pagamento
                     if (status === 'approved') {
                         await supabase
                             .from('agendamentos')
                             .update({ status_pagamento: 'Pago e Confirmado' })
                             .eq('id', agendamento.id);
+
+                        agendamento.status_pagamento = 'Pago e Confirmado';
+
+                        try {
+                            const managerInstance = await ensurePromocoesManager(user.id);
+                            if (managerInstance) {
+                                await registrarUsoPromocaoSeAplicavel(managerInstance, agendamento, {
+                                    clienteId: user.id,
+                                });
+                            }
+                        } catch (registroError) {
+                            console.error('Erro ao registrar uso da promoção (pagamento aprovado):', registroError);
+                        }
                     }
 
                     // Exibir detalhes
