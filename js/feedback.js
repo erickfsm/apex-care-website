@@ -1,18 +1,8 @@
-/**
- * @fileoverview Provides feedback to the user through toast notifications and a loading overlay.
- * @module feedback
- */
-
 const TOAST_CONTAINER_ID = 'apex-toast-container';
 const LOADING_OVERLAY_ID = 'apex-loading-overlay';
 const focusReturnMap = new WeakMap();
 let loadingRequests = 0;
 
-/**
- * Ensures the toast container element exists in the DOM, creating it if necessary.
- * @private
- * @returns {HTMLElement} The toast container element.
- */
 function ensureToastContainer() {
   let container = document.getElementById(TOAST_CONTAINER_ID);
   if (!container) {
@@ -27,11 +17,6 @@ function ensureToastContainer() {
   return container;
 }
 
-/**
- * Ensures the loading overlay element exists in the DOM, creating it if necessary.
- * @private
- * @returns {HTMLElement} The loading overlay element.
- */
 function ensureLoadingOverlay() {
   let overlay = document.getElementById(LOADING_OVERLAY_ID);
   if (!overlay) {
@@ -62,11 +47,6 @@ function ensureLoadingOverlay() {
   return overlay;
 }
 
-/**
- * Removes a toast notification from the DOM with a fade-out animation.
- * @private
- * @param {HTMLElement} toast - The toast element to remove.
- */
 function removeToast(toast) {
   if (!toast) return;
   toast.classList.add('is-leaving');
@@ -80,15 +60,6 @@ function removeToast(toast) {
   }, 150);
 }
 
-/**
- * Displays a toast notification.
- * @private
- * @param {string} message - The main message to display in the toast.
- * @param {object} [options={}] - Configuration options for the toast.
- * @param {string} [options.type='info'] - The type of toast ('info', 'success', 'error').
- * @param {string} [options.title=''] - An optional title for the toast.
- * @returns {Function} A function that can be called to dismiss the toast prematurely.
- */
 function showToast(message, { type = 'info', title = '' } = {}) {
   const container = ensureToastContainer();
   const toast = document.createElement('div');
@@ -151,31 +122,14 @@ function showToast(message, { type = 'info', title = '' } = {}) {
   };
 }
 
-/**
- * Displays a success toast notification.
- * @param {string} message - The success message to display.
- * @param {object} [options={}] - Optional configuration, including a `title`.
- * @returns {Function} A function to dismiss the toast.
- */
 export function showSuccess(message, options = {}) {
   return showToast(message, { ...options, type: 'success', title: options.title ?? 'Tudo certo!' });
 }
 
-/**
- * Displays an error toast notification.
- * @param {string} message - The error message to display.
- * @param {object} [options={}] - Optional configuration, including a `title`.
- * @returns {Function} A function to dismiss the toast.
- */
 export function showError(message, options = {}) {
   return showToast(message, { ...options, type: 'error', title: options.title ?? 'Ops, algo deu errado' });
 }
 
-/**
- * Displays a global loading overlay. Manages multiple concurrent requests.
- * @param {string} [message='Carregando...'] - The message to display under the spinner.
- * @returns {Function} A function that must be called to hide the loading indicator for this specific request.
- */
 export function showLoading(message = 'Carregando...') {
   const overlay = ensureLoadingOverlay();
   const messageElement = overlay.querySelector('.apex-loading-message');
@@ -195,9 +149,6 @@ export function showLoading(message = 'Carregando...') {
   return () => hideLoading();
 }
 
-/**
- * Hides the global loading overlay. It only hides when all 'showLoading' requests have been dismissed.
- */
 export function hideLoading() {
   const overlay = document.getElementById(LOADING_OVERLAY_ID);
   if (!overlay) return;

@@ -1,26 +1,13 @@
 import { renderPortalPlanComparison } from './pricing-renderer.js';
 import { showSuccess, showError, showLoading } from './feedback.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-/**
- * @fileoverview Manages the client portal, displaying appointments, stats, and handling user actions.
- * @module portal-improved
- */
 
-// --- CONSTANTS ---
-/** @constant {string} The URL of the Supabase project. */
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
-/** @constant {string} The anonymous key for the Supabase project. */
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
-/** @constant {object} The Supabase client instance. */
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- STATE VARIABLES ---
-/** @type {object|null} The current authenticated user object. */
 let currentUser = null;
-/** @type {Array<object>} A list of all appointments for the current user. */
 let allAppointments = [];
 
-// --- DOM ELEMENT REFERENCES ---
 const userNameSpan = document.getElementById('user-name');
 const statsDiv = document.getElementById('stats-container');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
@@ -29,21 +16,15 @@ const logoutBtn = document.getElementById('logout-btn');
 const portalToast = document.getElementById('portal-status-toast');
 const portalToastMessage = portalToast?.querySelector('.toast-message');
 const portalToastIcon = portalToast?.querySelector('.toast-icon');
-/** @type {number|null} Timeout ID for the portal toast. */
 let toastTimeoutId = null;
 
-// --- INITIALIZATION ---
 if (portalToast) {
   const closeBtn = portalToast.querySelector('.toast-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', hidePortalToast);
   }
 }
-/**
- * Shows a toast notification within the portal.
- * @param {string} message - The message to display.
- * @param {string} [type='info'] - The type of toast ('info', 'success', 'error').
- */
+
 function showPortalToast(message, type = 'info') {
   if (!portalToast || !portalToastMessage || !portalToastIcon) return;
 
@@ -66,9 +47,7 @@ function showPortalToast(message, type = 'info') {
     hidePortalToast();
   }, 5000);
 }
-/**
- * Hides the portal toast notification.
- */
+
 function hidePortalToast() {
   if (!portalToast) return;
   portalToast.classList.remove('visible');
@@ -77,11 +56,7 @@ function hidePortalToast() {
     toastTimeoutId = null;
   }
 }
-/**
- * Sets the loading state of a button, disabling it and showing a spinner.
- * @param {HTMLElement} button - The button element to modify.
- * @param {boolean} isLoading - Whether to set the button to a loading state.
- */
+
 function setButtonLoadingState(button, isLoading) {
   if (!button) return;
 
@@ -112,19 +87,11 @@ function setButtonLoadingState(button, isLoading) {
     delete button.dataset.originalLabel;
   }
 }
-/**
- * Formats a number as a Brazilian currency string.
- * @param {number} value - The number to format.
- * @returns {string} The formatted currency string.
- */
+
 function formatCurrency(value) {
   return `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
 }
-/**
- * Escapes HTML special characters in a string.
- * @param {*} value - The value to escape.
- * @returns {string} The escaped string.
- */
+
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
   return value
@@ -135,9 +102,7 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-/**
- * Initializes the client portal, authenticates the user, and loads data.
- */
+
 async function initPortal() {
   const dismissInitialLoading = showLoading('Carregando seu portal de serviços...');
 
@@ -172,11 +137,7 @@ async function initPortal() {
     dismissInitialLoading();
   }
 }
-/**
- * Loads all portal data, including profile and appointments.
- * @param {object} [options={}] - Options for loading data.
- * @param {boolean} [options.skipLoading=false] - Whether to skip showing the loading indicator.
- */
+
 async function loadPortalData({ skipLoading = false } = {}) {
   const dismissLoading = skipLoading ? null : showLoading('Atualizando seus agendamentos...');
 
@@ -215,9 +176,7 @@ async function loadPortalData({ skipLoading = false } = {}) {
     if (dismissLoading) dismissLoading();
   }
 }
-/**
- * Separates appointments into different categories and renders them.
- */
+
 function separateAndRender() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -259,10 +218,7 @@ function separateAndRender() {
   renderAppointments(upcoming, upcomingAppointmentsDiv, true);
   renderAppointments(history, pastAppointmentsDiv, false);
 }
-/**
- * Ensures the alerts container element exists in the DOM.
- * @returns {HTMLElement|null} The alerts container element.
- */
+
 function ensureAlertsContainer() {
   let alertsWrapper = document.getElementById('budget-alerts');
   if (!alertsWrapper && upcomingAppointmentsDiv?.parentElement) {
@@ -276,11 +232,7 @@ function ensureAlertsContainer() {
   }
   return alertsWrapper;
 }
-/**
- * Renders the approval and awaiting scheduling cards.
- * @param {Array<object>} pendingApprovals - A list of appointments pending approval.
- * @param {Array<object>} awaitingScheduling - A list of appointments awaiting scheduling.
- */
+
 function renderApprovalCards(pendingApprovals, awaitingScheduling) {
   const alertsWrapper = ensureAlertsContainer();
   if (!alertsWrapper) return;
@@ -332,12 +284,7 @@ function renderApprovalCards(pendingApprovals, awaitingScheduling) {
 
   alertsWrapper.innerHTML = cards.join('');
 }
-/**
- * Renders a list of appointments in a given element.
- * @param {Array<object>} appointments - The list of appointments to render.
- * @param {HTMLElement} element - The element to render the appointments in.
- * @param {boolean} isUpcoming - Whether the appointments are upcoming or past.
- */
+
 function renderAppointments(appointments, element, isUpcoming) {
   if (!element) return;
 
@@ -465,81 +412,8 @@ function renderAppointments(appointments, element, isUpcoming) {
         ${actionButton}
       </div>
     `;
-    element.insertAdjacentHTML('beforeend', cardHTML);
-  });
 }
 
-/**
- * Updates the statistics section of the portal.
- */
-function updateStats() {
-  if (!statsDiv) return;
-
-  const totalAppointments = allAppointments.filter(
-    (a) => a.status_pagamento === 'Concluído'
-  ).length;
-
-  const totalSpent = allAppointments
-    .filter((a) => a.status_pagamento === 'Concluído')
-    .reduce((sum, a) => sum + (Number(a.valor_total) || 0), 0);
-
-  const nextAppointment = allAppointments
-    .filter((appt) => {
-      if (!appt.data_agendamento) return false;
-      const apptDate = new Date(`${appt.data_agendamento}T00:00:00`);
-      return apptDate >= new Date().setHours(0, 0, 0, 0) && !['Cancelado', 'Concluído'].includes(appt.status_pagamento);
-    })
-    .sort((a, b) => new Date(a.data_agendamento) - new Date(b.data_agendamento))[0];
-
-  const nextDate = nextAppointment
-    ? new Date(`${nextAppointment.data_agendamento}T00:00:00`).toLocaleDateString('pt-BR')
-    : 'Nenhum';
-
-  statsDiv.innerHTML = `
-    <div class="stat-card">
-      <h4>Serviços concluídos</h4>
-      <p>${totalAppointments}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Valor investido</h4>
-      <p>${formatCurrency(totalSpent)}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Próximo agendamento</h4>
-      <p>${nextDate}</p>
-    </div>
-  `;
-}
-/**
- * Gets a CSS class based on the appointment status.
- * @param {string} status - The appointment status.
- * @returns {string} The corresponding CSS class.
- */
-function getStatusClass(status) {
-  switch (status) {
-    case 'Pago e Confirmado':
-    case 'Concluído':
-      return 'status-success';
-    case 'Pendente (Pagar no Local)':
-    case 'Aguardando Execução':
-      return 'status-pending';
-    case 'Cancelado':
-    case 'Reprovado':
-      return 'status-danger';
-    case 'Em Aprovação':
-    case 'Aguardando Agendamento':
-    case 'Aprovado':
-      return 'status-info';
-    default:
-      return 'status-default';
-  }
-}
-
-/**
- * Cancels an appointment. This function is exposed to the global window object.
- * @param {string} appointmentId - The ID of the appointment to cancel.
- * @param {HTMLElement} buttonEl - The button element that was clicked.
- */
 window.cancelAppointment = async function cancelAppointment(appointmentId, buttonEl) {
   if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 
@@ -564,11 +438,7 @@ window.cancelAppointment = async function cancelAppointment(appointmentId, butto
     dismissLoading();
   }
 };
-/**
- * Rebooks an appointment by creating a new budget with the same services.
- * This function is exposed to the global window object.
- * @param {string} servicesData - A JSON string of the services to rebook.
- */
+
 window.rebookAppointment = function rebookAppointment(servicesData) {
   try {
     const decoded = JSON.parse(decodeURIComponent(servicesData));
@@ -587,6 +457,4 @@ window.rebookAppointment = function rebookAppointment(servicesData) {
   }
 };
 
-// --- RENDER INITIAL COMPONENTS ---
 renderPortalPlanComparison();
-initPortal();

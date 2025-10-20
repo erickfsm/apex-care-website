@@ -1,34 +1,18 @@
 // address-manager.js - Sistema de Gerenciamento de Endereços
 import { supabase } from './supabase-client.js';
-/**
- * @class AddressManager
- * @description Manages user addresses, including loading, creating, updating, and deleting addresses.
- */
+
 class AddressManager {
-    /**
-     * @constructor
-     */
     constructor() {
-        /** @type {Array} */
         this.addresses = [];
-        /** @type {string|null} */
         this.currentUser = null;
     }
-    /**
-     * @method init
-     * @description Initializes the address manager for a specific user.
-     * @param {string} userId - The ID of the user.
-     */
+
     async init(userId) {
         this.currentUser = userId;
         await this.loadAddresses();
     }
 
-    /**
-     * @method loadAddresses
-     * @description Loads all addresses for the current user from the database.
-     * @returns {Promise<Array>} A promise that resolves to an array of addresses.
-     */
+    // Carregar todos os endereços do usuário
     async loadAddresses() {
         try {
             const { data, error } = await supabase
@@ -49,21 +33,12 @@ class AddressManager {
         }
     }
 
-    /**
-     * @method getPrincipalAddress
-     * @description Gets the principal address of the user.
-     * @returns {Object|null} The principal address object or null if not found.
-     */
+    // Obter endereço principal
     getPrincipalAddress() {
         return this.addresses.find(addr => addr.is_principal) || this.addresses[0] || null;
     }
 
-    /**
-     * @method createAddress
-     * @description Creates a new address for the current user.
-     * @param {Object} addressData - The data for the new address.
-     * @returns {Promise<Object>} A promise that resolves to the newly created address object.
-     */
+    // Criar novo endereço
     async createAddress(addressData) {
         try {
             const { data, error } = await supabase
@@ -96,13 +71,8 @@ class AddressManager {
             throw error;
         }
     }
-    /**
-     * @method updateAddress
-     * @description Updates an existing address for the current user.
-     * @param {string} addressId - The ID of the address to update.
-     * @param {Object} addressData - The new data for the address.
-     * @returns {Promise<Object>} A promise that resolves to the updated address object.
-     */
+
+    // Atualizar endereço
     async updateAddress(addressId, addressData) {
         try {
             const { data, error } = await supabase
@@ -136,12 +106,7 @@ class AddressManager {
         }
     }
 
-    /**
-     * @method deleteAddress
-     * @description Deletes an address for the current user.
-     * @param {string} addressId - The ID of the address to delete.
-     * @returns {Promise<void>} A promise that resolves when the address is deleted.
-     */
+    // Deletar endereço
     async deleteAddress(addressId) {
         try {
             const { error } = await supabase
@@ -159,20 +124,16 @@ class AddressManager {
         }
     }
 
-    /**
-     * @method setPrincipal
-     * @description Sets an address as the principal address for the current user.
-     * @param {string} addressId - The ID of the address to set as principal.
-     * @returns {Promise<void>} A promise that resolves when the address is set as principal.
-     */
+    // Definir endereço como principal
     async setPrincipal(addressId) {
         try {
-            // Inicia uma transação para garantir a consistência dos dados
-            const { error: transactionError } = await supabase.rpc('set_principal_address', {
-                user_id_param: this.currentUser,
-                address_id_param: addressId
-            });
-            if (transactionError) throw transactionError;
+            const { error } = await supabase
+                .from('enderecos')
+                .update({ is_principal: true })
+                .eq('id', addressId);
+
+            if (error) throw error;
+
             console.log('✅ Endereço definido como principal:', addressId);
             await this.loadAddresses();
         } catch (error) {
@@ -181,14 +142,7 @@ class AddressManager {
         }
     }
 
-    /**
-     * @method renderAddressList
-     * @description Renders the list of addresses in the specified container.
-     * @param {string} containerId - The ID of the container element.
-     * @param {Function|null} onSelect - The callback function to execute when an address is selected.
-     * @param {Function|null} onEdit - The callback function to execute when an address is edited.
-     * @param {Function|null} onDelete - The callback function to execute when an address is deleted.
-     */
+    // Renderizar lista de endereços (HTML)
     renderAddressList(containerId, onSelect = null, onEdit = null, onDelete = null) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -205,7 +159,7 @@ class AddressManager {
 
         const addressesHTML = this.addresses.map(addr => {
             const isPrincipal = addr.is_principal ? '<span style="background-color: #00A99D; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 700; margin-left: 8px;">PRINCIPAL</span>' : '';
-
+            
             return `
                 <div class="address-item" data-address-id="${addr.id}" style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 2px solid ${addr.is_principal ? '#00A99D' : '#e5e7eb'}; cursor: pointer; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
@@ -239,7 +193,7 @@ class AddressManager {
             container.querySelectorAll('.address-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     // Não disparar se clicar nos botões de ação
-                    if (e.target.classList.contains('btn-edit-address') ||
+                    if (e.target.classList.contains('btn-edit-address') || 
                         e.target.classList.contains('btn-delete-address')) {
                         return;
                     }
