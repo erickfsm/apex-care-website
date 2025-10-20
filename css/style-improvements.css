@@ -111,38 +111,72 @@
    ========================================== */
 
 .status-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border-radius: 999px;
     font-size: 0.85em;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1;
+    gap: 4px;
 }
 
 .status-pendente {
-    background-color: #FFF3CD;
-    color: #856404;
+    background-color: var(--status-pendente-bg);
+    color: var(--status-pendente-text);
 }
 
 .status-pago {
-    background-color: #D4EDDA;
-    color: #155724;
+    background-color: var(--status-pago-bg);
+    color: var(--status-pago-text);
 }
 
 .status-confirmado {
-    background-color: #D1ECF1;
-    color: #0C5460;
+    background-color: var(--status-confirmado-bg);
+    color: var(--status-confirmado-text);
 }
 
-.status-cancelado {
-    background-color: #F8D7DA;
-    color: #721C24;
+.status-em-andamento {
+    background-color: var(--status-em-andamento-bg);
+    color: var(--status-em-andamento-text);
 }
 
 .status-concluido {
-    background-color: #C3E6CB;
-    color: #155724;
+    background-color: var(--status-concluido-bg);
+    color: var(--status-concluido-text);
+}
+
+.status-cancelado {
+    background-color: var(--status-cancelado-bg);
+    color: var(--status-cancelado-text);
+}
+
+.status-em-aprovacao {
+    background-color: var(--status-em-aprovacao-bg);
+    color: var(--status-em-aprovacao-text);
+}
+
+.status-aprovado {
+    background-color: var(--status-aprovado-bg);
+    color: var(--status-aprovado-text);
+}
+
+.status-reprovado {
+    background-color: var(--status-reprovado-bg);
+    color: var(--status-reprovado-text);
+}
+
+.status-ativa {
+    background-color: var(--status-ativa-bg);
+    color: var(--status-ativa-text);
+}
+
+.status-inativa {
+    background-color: var(--status-inativa-bg);
+    color: var(--status-inativa-text);
 }
 
 /* ==========================================

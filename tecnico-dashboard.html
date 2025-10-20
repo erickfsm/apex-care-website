@@ -136,32 +136,9 @@
             color: var(--color-graphite);
         }
 
-        .appointment-status {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .status-pendente {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-confirmado {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .status-em-andamento {
-            background-color: #cfe2ff;
-            color: #084298;
-        }
-
-        .status-concluido {
-            background-color: #d4edda;
-            color: #155724;
+        .appointment-header .status-badge {
+            min-width: 140px;
+            justify-content: center;
         }
 
         .appointment-info {
@@ -679,7 +656,7 @@
                     <div class="appointment-card">
                         <div class="appointment-header">
                             <span class="appointment-id">📋 OS #${appt.id}</span>
-                            <span class="appointment-status ${statusClass}">
+                            <span class="status-badge ${statusClass}">
                                 ${appt.status_pagamento || 'Pendente'}
                             </span>
                         </div>

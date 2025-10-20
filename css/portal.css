@@ -60,14 +60,14 @@
     font-size: 0.85em;
 }
 
-.status-em-aprovacao { background-color: #fff8e1; color: #ff8f00; }
-.status-aprovado { background-color: #e3f2fd; color: #1e88e5; }
-.status-pendente { background-color: #fff3e0; color: #fb8c00; }
-.status-confirmado { background-color: #e8f5e9; color: #2e7d32; }
-.status-em-andamento { background-color: #e0f2f1; color: #00897b; }
-.status-concluido { background-color: #e8f5e9; color: #4caf50; }
-.status-cancelado { background-color: #ffebee; color: #f44336; }
-.status-reprovado { background-color: #ffebee; color: #c62828; }
+.status-em-aprovacao { background-color: var(--status-em-aprovacao-bg); color: var(--status-em-aprovacao-text); }
+.status-aprovado { background-color: var(--status-aprovado-bg); color: var(--status-aprovado-text); }
+.status-pendente { background-color: var(--status-pendente-bg); color: var(--status-pendente-text); }
+.status-confirmado { background-color: var(--status-confirmado-bg); color: var(--status-confirmado-text); }
+.status-em-andamento { background-color: var(--status-em-andamento-bg); color: var(--status-em-andamento-text); }
+.status-concluido { background-color: var(--status-concluido-bg); color: var(--status-concluido-text); }
+.status-cancelado { background-color: var(--status-cancelado-bg); color: var(--status-cancelado-text); }
+.status-reprovado { background-color: var(--status-reprovado-bg); color: var(--status-reprovado-text); }
 
 
 .cancel-btn, .rebook-btn {

@@ -93,22 +93,9 @@
             flex: 1;
         }
 
-        .promo-status {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .status-ativa {
-            background-color: #d4edda;
-            color: #155724;
-        }
-
-        .status-inativa {
-            background-color: #f8d7da;
-            color: #721c24;
+        .promo-header .status-badge {
+            min-width: 120px;
+            justify-content: center;
         }
 
         .promo-desconto {
@@ -552,7 +539,7 @@
                     <div class="promo-card ${promo.tipo_desconto}">
                         <div class="promo-header">
                             <div class="promo-title">${promo.nome}</div>
-                            <span class="promo-status ${estaAtiva ? 'status-ativa' : 'status-inativa'}">
+                            <span class="status-badge ${estaAtiva ? 'status-ativa' : 'status-inativa'}">
                                 ${estaAtiva ? '✅ ATIVA' : '❌ INATIVA'}
                             </span>
                         </div>
