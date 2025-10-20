@@ -46,17 +46,43 @@ class PromocoesManager {
         let melhorDesconto = 0;
         let melhorPromocao = null;
 
+        // Buscar em lote os usos das promoções pelo cliente
+        const usosPorPromocao = new Map();
+        if (this.userId) {
+            const promocoesComLimite = this.promocoesAtivas
+                .filter(promo => promo.uso_por_cliente)
+                .map(promo => promo.id);
+
+            if (promocoesComLimite.length) {
+                try {
+                    const { data, error } = await supabase
+                        .from('promocoes_uso')
+                        .select('promocao_id')
+                        .eq('cliente_id', this.userId)
+                        .in('promocao_id', promocoesComLimite);
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    (data || []).forEach(({ promocao_id }) => {
+                        const usoAtual = usosPorPromocao.get(promocao_id) || 0;
+                        usosPorPromocao.set(promocao_id, usoAtual + 1);
+                    });
+                } catch (error) {
+                    console.error('Erro ao buscar usos de promoções:', error);
+                    throw error;
+                }
+            }
+        }
+
         // Verificar cada promoção
         for (const promo of this.promocoesAtivas) {
             // Verificar se já usou (se tiver limite por cliente)
             if (promo.uso_por_cliente && this.userId) {
-                const { count } = await supabase
-                    .from('promocoes_uso')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('promocao_id', promo.id)
-                    .eq('cliente_id', this.userId);
+                const usosRegistrados = usosPorPromocao.get(promo.id) || 0;
 
-                if (count >= promo.uso_por_cliente) {
+                if (usosRegistrados >= promo.uso_por_cliente) {
                     continue; // Já usou o máximo permitido
                 }
             }
