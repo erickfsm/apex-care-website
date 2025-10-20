@@ -1,10 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-import './promocoes-manager.js';
-import { extractPromotionFromAppointment, registrarUsoPromocaoSeAplicavel } from './promocoes-helpers.js';
-
-const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from './supabase-client.js';
 
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
 const ACTIVE_PAYMENT_STATUSES = [
