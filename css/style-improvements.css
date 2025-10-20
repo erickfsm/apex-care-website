@@ -194,6 +194,38 @@
     font-weight: 600;
     transition: all 0.2s;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-small:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.btn-small .spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-top-color: #ffffff;
+    animation: spin 0.75s linear infinite;
+}
+
+.btn-small.is-loading .spinner {
+    display: inline-block;
+}
+
+.btn-small.is-loading .btn-label {
+    letter-spacing: 0.01em;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .btn-cancel {

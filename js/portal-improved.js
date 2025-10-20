@@ -13,6 +13,80 @@ const statsDiv = document.getElementById('stats-container');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
 const pastAppointmentsDiv = document.getElementById('past-appointments');
 const logoutBtn = document.getElementById('logout-btn');
+const portalToast = document.getElementById('portal-status-toast');
+const portalToastMessage = portalToast?.querySelector('.toast-message');
+const portalToastIcon = portalToast?.querySelector('.toast-icon');
+let toastTimeoutId = null;
+
+if (portalToast) {
+  const closeBtn = portalToast.querySelector('.toast-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', hidePortalToast);
+  }
+}
+
+function showPortalToast(message, type = 'info') {
+  if (!portalToast || !portalToastMessage || !portalToastIcon) return;
+
+  const iconMap = {
+    success: '✅',
+    error: '⚠️',
+    info: 'ℹ️',
+  };
+
+  portalToastMessage.textContent = message;
+  portalToastIcon.textContent = iconMap[type] || iconMap.info;
+  portalToast.className = `portal-status-toast ${type}`;
+  portalToast.classList.add('visible');
+
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+  }
+
+  toastTimeoutId = setTimeout(() => {
+    hidePortalToast();
+  }, 5000);
+}
+
+function hidePortalToast() {
+  if (!portalToast) return;
+  portalToast.classList.remove('visible');
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+    toastTimeoutId = null;
+  }
+}
+
+function setButtonLoadingState(button, isLoading) {
+  if (!button) return;
+
+  const labelEl = button.querySelector('.btn-label');
+
+  if (isLoading) {
+    if (!button.dataset.originalLabel) {
+      button.dataset.originalLabel = labelEl ? labelEl.textContent : button.textContent;
+    }
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.setAttribute('aria-busy', 'true');
+    if (labelEl) {
+      labelEl.textContent = 'Cancelando...';
+    } else {
+      button.textContent = 'Cancelando...';
+    }
+  } else {
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    button.removeAttribute('aria-busy');
+    const originalLabel = button.dataset.originalLabel;
+    if (labelEl && originalLabel) {
+      labelEl.textContent = originalLabel;
+    } else if (!labelEl && originalLabel) {
+      button.textContent = originalLabel;
+    }
+    delete button.dataset.originalLabel;
+  }
+}
 
 function formatCurrency(value) {
   return `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
@@ -223,7 +297,10 @@ function renderAppointments(appointments, element, isUpcoming) {
         actionButton = `
           <div class="appointment-actions">
             <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-            <button class="btn-small btn-cancel" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
+            <button class="btn-small btn-cancel" data-appointment-id="${appt.id}" onclick="cancelAppointment('${appt.id}', this)">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btn-label">Cancelar</span>
+            </button>
           </div>
         `;
       } else {
@@ -373,8 +450,11 @@ function updateStats() {
   `;
 }
 
-window.cancelAppointment = async function cancelAppointment(appointmentId) {
+window.cancelAppointment = async function cancelAppointment(appointmentId, buttonEl) {
   if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+
+  const button = buttonEl || document.querySelector(`.btn-cancel[data-appointment-id="${appointmentId}"]`);
+  setButtonLoadingState(button, true);
 
   try {
     const { error } = await supabase
@@ -385,10 +465,13 @@ window.cancelAppointment = async function cancelAppointment(appointmentId) {
 
     if (error) throw error;
 
+    showPortalToast('Agendamento cancelado com sucesso.', 'success');
     await loadPortalData();
   } catch (error) {
     console.error('Erro ao cancelar agendamento:', error);
-    alert('Não foi possível cancelar agora. Tente novamente.');
+    showPortalToast('Não foi possível cancelar agora. Tente novamente.', 'error');
+  } finally {
+    setButtonLoadingState(button, false);
   }
 };
 
