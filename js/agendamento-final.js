@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { showSuccess, showError, showLoading } from './feedback.js';
 
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
@@ -42,14 +43,18 @@ setTimeout(() => {
 }, 2000);
 
 function redirectToLogin() {
-    alert("Sessão não encontrada ou expirada. Por favor, faça o login.");
-    window.location.href = 'login.html';
+    showError('Sessão não encontrada ou expirada. Faça login novamente.');
+    setTimeout(() => {
+        window.location.href = 'login.html';
+    }, 2200);
 }
 
 async function findPendingAppointment() {
     if (!currentUser) return;
 
     console.log("🔍 Procurando agendamento pendente para usuário:", currentUser.id);
+
+    const dismissLoading = showLoading('Carregando seu agendamento pendente...');
 
     // BUSCA MAIS FLEXÍVEL - pega o último agendamento do usuário que NÃO está concluído
     const { data, error } = await supabase
@@ -62,10 +67,14 @@ async function findPendingAppointment() {
         .limit(1)
         .single();
 
+    dismissLoading();
+
     if (error || !data) {
         console.warn("⚠️ Nenhum agendamento pendente encontrado");
-        alert("Não encontramos um orçamento pendente. Por favor, faça um novo orçamento.");
-        window.location.href = 'orcamento.html';
+        showError('Não encontramos um orçamento pendente. Faça um novo pedido para continuar.');
+        setTimeout(() => {
+            window.location.href = 'orcamento.html';
+        }, 2500);
         return;
     }
 
@@ -73,14 +82,18 @@ async function findPendingAppointment() {
     console.log("✅ Agendamento encontrado:", pendingAppointment);
 
     if (pendingAppointment.status_pagamento === 'Em Aprovação') {
-        alert('Seu orçamento ainda está em análise. Assim que for aprovado, liberaremos a agenda para escolha de horários.');
-        window.location.href = 'portal-cliente.html';
+        showError('Seu orçamento ainda está em análise. Avisaremos assim que liberar para agendar.');
+        setTimeout(() => {
+            window.location.href = 'portal-cliente.html';
+        }, 2600);
         return;
     }
 
     if (pendingAppointment.status_pagamento === 'Reprovado') {
-        alert('Seu orçamento precisa ser revisado com nossa equipe. Entre em contato para ajustes.');
-        window.location.href = 'portal-cliente.html';
+        showError('Seu orçamento precisa ser revisado com nossa equipe. Entre em contato para ajustes.');
+        setTimeout(() => {
+            window.location.href = 'portal-cliente.html';
+        }, 2600);
         return;
     }
 
@@ -168,6 +181,7 @@ async function handleDayClick(dayElement, dateStr) {
     if (error) {
         console.error("❌ Erro ao verificar horários:", error);
         timeSlotsDiv.innerHTML = "<p>Erro ao verificar horários.</p>";
+        showError('Não foi possível verificar os horários disponíveis. Tente novamente.');
         return;
     }
 
@@ -223,24 +237,30 @@ payOnSiteBtn.addEventListener('click', async () => {
     payOnlineBtn.disabled = true;
     payOnSiteBtn.textContent = "Agendando...";
 
+    const dismissLoading = showLoading('Confirmando seu agendamento...');
+
     const { error } = await supabase
         .from('agendamentos')
-        .update({ 
+        .update({
             data_agendamento: selectedDate,
             hora_agendamento: selectedTime,
             status_pagamento: 'Pendente (Pagar no Local)'
         })
         .eq('id', pendingAppointment.id);
 
+    dismissLoading();
+
     if (error) {
-        alert("Erro ao confirmar o agendamento. Tente novamente.");
+        showError('Não conseguimos confirmar o agendamento. Tente novamente.');
         console.error(error);
         payOnSiteBtn.disabled = false;
         payOnlineBtn.disabled = false;
         payOnSiteBtn.textContent = "Agendar e Pagar no Local";
     } else {
-        alert("✅ Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
-        window.location.href = 'portal-cliente.html';
+        showSuccess('Agendamento confirmado! O pagamento será feito no dia do serviço.');
+        setTimeout(() => {
+            window.location.href = 'portal-cliente.html';
+        }, 2600);
     }
 });
 
@@ -252,11 +272,13 @@ payOnlineBtn.addEventListener('click', async () => {
     payOnlineBtn.disabled = true;
     payOnlineBtn.textContent = "Gerando Pagamento...";
 
+    const dismissLoading = showLoading('Preparando o pagamento seguro...');
+
     try {
         // Primeiro atualiza data/hora
         await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 data_agendamento: selectedDate,
                 hora_agendamento: selectedTime,
             })
@@ -272,11 +294,13 @@ payOnlineBtn.addEventListener('click', async () => {
         });
 
         if (functionError) throw functionError;
-        
+
+        dismissLoading();
         window.location.href = functionData.checkoutUrl;
 
     } catch (error) {
-        alert(`Erro ao gerar o link de pagamento:\n\n${error.message}`);
+        dismissLoading();
+        showError(`Erro ao gerar o link de pagamento. ${error.message || ''}`.trim());
         console.error("Erro completo:", error);
         payOnSiteBtn.disabled = false;
         payOnlineBtn.disabled = false;

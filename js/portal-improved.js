@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { renderPortalPlanComparison } from './pricing-renderer.js';
+import { showSuccess, showError, showLoading } from './feedback.js';
 
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
@@ -19,32 +20,43 @@ function formatCurrency(value) {
 }
 
 async function initPortal() {
-  const { data } = await supabase.auth.getUser();
+  const dismissInitialLoading = showLoading('Carregando seu portal de serviços...');
 
-  if (!data?.user) {
-    window.location.href = 'login.html';
-    return;
-  }
+  try {
+    const { data } = await supabase.auth.getUser();
 
-  currentUser = data.user;
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      await supabase.auth.signOut();
-      window.location.href = 'index.html';
-    });
-  }
-
-  await loadPortalData();
-
-  supabase.auth.onAuthStateChange(async (event) => {
-    if (event === 'SIGNED_OUT') {
+    if (!data?.user) {
       window.location.href = 'login.html';
+      return;
     }
-  });
+
+    currentUser = data.user;
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
+      });
+    }
+
+    await loadPortalData({ skipLoading: true });
+
+    supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_OUT') {
+        window.location.href = 'login.html';
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao inicializar portal:', error);
+    showError('Não foi possível carregar o portal agora. Tente novamente em instantes.');
+  } finally {
+    dismissInitialLoading();
+  }
 }
 
-async function loadPortalData() {
+async function loadPortalData({ skipLoading = false } = {}) {
+  const dismissLoading = skipLoading ? null : showLoading('Atualizando seus agendamentos...');
+
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -66,6 +78,7 @@ async function loadPortalData() {
       console.error('Erro ao carregar agendamentos:', error);
       upcomingAppointmentsDiv.innerHTML =
         '<p style="text-align: center; color: #e53935; padding: 30px;">Não foi possível carregar seus dados agora.</p>';
+      showError('Não foi possível carregar seus agendamentos. Tente novamente.');
       return;
     }
 
@@ -74,6 +87,9 @@ async function loadPortalData() {
     updateStats();
   } catch (error) {
     console.error('Erro ao carregar dados do portal:', error);
+    showError('Enfrentamos um problema para carregar suas informações. Tente novamente em instantes.');
+  } finally {
+    if (dismissLoading) dismissLoading();
   }
 }
 
@@ -376,6 +392,8 @@ function updateStats() {
 window.cancelAppointment = async function cancelAppointment(appointmentId) {
   if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 
+  const dismissLoading = showLoading('Cancelando seu agendamento...');
+
   try {
     const { error } = await supabase
       .from('agendamentos')
@@ -386,9 +404,12 @@ window.cancelAppointment = async function cancelAppointment(appointmentId) {
     if (error) throw error;
 
     await loadPortalData();
+    showSuccess('Agendamento cancelado com sucesso.');
   } catch (error) {
     console.error('Erro ao cancelar agendamento:', error);
-    alert('Não foi possível cancelar agora. Tente novamente.');
+    showError('Não foi possível cancelar agora. Tente novamente.');
+  } finally {
+    dismissLoading();
   }
 };
 
@@ -406,7 +427,7 @@ window.rebookAppointment = function rebookAppointment(servicesData) {
     window.location.href = 'orcamento.html';
   } catch (error) {
     console.error('Erro ao reagendar:', error);
-    alert('Não foi possível preparar um novo orçamento com esses serviços.');
+    showError('Não foi possível preparar um novo orçamento com esses serviços.');
   }
 };
 
