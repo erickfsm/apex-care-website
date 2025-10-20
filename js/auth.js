@@ -1,29 +1,33 @@
 import { supabase } from './supabase-client.js';
+/**
+ * @fileoverview Handles user registration and login functionality.
+ */
 
-// Configura a conexão compartilhada
-
-// --- LÓGICA DE CADASTRO ---
+// --- REGISTRATION LOGIC ---
 const registerForm = document.getElementById('register-form');
 
-if (registerForm) { 
+if (registerForm) {
     const errorMessage = document.getElementById('error-message');
-
+    /**
+     * @listens submit
+     * @description Handles the submission of the registration form.
+     */
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Coleta os dados do formulário
+        // Collect form data
         const nome = document.getElementById('name').value;
         const whatsapp = document.getElementById('whatsapp').value;
         const endereco = document.getElementById('address').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        
+
         errorMessage.textContent = '';
 
         try {
             console.log("🔐 Iniciando cadastro para:", email);
 
-            // ✅ PASSO 1: Cria o usuário na autenticação
+            // Create user in Supabase auth
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -40,7 +44,7 @@ if (registerForm) {
                 console.error("❌ Erro na autenticação:", authError);
                 throw authError;
             }
-            
+
             if (!authData.user) {
                 throw new Error("Usuário não foi criado, tente novamente.");
             }
@@ -48,10 +52,10 @@ if (registerForm) {
             const userId = authData.user.id;
             console.log("✅ Usuário criado com ID:", userId);
 
-            // ✅ PASSO 2: Aguarda um pouco para o trigger criar o profile
+            // Wait for the trigger to create the profile
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // ✅ PASSO 3: Atualiza o profile com os dados completos
+            // Update the profile with complete data
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
@@ -63,14 +67,14 @@ if (registerForm) {
 
             if (profileError) {
                 console.warn("⚠️ Aviso ao atualizar profile:", profileError);
-                // Não interrompe o fluxo, pois o usuário já foi criado
+                // Non-blocking error, user is already created
             } else {
                 console.log("✅ Perfil do usuário atualizado");
             }
-                    
-            // ✅ PASSO 4: Recupera o orçamento e salva em 'agendamentos'
+
+            // Retrieve and save the budget
             const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
-            
+
             if (orcamentoSalvo) {
                 try {
                     const orcamentoData = JSON.parse(orcamentoSalvo);
@@ -119,8 +123,8 @@ if (registerForm) {
             } else {
                 console.warn("⚠️ Nenhum orçamento encontrado em localStorage");
             }
-                    
-            // ✅ PASSO 5: Redireciona com sucesso
+
+            // Redirect on success
             alert("✅ Conta criada com sucesso! Agora, vamos escolher a melhor data e horário.");
             window.location.href = 'agendamento.html';
 
@@ -132,18 +136,21 @@ if (registerForm) {
     });
 }
 
-// --- LÓGICA DE LOGIN ---
+// --- LOGIN LOGIC ---
 const loginForm = document.getElementById('login-form');
 
-if (loginForm) { 
+if (loginForm) {
     const errorMessage = document.getElementById('error-message');
-
+    /**
+     * @listens submit
+     * @description Handles the submission of the login form.
+     */
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        
+
         errorMessage.textContent = '';
 
         try {
@@ -158,7 +165,7 @@ if (loginForm) {
 
             console.log("✅ Login bem-sucedido!");
             alert("Login efetuado com sucesso!");
-            window.location.href = 'index.html'; 
+            window.location.href = 'index.html';
 
         } catch (error) {
             console.error("❌ Erro no login:", error);

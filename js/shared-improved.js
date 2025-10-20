@@ -1,9 +1,13 @@
 // js/shared-improved.js - VERSÃO COMPLETA CORRIGIDA
 import { supabase } from './supabase-client.js';
+/**
+ * @fileoverview Manages the shared authentication state and renders the user profile dropdown in the header.
+ * @module shared-improved
+ */
 
 const authContainer = document.getElementById('auth-container-header') || document.getElementById('auth-container');
 
-// Ouve mudanças de autenticação
+// Listens for authentication changes
 supabase.auth.onAuthStateChange((event, session) => {
     console.log('🔐 Auth event:', event);
     if (session && session.user) {
@@ -13,15 +17,22 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
+/**
+ * Renders the header in a logged-out state.
+ */
 function renderLoggedOutState() {
     if (!authContainer) return;
-    
+
     authContainer.innerHTML = `
         <a href="login.html" class="auth-link-login">Login</a>
         <a href="orcamento.html" class="cta-button-nav">Orçamento</a>
     `;
 }
 
+/**
+ * Loads the user profile from the database.
+ * @param {string} userId - The ID of the user.
+ */
 async function loadUserProfile(userId) {
     if (!authContainer) return;
 
@@ -38,10 +49,10 @@ async function loadUserProfile(userId) {
 
         const userName = profile?.nome_completo?.split(' ')[0] || 'Usuário';
         const userType = profile?.user_type || 'cliente';
-        
+
         console.log('👤 Tipo de usuário detectado:', userType);
         console.log('📋 Dados do perfil:', profile);
-        
+
         renderLoggedInState(userName, userType);
     } catch (error) {
         console.error("Erro ao carregar perfil:", error);
@@ -49,6 +60,11 @@ async function loadUserProfile(userId) {
     }
 }
 
+/**
+ * Renders the header in a logged-in state.
+ * @param {string} userName - The name of the user.
+ * @param {string} userType - The type of user ('admin', 'tecnico', etc.).
+ */
 function renderLoggedInState(userName, userType) {
     let dropdownLinks = '';
     let userIcon = '👤';
@@ -106,7 +122,7 @@ function renderLoggedInState(userName, userType) {
         </div>
     `;
 
-    // Setup do dropdown
+    // Setup dropdown
     const dropdownBtn = document.getElementById('auth-dropdown-btn');
     const dropdownMenuEl = document.getElementById('auth-dropdown-menu');
     const logoutBtn = document.getElementById('logout-btn');
@@ -129,6 +145,12 @@ function renderLoggedInState(userName, userType) {
     });
 }
 
+/**
+ * @global
+ * @property {object} authHelpers - A global object for authentication helpers.
+ * @property {object} authHelpers.supabase - The Supabase client instance.
+ * @property {function} authHelpers.loadUserProfile - A function to load the user profile.
+ */
 window.authHelpers = {
     supabase,
     loadUserProfile
