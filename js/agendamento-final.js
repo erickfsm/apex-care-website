@@ -5,6 +5,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
+const ACTIVE_PAYMENT_STATUSES = [
+    'Pago e Confirmado',
+    'Pendente (Pagar no Local)',
+    'Aguardando Execução'
+];
+const INCLUDE_NULL_PAYMENT_STATUS = true;
 
 let currentUser = null;
 let pendingAppointment = null;
@@ -160,16 +166,36 @@ async function handleDayClick(dayElement, dateStr) {
     document.querySelectorAll('.days .selected').forEach(el => el.classList.remove('selected'));
     dayElement.classList.add('selected');
 
-    const { data: bookedAppointments, error } = await supabase
-        .from('agendamentos')
-        .select('hora_agendamento')
-        .eq('data_agendamento', dateStr);
+    const queries = [
+        supabase
+            .from('agendamentos')
+            .select('hora_agendamento')
+            .eq('data_agendamento', dateStr)
+            .in('status_pagamento', ACTIVE_PAYMENT_STATUSES)
+    ];
 
-    if (error) {
-        console.error("❌ Erro ao verificar horários:", error);
+    if (INCLUDE_NULL_PAYMENT_STATUS) {
+        queries.push(
+            supabase
+                .from('agendamentos')
+                .select('hora_agendamento')
+                .eq('data_agendamento', dateStr)
+                .is('status_pagamento', null)
+        );
+    }
+
+    const results = await Promise.all(queries);
+    const errorResult = results.find(result => result.error);
+
+    if (errorResult?.error) {
+        console.error("❌ Erro ao verificar horários:", errorResult.error);
         timeSlotsDiv.innerHTML = "<p>Erro ao verificar horários.</p>";
         return;
     }
+
+    const bookedAppointments = results
+        .map(result => result.data ?? [])
+        .reduce((all, current) => all.concat(current), []);
 
     const bookedTimes = bookedAppointments.map(appt => appt.hora_agendamento);
     const availableTimes = WORKING_HOURS.filter(time => !bookedTimes.includes(time));
