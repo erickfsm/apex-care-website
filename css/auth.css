@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Styles for the authentication pages (login and registration).
+ */
+
+/* --- Main Authentication Container --- */
 .auth-container {
     background-color: var(--color-light-gray);
     display: flex;
@@ -7,6 +12,7 @@
     padding: 40px 20px;
 }
 
+/* --- Authentication Box --- */
 .auth-box {
     background-color: var(--color-white);
     padding: 40px;
@@ -32,6 +38,7 @@
     margin-bottom: 30px;
 }
 
+/* --- Form Elements --- */
 #register-form .form-group {
     text-align: left;
     margin-bottom: 15px;
@@ -57,6 +64,7 @@
     margin-top: 15px;
 }
 
+/* --- Authentication Switch --- */
 .auth-switch {
     margin-top: 30px;
 }

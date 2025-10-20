@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Técnico - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Internal Styles -->
     <style>
         .tecnico-main {
             padding-top: 120px;
@@ -354,6 +357,7 @@
 </head>
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="index.html" class="logo">
@@ -366,17 +370,18 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="tecnico-main">
         <div class="container">
-            
-            <!-- CABEÇALHO DA OS -->
+
+            <!-- Service Order Header -->
             <div class="os-header">
                 <h1>Ordem de Serviço #2025001</h1>
                 <p style="font-size: 1.1em; margin: 10px 0;">Data: 15 de Outubro, 2025 | Horário: 14:00</p>
                 <span class="os-status">🔄 Em Andamento</span>
             </div>
 
-            <!-- INFORMAÇÕES DO CLIENTE -->
+            <!-- Client Information -->
             <div class="os-card">
                 <h3>👤 Informações do Cliente</h3>
                 <div class="os-info-grid">
@@ -399,7 +404,7 @@
                 </div>
             </div>
 
-            <!-- SERVIÇOS A REALIZAR -->
+            <!-- Services Checklist -->
             <div class="os-card">
                 <h3>📋 Serviços a Realizar</h3>
                 <div class="services-checklist">
@@ -422,7 +427,7 @@
                 </div>
             </div>
 
-            <!-- MATERIAIS E EQUIPAMENTOS -->
+            <!-- Materials and Equipment -->
             <div class="os-card">
                 <h3>🛠️ Materiais Utilizados</h3>
                 <div class="services-checklist">
@@ -445,7 +450,7 @@
                 </div>
             </div>
 
-            <!-- FOTOS DO TRABALHO -->
+            <!-- Photo Log -->
             <div class="os-card photos-section">
                 <h3>📸 Registro Fotográfico</h3>
                 <div style="background-color: var(--color-light-gray); padding: 15px; border-radius: 5px; margin-bottom: 20px;">
@@ -471,13 +476,13 @@
                 </div>
             </div>
 
-            <!-- OBSERVAÇÕES -->
+            <!-- Observations -->
             <div class="os-card notes-section">
                 <label for="notes">📝 Observações e Anotações</label>
                 <textarea id="notes" placeholder="Descreva detalhes do serviço, dificuldades encontradas, recomendações para o cliente..."></textarea>
             </div>
 
-            <!-- HISTÓRICO DE ATIVIDADES -->
+            <!-- Activity History -->
             <div class="os-card">
                 <h3>⏱️ Histórico de Atividades</h3>
                 <div class="timeline">
@@ -485,7 +490,7 @@
                 </div>
             </div>
 
-            <!-- ASSINATURA E CONCLUSÃO -->
+            <!-- Service Completion -->
             <div class="os-card">
                 <h3>✍️ Conclusão do Serviço</h3>
                 <div class="action-buttons">
@@ -498,6 +503,7 @@
         </div>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container footer-grid">
             <div class="footer-col">
@@ -527,55 +533,9 @@
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script type="module" src="js/shared-improved.js"></script>
-    <script>
-        function addActivity() {
-            const now = new Date();
-            const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            alert(`Adicionar atividade às ${time}`);
-        }
-
-        function previewOS() {
-            alert('Visualizando resumo da Ordem de Serviço...');
-        }
-
-        function finishOS() {
-            if (confirm('Tem certeza que deseja concluir esta Ordem de Serviço?')) {
-                alert('✅ Ordem de Serviço #2025001 concluída com sucesso!');
-                // Aqui você faria a requisição para salvar no banco de dados
-            }
-        }
-
-        // Adicionar eventos aos checkboxes
-        document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    this.parentElement.classList.add('completed');
-                } else {
-                    this.parentElement.classList.remove('completed');
-                }
-            });
-        });
-    </script>
-
-    <!-- Inputs de upload (ocultos) -->
-<input type="file" id="upload-antes" accept="image/*" style="display: none;">
-<input type="file" id="upload-durante" accept="image/*" style="display: none;">
-<input type="file" id="upload-depois" accept="image/*" style="display: none;">
-
-<!-- Textarea para observações -->
-<textarea id="observacoes" placeholder="Observações técnicas..." style="width: 100%; min-height: 100px;"></textarea>
-
-<!-- Botões -->
-<button id="btn-iniciar-servico" class="btn-primary">Iniciar Serviço</button>
-<button id="btn-concluir-servico" class="btn-primary">Concluir Serviço</button>
-
-<!-- Previews -->
-<div id="preview-antes"></div>
-<div id="preview-durante"></div>
-<div id="preview-depois"></div>
-
-<script type="module" src="js/tecnico-painel.js"></script>
+    <script type="module" src="js/tecnico-painel.js"></script>
 
 </body>
 </html>

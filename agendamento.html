@@ -4,17 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escolha a Data e Hora - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
-    <link rel="stylesheet" href="css/orcamento.css"> <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css"> 
     <link rel="stylesheet" href="css/orcamento.css">
     <link rel="stylesheet" href="css/agendamento.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="#" class="logo">
@@ -30,12 +32,14 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="orcamento-main">
         <div class="container">
             <h1>Finalize seu Agendamento</h1>
             <p>Escolha a melhor data e horário para seu tratamento Apex Care.</p>
             <div id="scheduler-wrapper" style="margin-top: 30px;">
                 <div class="scheduler-container">
+                    <!-- Calendar -->
                     <div class="calendar">
                         <div class="calendar-header">
                             <button id="prev-month-btn">&lt;</button>
@@ -47,58 +51,58 @@
                         </div>
                         <div class="days" id="calendar-days"></div>
                     </div>
+                    <!-- Time Slots -->
                     <div class="time-slots-container">
                         <h3>Horários Disponíveis</h3>
                         <div class="time-slots" id="time-slots"><p>Selecione um dia disponível.</p></div>
                     </div>
+                    <!-- Selection Summary and Payment Options -->
                     <div class="selection-summary">
-    <h4>Sua Seleção:</h4>
-    <p id="summary-text">Nenhum horário selecionado.</p>
-    <div class="payment-options">
-        <button id="pay-on-site-btn" class="cta-button-outline" disabled>Agendar e Pagar no Local</button>
-        <button id="pay-online-btn" class="cta-button-hero" disabled>Pagar Online e Confirmar</button>
-    </div>
-</div>
+                        <h4>Sua Seleção:</h4>
+                        <p id="summary-text">Nenhum horário selecionado.</p>
+                        <div class="payment-options">
+                            <button id="pay-on-site-btn" class="cta-button-outline" disabled>Agendar e Pagar no Local</button>
+                            <button id="pay-online-btn" class="cta-button-hero" disabled>Pagar Online e Confirmar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
-       <footer class="main-footer">
-    <div class="container footer-grid">
-        
-        <div class="footer-col">
-            <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
-            <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="#servicos">Serviços</a></li>
+                    <li><a href="#metodo">O Método Apex</a></li>
+                    <li><a href="#planos">Planos e Pacotes</a></li>
+                    <li><a href="#sobre">Sobre Nós</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contato</h4>
+                <ul>
+                    <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
+                    <li><a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a></li>
+                    <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
+                </ul>
+            </div>
         </div>
-
-        <div class="footer-col">
-            <h4>Navegação</h4>
-            <ul>
-                <li><a href="#servicos">Serviços</a></li>
-                <li><a href="#metodo">O Método Apex</a></li>
-                <li><a href="#planos">Planos e Pacotes</a></li>
-                <li><a href="#sobre">Sobre Nós</a></li>
-            </ul>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
         </div>
+    </footer>
 
-        <div class="footer-col">
-            <h4>Contato</h4>
-            <ul>
-                <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
-                <li><a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a></li>
-                <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
-            </ul>
-        </div>
-
-    </div>
-    <div class="footer-bottom">
-        <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
-    </div>
-</footer>
-
-    <script type="module" src="js/agendamento-final.js"></script> 
-    <script type="module" src="js/shared.js"></script> <script type="module" src="js/main.js"></script>
+    <!-- Scripts -->
+    <script type="module" src="js/agendamento-final.js"></script>
+    <script type="module" src="js/shared.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

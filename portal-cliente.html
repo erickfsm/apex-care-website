@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal do Cliente - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
     <link rel="stylesheet" href="css/portal.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="index.html" class="logo">
@@ -27,17 +28,19 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="portal-main">
         <div class="container">
+            <!-- Dashboard Header -->
             <div class="dashboard-header">
                 <h1>Bem-vindo de volta, <span id="user-name">Cliente</span>! 👋</h1>
                 <p class="user-greeting">Gerencie seus agendamentos e acompanhe seus serviços Apex Care.</p>
             </div>
 
-            <!-- ESTATÍSTICAS DASHBOARD -->
+            <!-- Statistics Dashboard -->
             <div id="stats-container"></div>
 
-            <!-- ABAS DE NAVEGAÇÃO -->
+            <!-- Navigation Tabs -->
             <div class="section-tabs">
                 <button class="tab-btn active" onclick="switchTab('upcoming', this)">
                     📅 Próximos Agendamentos
@@ -50,7 +53,7 @@
                 </button>
             </div>
 
-            <!-- TAB 1: PRÓXIMOS AGENDAMENTOS -->
+            <!-- Tab 1: Upcoming Appointments -->
             <div id="upcoming" class="tab-content active">
                 <div class="appointments-section">
                     <h2>Seus Próximos Agendamentos</h2>
@@ -63,7 +66,7 @@
                 </div>
             </div>
 
-            <!-- TAB 2: HISTÓRICO -->
+            <!-- Tab 2: History -->
             <div id="history" class="tab-content">
                 <div class="appointments-section">
                     <h2>Histórico de Serviços Realizados</h2>
@@ -73,13 +76,11 @@
                 </div>
             </div>
 
-            <!-- TAB 3: INFORMAÇÕES ÚTEIS -->
-            <!-- Substituir a TAB 3 completa em portal-cliente.html -->
-
+            <!-- Tab 3: Useful Information -->
             <div id="info" class="tab-content">
                 <div style="background-color: white; padding: 30px; border-radius: 8px;">
 
-                    <!-- Seção 1: Cuidados Pós-Serviço -->
+                    <!-- Section 1: Post-Service Care -->
                     <div class="info-section premium-section">
                         <div class="section-header">
                             <span class="section-icon">✨</span>
@@ -95,7 +96,6 @@
                                     <li><strong>Evite contato</strong> com roupas molhadas ou úmidas</li>
                                 </ul>
                             </div>
-
                             <div class="content-card">
                                 <h4>🧹 Manutenção Semanal</h4>
                                 <ul class="styled-list">
@@ -105,18 +105,15 @@
                                     <li><strong>Bata almofadas</strong> para manter forma</li>
                                 </ul>
                             </div>
-
                             <div class="content-card">
                                 <h4>🛡️ Proteção Diária</h4>
                                 <ul class="styled-list">
                                     <li><strong>Use protetores</strong> se tiver pets ou crianças</li>
                                     <li><strong>Evite sol direto</strong> para não desbotar</li>
                                     <li><strong>Manchas: aja rápido</strong> - seque com papel absorvente</li>
-                                    <li><strong>Não esfregue</strong> manchas - sempre faça movimentos de dentro para
-                                        fora</li>
+                                    <li><strong>Não esfregue</strong> manchas - sempre faça movimentos de dentro para fora</li>
                                 </ul>
                             </div>
-
                             <div class="content-card highlight-card">
                                 <h4>🚨 Emergências</h4>
                                 <p><strong>Líquidos derramados?</strong></p>
@@ -133,7 +130,7 @@
                         </div>
                     </div>
 
-                    <!-- Seção 2: Curiosidades e Valor -->
+                    <!-- Section 2: Fun Facts and Value -->
                     <div class="info-section" style="margin-top: 40px;">
                         <div class="section-header">
                             <span class="section-icon">💡</span>
@@ -144,29 +141,23 @@
                                 <div class="fact-number">10x</div>
                                 <div class="fact-text">
                                     <strong>Mais Ácaros que Você Imagina</strong>
-                                    <p>Um colchão pode abrigar até 10 milhões de ácaros. Higienização regular reduz em
-                                        até 99%!</p>
+                                    <p>Um colchão pode abrigar até 10 milhões de ácaros. Higienização regular reduz em até 99%!</p>
                                 </div>
                             </div>
-
                             <div class="fact-card">
                                 <div class="fact-number">2-3 Anos</div>
                                 <div class="fact-text">
                                     <strong>Vida Útil Estendida</strong>
-                                    <p>Higienização profissional aumenta a durabilidade de estofados em 2-3 anos em
-                                        média.</p>
+                                    <p>Higienização profissional aumenta a durabilidade de estofados em 2-3 anos em média.</p>
                                 </div>
                             </div>
-
                             <div class="fact-card">
                                 <div class="fact-number">70%</div>
                                 <div class="fact-text">
                                     <strong>Alergias Reduzidas</strong>
-                                    <p>Clientes relatam até 70% menos sintomas alérgicos após higienização profissional.
-                                    </p>
+                                    <p>Clientes relatam até 70% menos sintomas alérgicos após higienização profissional.</p>
                                 </div>
                             </div>
-
                             <div class="fact-card">
                                 <div class="fact-number">R$ 5.000+</div>
                                 <div class="fact-text">
@@ -177,19 +168,17 @@
                         </div>
                     </div>
 
-                    <!-- Seção 3: Planos e Pacotes -->
+                    <!-- Section 3: Plans and Packages -->
                     <div class="info-section" style="margin-top: 40px;">
                         <div class="section-header">
                             <span class="section-icon">🎁</span>
                             <h2>Planos de Cuidado Contínuo - Economize até 25%</h2>
                         </div>
-
                         <div class="plans-comparison" data-portal-pricing>
                             <noscript>
                                 <p style="text-align: center;">Ative o JavaScript para comparar os valores variáveis de cada plano.</p>
                             </noscript>
                         </div>
-
                         <div class="plans-cta">
                             <a href="orcamento.html" class="btn-cta-large">
                                 🎯 Contratar Plano Agora
@@ -198,13 +187,12 @@
                         </div>
                     </div>
 
-                    <!-- Seção 4: Pacotes Especiais -->
+                    <!-- Section 4: Special Packages -->
                     <div class="info-section" style="margin-top: 40px;">
                         <div class="section-header">
                             <span class="section-icon">📦</span>
                             <h2>Pacotes Combo - Combine e Economize</h2>
                         </div>
-
                         <div class="packages-grid">
                             <div class="package-card">
                                 <div class="package-icon">🛋️</div>
@@ -217,7 +205,6 @@
                                     <li>✓ Fragrância especial</li>
                                 </ul>
                             </div>
-
                             <div class="package-card">
                                 <div class="package-icon">🛏️</div>
                                 <h4>Combo Dormitório</h4>
@@ -229,7 +216,6 @@
                                     <li>✓ Aromatização</li>
                                 </ul>
                             </div>
-
                             <div class="package-card">
                                 <div class="package-icon">🪑</div>
                                 <h4>Combo Jantar</h4>
@@ -241,7 +227,6 @@
                                     <li>✓ Renovação de cores</li>
                                 </ul>
                             </div>
-
                             <div class="package-card featured-package">
                                 <div class="package-badge">MAIS VENDIDO</div>
                                 <div class="package-icon">🏠</div>
@@ -258,9 +243,8 @@
                         </div>
                     </div>
 
-                    <!-- Seção 5: Contato e Suporte -->
-                    <div class="info-section"
-                        style="margin-top: 40px; background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%); color: white; padding: 30px; border-radius: 10px;">
+                    <!-- Section 5: Contact and Support -->
+                    <div class="info-section" style="margin-top: 40px; background: linear-gradient(135deg, var(--color-cyan) 0%, #008f83 100%); color: white; padding: 30px; border-radius: 10px;">
                         <div class="section-header" style="color: white;">
                             <span class="section-icon">💬</span>
                             <h2 style="color: white;">Estamos Aqui Para Você</h2>
@@ -274,7 +258,6 @@
                                     Iniciar Conversa
                                 </a>
                             </div>
-
                             <div class="contact-method">
                                 <div class="contact-icon">✉️</div>
                                 <h4>E-mail</h4>
@@ -283,7 +266,6 @@
                                     Enviar E-mail
                                 </a>
                             </div>
-
                             <div class="contact-method">
                                 <div class="contact-icon">📸</div>
                                 <h4>Instagram</h4>
@@ -292,7 +274,6 @@
                                     Seguir Agora
                                 </a>
                             </div>
-
                             <div class="contact-method">
                                 <div class="contact-icon">⏰</div>
                                 <h4>Horário</h4>
@@ -301,26 +282,23 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <!-- BOTÕES DE AÇÃO -->
-            <div
-                style="text-align: center; margin-top: 40px; padding: 20px; background-color: var(--color-light-gray); border-radius: 8px;">
+            <!-- Action Buttons -->
+            <div style="text-align: center; margin-top: 40px; padding: 20px; background-color: var(--color-light-gray); border-radius: 8px;">
                 <button id="logout-btn" class="cta-button-outline">🚪 Sair da Conta (Logout)</button>
             </div>
         </div>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container footer-grid">
-
             <div class="footer-col">
                 <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
                 <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
             </div>
-
             <div class="footer-col">
                 <h4>Navegação</h4>
                 <ul>
@@ -330,7 +308,6 @@
                     <li><a href="index.html#sobre">Sobre</a></li>
                 </ul>
             </div>
-
             <div class="footer-col">
                 <h4>Contato</h4>
                 <ul>
@@ -339,45 +316,36 @@
                     <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
                 </ul>
             </div>
-
         </div>
         <div class="footer-bottom">
             <p>&copy; 2025 Apex Care. Todos os direitos reservados.</p>
         </div>
     </footer>
 
+    <!-- Toast Notification -->
     <div id="portal-status-toast" class="portal-status-toast" role="status" aria-live="polite">
         <span class="toast-icon" aria-hidden="true">ℹ️</span>
         <span class="toast-message"></span>
         <button type="button" class="toast-close" aria-label="Fechar notificação">&times;</button>
     </div>
 
+    <!-- Scripts -->
     <script type="module" src="js/shared-improved.js"></script>
     <script type="module" src="js/portal-improved.js"></script>
     <script type="module" src="js/main.js"></script>
-
     <script>
-        // Função para trocar abas
         function switchTab(tabName, button) {
-            // Esconder todos os tabs
             const tabs = document.querySelectorAll('.tab-content');
             tabs.forEach(tab => tab.classList.remove('active'));
-
-            // Remover active de todos os botões
             const buttons = document.querySelectorAll('.tab-btn');
             buttons.forEach(btn => btn.classList.remove('active'));
-
-            // Mostrar tab ativo
             const activeTab = document.getElementById(tabName);
             if (activeTab) {
                 activeTab.classList.add('active');
             }
-
-            // Adicionar active ao botão clicado
             button.classList.add('active');
         }
     </script>
-
     <style>
         .info-section {
             padding: 20px;
@@ -406,7 +374,6 @@
         .info-section a:hover {
             text-decoration: underline;
         }
-
 
         .premium-section {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -493,7 +460,6 @@
             background-color: #c0392b;
         }
 
-        /* Facts Cards */
         .facts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -558,7 +524,6 @@
             font-size: 0.9em;
         }
 
-        /* Packages Grid */
         .packages-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -629,7 +594,6 @@
             color: #666;
         }
 
-        /* Contact Grid */
         .contact-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -674,9 +638,7 @@
             color: var(--color-cyan);
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-
             .content-grid,
             .facts-grid,
             .plans-comparison,
@@ -696,5 +658,4 @@
         }
     </style>
 </body>
-
 </html>

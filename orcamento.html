@@ -5,14 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamento Instantâneo - Apex Care</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
     <link rel="stylesheet" href="css/orcamento.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Header -->
     <header class="main-header scrolled">
         <nav class="main-nav">
             <a href="index.html" class="logo">
@@ -28,8 +31,10 @@
         </nav>
     </header>
 
+    <!-- Main Content -->
     <main class="orcamento-main">
         <div class="container">
+            <!-- Multi-step Form Container -->
             <div class="steps-wrapper">
                 <div class="steps-header">
                     <div id="promocoes-banner" style="margin: 20px 0;"></div>
@@ -39,6 +44,7 @@
                         <strong>Atenção:</strong> faça login ou crie sua conta para continuar com o orçamento.
                     </div>
                     <div id="step-indicator" class="step-indicator" aria-live="polite"></div>
+                    <!-- Progress Bar -->
                     <div class="steps-progress visually-hidden" id="steps-progress" aria-hidden="true">
                         <div class="progress-step active" data-step="1">
                             <span class="step-index">1</span>
@@ -71,7 +77,9 @@
                 </div>
 
                 <div class="steps-body">
+                    <!-- Step Sections -->
                     <div class="steps-main">
+                        <!-- Step 1: Quick Registration -->
                         <section class="step-section active" data-step="1">
                             <h2>Etapa 1 – Cadastro rápido</h2>
                             <form id="step-1-form" class="step-form" novalidate>
@@ -98,6 +106,7 @@
                             </div>
                         </section>
 
+                        <!-- Step 2: Property Data -->
                         <section class="step-section hidden" data-step="2">
                             <h2>Etapa 2 – Dados do imóvel</h2>
                             <form id="step-2-form" class="step-form" novalidate>
@@ -145,11 +154,12 @@
                             </div>
                         </section>
 
+                        <!-- Step 3: Service Selection -->
                         <section class="step-section hidden" data-step="3">
                             <h2>Etapa 3 – Seleção de serviços</h2>
                             <p class="step-description">Escolha os serviços desejados para seu imóvel. Você poderá revisar tudo na etapa seguinte.</p>
                             <div id="service-selection" class="service-grid">
-                                <!-- Serviços carregados dinamicamente -->
+                                <!-- Services loaded dynamically -->
                             </div>
                             <div class="step-actions">
                                 <button class="ghost-button" data-action="prev">Voltar</button>
@@ -157,6 +167,7 @@
                             </div>
                         </section>
 
+                        <!-- Step 4: Special Conditions -->
                         <section class="step-section hidden" data-step="4">
                             <h2>Etapa 4 – Condições especiais</h2>
                             <p class="step-description">Conte-nos se há situações que exigem reforço na limpeza para que possamos preparar o time e os valores adicionais.</p>
@@ -193,6 +204,7 @@
                             </div>
                         </section>
 
+                        <!-- Step 5: Cart Summary -->
                         <section class="step-section hidden" data-step="5">
                             <h2>Etapa 5 – Resumo do carrinho</h2>
                             <p class="step-description">Revise todas as informações antes de confirmar. O valor final aparecerá somente após essa confirmação.</p>
@@ -228,6 +240,7 @@
                             </div>
                         </section>
 
+                        <!-- Step 6: Final Price Confirmation -->
                         <section class="step-section hidden" data-step="6">
                             <h2>Etapa 6 – Confirmação e preço final</h2>
                             <p class="step-description">Confira o valor final com todos os adicionais aplicados. Se estiver tudo certo, finalize o agendamento.</p>
@@ -247,17 +260,14 @@
                         </section>
                     </div>
 
+                    <!-- Sticky Summary Panel -->
                     <aside class="summary summary-panel">
                         <h3>Resumo do Orçamento</h3>
                         <div id="summary-items">
                             <p>Nenhum item selecionado.</p>
                         </div>
                         <div id="summary-charges" class="summary-charges"></div>
-                        <div
-                            id="distance-info"
-                            class="summary-distance"
-                            aria-live="polite"
-                        >Informe CEP e número para calcular a distância (até 20 km sem taxa adicional).</div>
+                        <div id="distance-info" class="summary-distance" aria-live="polite">Informe CEP e número para calcular a distância (até 20 km sem taxa adicional).</div>
                         <div id="summary-total-locked" class="summary-total-locked">Informe CEP, número e selecione os serviços para liberar o valor estimado.</div>
                         <div class="summary-total">
                             <span>Total Estimado:</span>
@@ -270,6 +280,7 @@
         </div>
     </main>
 
+    <!-- Footer -->
     <footer class="main-footer">
         <div class="container footer-grid">
             <div class="footer-col">
@@ -298,6 +309,8 @@
             <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
         </div>
     </footer>
+
+    <!-- Scripts -->
     <script type="module" src="js/promocoes-manager.js"></script>
     <script type="module" src="js/orcamento.js"></script>
     <script type="module" src="js/shared.js"></script>

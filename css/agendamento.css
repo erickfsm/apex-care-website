@@ -1,5 +1,8 @@
-/* --- ESTILOS PARA O COMPONENTE DE AGENDAMENTO --- */
+/**
+ * @fileoverview Styles for the scheduling component, including the calendar and time slots.
+ */
 
+/* --- Main Scheduling Component --- */
 .scheduler-container {
     background-color: var(--color-white);
     padding: 30px;
@@ -10,7 +13,7 @@
     gap: 40px;
 }
 
-/* --- Calendário --- */
+/* --- Calendar --- */
 .calendar-header {
     display: flex;
     justify-content: space-between;
@@ -54,7 +57,7 @@
     font-weight: 700;
 }
 
-/* --- Horários --- */
+/* --- Time Slots --- */
 .time-slots-container {
     border-left: 1px solid var(--color-light-gray);
     padding-left: 40px;
@@ -85,7 +88,7 @@
     border-color: var(--color-cyan);
 }
 
-/* --- Sumário e Botão --- */
+/* --- Summary and Button --- */
 .selection-summary {
     grid-column: 1 / -1;
     text-align: center;
@@ -99,7 +102,7 @@
     opacity: 0.7;
 }
 
-/* Ajustes para Telas Menores */
+/* --- Responsive Adjustments --- */
 @media (max-width: 768px) {
     .scheduler-container {
         grid-template-columns: 1fr;
@@ -113,7 +116,7 @@
     }
 }
 
-/* --- Estilo do Título e Cabeçalho da Página --- */
+/* --- Page Header and Title --- */
 .orcamento-main h1 {
     font-size: 2.8em;
     font-weight: 700;
@@ -160,14 +163,14 @@
     cursor: not-allowed;
     opacity: 0.7;
 }
-/* --- Estilos para as Opções de Pagamento --- */
 
+/* --- Payment Options --- */
 .payment-options {
     display: flex;
     justify-content: center;
-    gap: 20px; /* Espaço entre os botões */
+    gap: 20px; /* Space between buttons */
     margin-top: 20px;
-    flex-wrap: wrap; /* Para telas menores */
+    flex-wrap: wrap; /* For smaller screens */
 }
 
 .payment-options button {

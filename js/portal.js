@@ -1,19 +1,25 @@
 import { supabase } from './supabase-client.js';
-
-// Estado global
+/**
+ * @fileoverview Manages the client portal, displaying appointments and statistics.
+ * @module portal
+ */
+// --- GLOBAL STATE ---
+/** @type {object|null} The current authenticated user object. */
 let currentUser = null;
+/** @type {Array<object>} A list of all appointments for the current user. */
 let allAppointments = [];
-
+// --- DOM ELEMENT REFERENCES ---
 const userNameSpan = document.getElementById('user-name');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
 const pastAppointmentsDiv = document.getElementById('past-appointments');
 const logoutBtn = document.getElementById('logout-btn');
 const statsDiv = document.getElementById('stats-container');
-
-// Inicialização
+/**
+ * Initializes the client portal, authenticates the user, and loads data.
+ */
 async function initPortal() {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
         window.location.href = 'login.html';
         return;
@@ -22,10 +28,12 @@ async function initPortal() {
     currentUser = user;
     await loadPortalData();
 }
-
+/**
+ * Loads all portal data, including profile and appointments.
+ */
 async function loadPortalData() {
     try {
-        // Carregar perfil
+        // Load profile
         const { data: profile } = await supabase
             .from('profiles')
             .select('nome_completo')
@@ -36,7 +44,7 @@ async function loadPortalData() {
             userNameSpan.textContent = profile.nome_completo.split(' ')[0];
         }
 
-        // Carregar agendamentos
+        // Load appointments
         const { data: appointments, error } = await supabase
             .from('agendamentos')
             .select('*')
@@ -56,26 +64,33 @@ async function loadPortalData() {
         console.error("Erro ao carregar dados:", error);
     }
 }
-
+/**
+ * Separates appointments into upcoming and past, and renders them.
+ */
 function separateAndRender() {
     const today = new Date().setHours(0, 0, 0, 0);
-    
-    const upcoming = allAppointments.filter(appt => 
-        appt.data_agendamento && 
-        new Date(appt.data_agendamento) >= today && 
+
+    const upcoming = allAppointments.filter(appt =>
+        appt.data_agendamento &&
+        new Date(appt.data_agendamento) >= today &&
         appt.status_pagamento !== 'Cancelado'
     );
-    
-    const past = allAppointments.filter(appt => 
+
+    const past = allAppointments.filter(appt =>
         !appt.data_agendamento ||
-        new Date(appt.data_agendamento) < today || 
+        new Date(appt.data_agendamento) < today ||
         appt.status_pagamento === 'Cancelado'
     );
 
     renderAppointments(upcoming, upcomingAppointmentsDiv, true);
     renderAppointments(past, pastAppointmentsDiv, false);
 }
-
+/**
+ * Renders a list of appointments in a given element.
+ * @param {Array<object>} appointments - The list of appointments to render.
+ * @param {HTMLElement} element - The element to render the appointments in.
+ * @param {boolean} isUpcoming - Whether the appointments are upcoming or past.
+ */
 function renderAppointments(appointments, element, isUpcoming) {
     if (!element) return;
 
@@ -90,7 +105,7 @@ function renderAppointments(appointments, element, isUpcoming) {
             .map(s => `${s.name} ${s.quantity > 1 ? `(x${s.quantity})` : ''}`)
             .join(', ');
 
-        const dataFormatada = appt.data_agendamento 
+        const dataFormatada = appt.data_agendamento
             ? new Date(appt.data_agendamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
             : 'Data a definir';
 
@@ -101,17 +116,17 @@ function renderAppointments(appointments, element, isUpcoming) {
             actionButton = `
                 <div class="appointment-actions">
                     <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-                    <button class="btn-small btn-cancel" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
+                    <button class="btn-small btn-cancel" onclick="portalFunctions.cancelAppointment('${appt.id}')">Cancelar</button>
                 </div>
             `;
         } else {
             let extraButtons = '';
             if (appt.status_pagamento === 'Concluído' || appt.status_pagamento === 'Pago e Confirmado') {
                 const servicesData = encodeURIComponent(JSON.stringify(appt.servicos_escolhidos));
-                extraButtons = `<button class="btn-small btn-rebook" onclick="rebookAppointment('${servicesData}')">Agendar Novamente</button>`;
+                extraButtons = `<button class="btn-small btn-rebook" onclick="portalFunctions.rebookAppointment('${servicesData}')">Agendar Novamente</button>`;
             }
             if (appt.status_pagamento === 'Pendente' || appt.status_pagamento === 'Pendente (Pagar no Local)') {
-                extraButtons += `<button class="btn-small btn-pay" onclick="payAppointment('${appt.id}')">Pagar Agora</button>`;
+                extraButtons += `<button class="btn-small btn-pay" onclick="portalFunctions.payAppointment('${appt.id}')">Pagar Agora</button>`;
             }
             actionButton = `
                 <div class="appointment-actions">
@@ -134,7 +149,11 @@ function renderAppointments(appointments, element, isUpcoming) {
         element.innerHTML += cardHTML;
     });
 }
-
+/**
+ * Gets a CSS class based on the appointment status.
+ * @param {string} status - The appointment status.
+ * @returns {string} The corresponding CSS class.
+ */
 function getStatusClass(status) {
     const statusMap = {
         'Pendente': 'status-pendente',
@@ -146,13 +165,15 @@ function getStatusClass(status) {
     };
     return statusMap[status] || 'status-pendente';
 }
-
+/**
+ * Updates the statistics section of the portal.
+ */
 function updateStats() {
     if (!statsDiv) return;
 
-    const upcoming = allAppointments.filter(appt => 
-        appt.data_agendamento && 
-        new Date(appt.data_agendamento) >= new Date().setHours(0, 0, 0, 0) && 
+    const upcoming = allAppointments.filter(appt =>
+        appt.data_agendamento &&
+        new Date(appt.data_agendamento) >= new Date().setHours(0, 0, 0, 0) &&
         appt.status_pagamento !== 'Cancelado'
     ).length;
 
@@ -160,7 +181,7 @@ function updateStats() {
         .filter(appt => appt.status_pagamento !== 'Cancelado')
         .reduce((sum, appt) => sum + appt.valor_total, 0);
 
-    const completed = allAppointments.filter(appt => 
+    const completed = allAppointments.filter(appt =>
         appt.status_pagamento === 'Concluído'
     ).length;
 
@@ -184,8 +205,10 @@ function updateStats() {
         </div>
     `;
 }
-
-// Funções de ações
+/**
+ * Cancels an appointment.
+ * @param {string} appointmentId - The ID of the appointment to cancel.
+ */
 async function cancelAppointment(appointmentId) {
     if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 
@@ -203,12 +226,15 @@ async function cancelAppointment(appointmentId) {
         alert('Erro ao cancelar: ' + error.message);
     }
 }
-
+/**
+ * Rebooks an appointment by creating a new budget with the same services.
+ * @param {string} servicesDataString - A JSON string of the services to rebook.
+ */
 function rebookAppointment(servicesDataString) {
     const servicesToRebook = JSON.parse(decodeURIComponent(servicesDataString));
     const orcamentoData = {
         servicos: servicesToRebook,
-        valor_total: servicesToRebook.reduce((total, service) => 
+        valor_total: servicesToRebook.reduce((total, service) =>
             total + (service.price * service.quantity), 0
         )
     };
@@ -216,14 +242,17 @@ function rebookAppointment(servicesDataString) {
     localStorage.setItem('apexCareOrcamento', JSON.stringify(orcamentoData));
     window.location.href = 'orcamento.html';
 }
-
+/**
+ * Redirects the user to the payment page for a specific appointment.
+ * @param {string} appointmentId - The ID of the appointment to pay for.
+ */
 function payAppointment(appointmentId) {
     alert('Redirecionando para pagamento...');
-    // Implementar fluxo de pagamento
+    // Implement payment flow
     window.location.href = `agendamento.html?appointmentId=${appointmentId}&action=pay`;
 }
 
-// Event Listeners
+// --- EVENT LISTENERS ---
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -232,10 +261,10 @@ if (logoutBtn) {
     });
 }
 
-// Iniciar portal
+// --- INITIALIZE PORTAL ---
 initPortal();
 
-// Exportar funções globalmente
+// --- EXPORT FUNCTIONS GLOBALLY ---
 window.portalFunctions = {
     cancelAppointment,
     rebookAppointment,

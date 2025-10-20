@@ -1,5 +1,13 @@
-// js/promocoes-helpers.js - Funções utilitárias para promoções
+/**
+ * @fileoverview Utility functions for handling promotions.
+ * @module promocoes-helpers
+ */
 
+/**
+ * Parses the `servicos_escolhidos` field from an appointment.
+ * @param {*} servicos - The `servicos_escolhidos` field.
+ * @returns {Array} An array of service items.
+ */
 function parseServicosEscolhidos(servicos) {
     if (!servicos) return [];
 
@@ -28,6 +36,11 @@ function parseServicosEscolhidos(servicos) {
     return [];
 }
 
+/**
+ * Extracts promotion details from an appointment.
+ * @param {object} appointment - The appointment object.
+ * @returns {object|null} An object with promotion details or null if not found.
+ */
 export function extractPromotionFromAppointment(appointment) {
     if (!appointment) return null;
 
@@ -77,6 +90,14 @@ export function extractPromotionFromAppointment(appointment) {
     };
 }
 
+/**
+ * Registers the use of a promotion if applicable.
+ * @param {object} promocoesManager - The promotions manager instance.
+ * @param {object} appointment - The appointment object.
+ * @param {object} [options={}] - Additional options.
+ * @param {string} [options.clienteId] - The client ID.
+ * @returns {Promise<object>} An object indicating if the registration was successful.
+ */
 export async function registrarUsoPromocaoSeAplicavel(promocoesManager, appointment, options = {}) {
     const promocao = extractPromotionFromAppointment(appointment);
 

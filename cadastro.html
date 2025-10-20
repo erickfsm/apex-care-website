@@ -4,16 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crie sua Conta - Apex Care</title>
-    <link rel="stylesheet" href="css/style.css"> 
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-improvements.css">
     <link rel="stylesheet" href="css/auth.css">
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
+    <!-- Authentication Container -->
     <div class="auth-container">
+        <!-- Form Box -->
         <div class="auth-box">
             <a href="index.html" class="auth-logo">
                 <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
@@ -21,6 +25,7 @@
             <h2>Crie sua conta para continuar</h2>
             <p>Com uma conta, você finaliza seu agendamento e gerencia seus serviços futuros.</p>
 
+            <!-- Registration Form -->
             <form id="register-form">
                 <div class="form-group">
                     <label for="name">Nome Completo</label>
@@ -45,11 +50,14 @@
                 <button type="submit" class="cta-button-hero" style="width: 100%;">Criar Conta e Continuar</button>
             </form>
             <p id="error-message" class="error-text"></p>
+            <!-- Login Switch Link -->
             <p class="auth-switch">Já tem uma conta? <a href="login.html">Faça Login</a></p>
         </div>
     </div>
-    
+
+    <!-- Scripts -->
     <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/shared.js"></script> <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/shared.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
