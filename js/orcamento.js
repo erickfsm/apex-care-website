@@ -1,15 +1,26 @@
 import { supabase } from "./supabase-client.js";
+/**
+ * @fileoverview Manages the multi-step budgeting and scheduling process for cleaning services.
+ * @module orcamento
+ */
 
+// --- CONSTANTS ---
+/** @constant {string} Key for storing the budget state in localStorage. */
 const RESUME_STATE_KEY = "apexCareResumeState";
+/** @constant {object} The base location of the company for distance calculations. */
 const BASE_LOCATION = {
   address: "Rua Parecis, 28 - Canoas, Ibirité - MG, 32145-736, Brasil",
   latitude: null,
   longitude: null,
 };
+/** @constant {number} The distance in KM before a surcharge is applied. */
 const DISTANCE_THRESHOLD_KM = 20;
+/** @constant {number} The fee per KM for distances exceeding the threshold. */
 const DISTANCE_FEE_PER_KM = 1;
+/** @constant {number} The final step number in the form process. */
 const FINAL_STEP = 6;
 
+// --- DOM ELEMENT REFERENCES ---
 const stepSections = Array.from(document.querySelectorAll(".step-section"));
 const progressSteps = Array.from(document.querySelectorAll(".progress-step"));
 const progressBarFill = document.getElementById("progress-bar-fill");
@@ -62,6 +73,8 @@ const stepForms = {
   4: extremeConditionsForm,
 };
 
+// --- STATE VARIABLES ---
+/** @type {object} Holds data for each step of the form. */
 const stepData = {
   step1: {},
   step2: {},
@@ -72,31 +85,60 @@ const stepData = {
   },
 };
 
+/** @type {Array<object>} The list of available services fetched from the database. */
 let priceTable = [];
+/** @type {object|null} The current Supabase session object. */
 let currentSession = null;
+/** @type {object|null} The geocoded coordinates of the customer's address. */
 let customerCoordinates = null;
+/** @type {object|null} The geocoded coordinates of the company's base location. */
 let baseCoordinates = null;
+/** @type {object|null} The last successfully fetched address data from ViaCEP. */
 let lastCepData = null;
+/** @type {number} The subtotal of selected services. */
 let serviceSubtotal = 0;
+/** @type {number|null} The calculated distance in kilometers. */
 let distanceKm = null;
+/** @type {number} The surcharge for distance. */
 let distanceSurcharge = 0;
+/** @type {number} The current active step in the form. */
 let currentStep = 1;
+/** @type {Array<object>|null} Temporary storage for service selections when restoring state. */
 let pendingServiceSelection = null;
+/** @type {number} A counter to manage asynchronous CEP lookups. */
 let latestCepLookupId = 0;
+/** @type {number} A counter to manage asynchronous distance calculations. */
 let latestDistanceLookupId = 0;
+/** @type {boolean} Flag to indicate if the resume state has been applied. */
 let resumeStateRestored = false;
+/** @type {object|null} The pending resume state object. */
 let pendingResumeState = null;
+/** @type {string} The password entered in step 1 for new user creation. */
 let step1Password = "";
+/** @type {boolean} Flag to indicate if auto-signup has been completed. */
 let autoSignupCompleted = false;
+/** @type {boolean} Flag to indicate if a distance calculation is in progress. */
 let isCalculatingDistance = false;
+/** @type {object|null} A cache for the user's profile data. */
 let profileCache = null;
+/** @type {boolean} Flag to determine if the form should auto-advance after authentication. */
 let shouldAutoAdvanceAfterAuth = false;
+/** @type {object|null} The promotions manager instance. */
 let promocoesManager = null;
+/** @type {number} The total charge for extreme conditions. */
 let extremeConditionChargesTotal = 0;
+/** @type {number} The last calculated total price. */
 let lastCalculatedTotal = 0;
+/** @type {number} The last calculated promotion discount. */
 let lastPromotionDiscount = 0;
+/** @type {object|null} Information about the last applied promotion. */
 let lastPromotionInfo = null;
 
+
+/**
+ * Initializes the promotions manager if it hasn't been already.
+ * @returns {Promise<object|null>} The promotions manager instance.
+ */
 async function ensurePromocoesManagerInitialized() {
   if (!currentSession?.user?.id) {
     return null;
@@ -111,16 +153,29 @@ async function ensurePromocoesManagerInitialized() {
   return promocoesManager;
 }
 
+/**
+ * Formats a number as a Brazilian currency string.
+ * @param {number} value - The number to format.
+ * @returns {string} The formatted currency string.
+ */
 function formatCurrency(value) {
   return `R$ ${Number(value || 0)
     .toFixed(2)
     .replace(".", ",")}`;
 }
-
+/**
+ * Sanitizes a CEP string by removing non-digit characters.
+ * @param {string} value - The CEP string to sanitize.
+ * @returns {string} The sanitized CEP string.
+ */
 function sanitizeCep(value) {
   return value.replace(/\D/g, "");
 }
-
+/**
+ * Applies a mask to a CEP string (e.g., "12345-678").
+ * @param {string} value - The CEP string to mask.
+ * @returns {string} The masked CEP string.
+ */
 function applyCepMask(value) {
   const digits = sanitizeCep(value);
   if (digits.length <= 5) {
@@ -128,7 +183,10 @@ function applyCepMask(value) {
   }
   return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
 }
-
+/**
+ * Gets the current CEP value from the input or stored data.
+ * @returns {string} The sanitized CEP value.
+ */
 function getCurrentCepValue() {
   const inputCep = cepInput?.value ? sanitizeCep(cepInput.value) : "";
   if (inputCep.length === 8) {
@@ -136,7 +194,10 @@ function getCurrentCepValue() {
   }
   return stepData.step2?.cep ? sanitizeCep(stepData.step2.cep) : "";
 }
-
+/**
+ * Gets the current address number value from the input or stored data.
+ * @returns {string} The address number.
+ */
 function getCurrentNumeroValue() {
   const inputNumero = numeroInput?.value?.trim();
   if (inputNumero) {
@@ -145,7 +206,10 @@ function getCurrentNumeroValue() {
   const storedNumero = stepData.step2?.numero;
   return typeof storedNumero === "string" ? storedNumero.trim() : "";
 }
-
+/**
+ * Checks if a valid address is present to calculate totals.
+ * @returns {boolean} True if the address is valid, false otherwise.
+ */
 function hasValidAddressForTotals() {
   const cepValue = getCurrentCepValue();
   const numeroValue = getCurrentNumeroValue();
@@ -164,7 +228,13 @@ function hasValidAddressForTotals() {
     Number.isFinite(distanceKm)
   );
 }
-
+/**
+ * Renders a status message with an optional spinner.
+ * @param {HTMLElement} element - The element to render the message in.
+ * @param {string} message - The message to display.
+ * @param {object} [options={}] - Options for the status message.
+ * @param {boolean} [options.isLoading=false] - Whether to show a spinner.
+ */
 function renderStatusMessage(element, message, { isLoading = false } = {}) {
   if (!element) return;
 
@@ -186,12 +256,17 @@ function renderStatusMessage(element, message, { isLoading = false } = {}) {
 
   element.appendChild(wrapper);
 }
-
+/**
+ * Sets the visibility of the login warning message.
+ * @param {boolean} visible - Whether the warning should be visible.
+ */
 function setLoginWarningVisible(visible) {
   if (!loginWarning) return;
   loginWarning.classList.toggle("hidden", !visible);
 }
-
+/**
+ * Updates the password input field based on the user's session state.
+ */
 function updatePasswordRequirement() {
   if (!senhaInput) return;
   const shouldHide = Boolean(currentSession);
@@ -207,7 +282,10 @@ function updatePasswordRequirement() {
     passwordWrapper?.classList.remove("is-hidden");
   }
 }
-
+/**
+ * Updates the progress bar to reflect the current step.
+ * @param {number} step - The current step number.
+ */
 function updateProgressBar(step) {
   const totalSteps = progressSteps.length || FINAL_STEP;
   const progressPercent = ((step - 1) / (totalSteps - 1)) * 100;
@@ -226,7 +304,11 @@ function updateProgressBar(step) {
 
   updateStepIndicator(step, totalSteps);
 }
-
+/**
+ * Updates the step indicator text.
+ * @param {number} step - The current step number.
+ * @param {number} [totalSteps=FINAL_STEP] - The total number of steps.
+ */
 function updateStepIndicator(step, totalSteps = FINAL_STEP) {
   if (!stepIndicator) return;
 
@@ -242,7 +324,10 @@ function updateStepIndicator(step, totalSteps = FINAL_STEP) {
     <span>${headingText}</span>
   `;
 }
-
+/**
+ * Prefills the form for a given step with data from the state.
+ * @param {number} step - The step number to prefill.
+ */
 function prefillStepForms(step) {
   if (step === 1 && stepForms[1]) {
     const formElements = stepForms[1].elements;
@@ -287,7 +372,10 @@ function prefillStepForms(step) {
     }
   }
 }
-
+/**
+ * Displays a specific step of the form.
+ * @param {number} step - The step number to show.
+ */
 function showStep(step) {
   currentStep = step;
   stepSections.forEach((section) => {
@@ -315,7 +403,9 @@ function showStep(step) {
     stepsWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
-
+/**
+ * Populates the resume/summary section with data from the state.
+ */
 function populateResume() {
   const { step1, step2 } = stepData;
   if (resumeFields.nome) resumeFields.nome.textContent = step1.nome || "-";
@@ -354,7 +444,9 @@ function populateResume() {
   if (resumeFields.cidadeEstado)
     resumeFields.cidadeEstado.textContent = cidadeEstadoText;
 }
-
+/**
+ * Updates the extreme conditions notes in the resume section.
+ */
 function updateExtremeNotes() {
   if (!resumeExtremeNotes) return;
 
@@ -374,7 +466,9 @@ function updateExtremeNotes() {
 
   resumeExtremeNotes.textContent = "Nenhuma observação adicional.";
 }
-
+/**
+ * Captures the state of the extreme conditions form and updates the main state object.
+ */
 function captureExtremeConditionsState() {
   if (!extremeConditionsForm) return;
 
@@ -404,8 +498,11 @@ function captureExtremeConditionsState() {
   renderChargesSummary();
 }
 
-// ============= SERVIÇOS =============
-
+// ============= SERVICE SELECTION =============
+/**
+ * Gets the currently selected services and their quantities.
+ * @returns {Array<object>} An array of selected service objects.
+ */
 function getSelectedServices() {
   if (!serviceSelectionDiv) {
     return [];
@@ -443,7 +540,9 @@ function getSelectedServices() {
 
   return selectedServices;
 }
-
+/**
+ * Renders the list of available services in the DOM.
+ */
 function renderServices() {
   if (!serviceSelectionDiv) return;
 
@@ -493,7 +592,9 @@ function renderServices() {
   applyPendingServiceSelection();
   updateSummary();
 }
-
+/**
+ * Attaches event listeners to the service selection inputs.
+ */
 function attachServiceListeners() {
   if (!serviceSelectionDiv) return;
 
@@ -522,7 +623,9 @@ function attachServiceListeners() {
     }
   });
 }
-
+/**
+ * Applies pending service selections from the resume state.
+ */
 function applyPendingServiceSelection() {
   if (!pendingServiceSelection || !pendingServiceSelection.length) return;
   if (!serviceSelectionDiv) return;
@@ -546,6 +649,9 @@ function applyPendingServiceSelection() {
   pendingServiceSelection = null;
 }
 
+/**
+ * Updates the summary section with the selected services and calculates the subtotal.
+ */
 function updateSummary() {
   const selectedServices = getSelectedServices();
   stepData.services = selectedServices;
@@ -576,7 +682,9 @@ function updateSummary() {
 
   renderChargesSummary();
 }
-
+/**
+ * Renders the charges summary, including subtotal, distance fee, and promotions.
+ */
 async function renderChargesSummary() {
   const charges = [];
   const selectedServices = stepData.services || [];
@@ -718,11 +826,16 @@ async function renderChargesSummary() {
 
   updateSummaryVisibility();
 }
-
+/**
+ * Determines if the total price should be revealed.
+ * @returns {boolean} True if totals should be shown, false otherwise.
+ */
 function shouldRevealTotals() {
   return stepData.services.length > 0 && hasValidAddressForTotals();
 }
-
+/**
+ * Updates the visibility of summary elements based on the current state.
+ */
 function updateSummaryVisibility() {
   const revealTotals = shouldRevealTotals();
   const onFinalStep = currentStep >= FINAL_STEP;
@@ -743,7 +856,9 @@ function updateSummaryVisibility() {
   }
   updateScheduleButtonState();
 }
-
+/**
+ * Updates the state of the "finalize budget" button.
+ */
 function updateScheduleButtonState() {
   if (!scheduleBtn) return;
   const hasServices = stepData.services.length > 0;
@@ -753,7 +868,10 @@ function updateScheduleButtonState() {
     currentStep >= FINAL_STEP && totalsReady && hasServices && distanceReady;
   scheduleBtn.disabled = !canFinish || !currentSession;
 }
-
+/**
+ * Saves the current state of the budget form to localStorage.
+ * @param {object} state - Additional state to save.
+ */
 function setResumeState(state) {
   try {
     const payload = {
@@ -771,7 +889,10 @@ function setResumeState(state) {
     console.warn("Não foi possível salvar o estado do orçamento.", error);
   }
 }
-
+/**
+ * Retrieves the saved budget state from localStorage.
+ * @returns {object|null} The saved state object, or null if not found.
+ */
 function getResumeState() {
   try {
     const stored = localStorage.getItem(RESUME_STATE_KEY);
@@ -781,18 +902,24 @@ function getResumeState() {
     return null;
   }
 }
-
+/**
+ * Clears the saved budget state from localStorage.
+ */
 function clearResumeState() {
   localStorage.removeItem(RESUME_STATE_KEY);
 }
-
+/**
+ * Queues the resume state to be applied once the session is initialized.
+ */
 async function queueResumeState() {
   pendingResumeState = getResumeState();
   if (currentSession) {
     await applyResumeState();
   }
 }
-
+/**
+ * Applies the saved resume state to the form.
+ */
 async function applyResumeState() {
   if (!pendingResumeState || resumeStateRestored) return;
 
@@ -834,7 +961,10 @@ async function applyResumeState() {
   pendingResumeState = null;
   clearResumeState();
 }
-
+/**
+ * Handles navigation between steps.
+ * @param {string} action - The navigation action ('next' or 'prev').
+ */
 async function handleNavigation(action) {
   if (action === "next") {
     if (!validateStep(currentStep)) {
@@ -867,7 +997,11 @@ async function handleNavigation(action) {
     showStep(prevStep);
   }
 }
-
+/**
+ * Validates the current step's form data.
+ * @param {number} step - The step number to validate.
+ * @returns {boolean} True if the step is valid, false otherwise.
+ */
 function validateStep(step) {
   if (step === 1) {
     const form = stepForms[1];
@@ -971,7 +1105,11 @@ function validateStep(step) {
 
   return true;
 }
-
+/**
+ * Fetches the user's profile from the database.
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<object|null>} The user profile object, or null if not found.
+ */
 async function fetchProfile(userId) {
   if (!userId) return null;
 
@@ -1003,7 +1141,10 @@ async function fetchProfile(userId) {
     return null;
   }
 }
-
+/**
+ * Applies contact data to the step 1 form.
+ * @param {object} contactData - The contact data to apply.
+ */
 function applyStep1FormValues(contactData) {
   const form = stepForms[1];
   if (!form) return;
@@ -1019,7 +1160,12 @@ function applyStep1FormValues(contactData) {
     elements.namedItem("telefone").value = contactData.telefone || "";
   }
 }
-
+/**
+ * Hydrates the step 1 form with data from the current session.
+ * @param {object} [options={}] - Options for hydration.
+ * @param {boolean} [options.force=false] - Whether to force a re-fetch of the profile.
+ * @returns {Promise<boolean>} True if the form was hydrated with required data, false otherwise.
+ */
 async function hydrateStep1FromSession({ force = false } = {}) {
   if (!currentSession?.user) {
     shouldAutoAdvanceAfterAuth = false;
@@ -1061,7 +1207,10 @@ async function hydrateStep1FromSession({ force = false } = {}) {
 
   return hasRequiredContact;
 }
-
+/**
+ * Ensures a customer account exists, creating one if necessary.
+ * @returns {Promise<boolean>} True if an account is ready, false otherwise.
+ */
 async function ensureCustomerAccount() {
   if (currentSession || autoSignupCompleted) {
     return true;
@@ -1165,7 +1314,9 @@ async function ensureCustomerAccount() {
     return false;
   }
 }
-
+/**
+ * Loads the list of services from the database.
+ */
 async function loadServices() {
   if (!serviceSelectionDiv) return;
 
@@ -1187,7 +1338,9 @@ async function loadServices() {
   priceTable = services || [];
   renderServices();
 }
-
+/**
+ * Clears the address fields in the form.
+ */
 function clearAddressFields() {
   if (ruaInput) ruaInput.value = "";
   if (bairroInput) bairroInput.value = "";
@@ -1198,7 +1351,9 @@ function clearAddressFields() {
   lastCepData = null;
   renderChargesSummary();
 }
-
+/**
+ * Fetches address details based on the entered CEP.
+ */
 async function fetchAddressByCep() {
   if (!cepInput) return;
 
@@ -1238,7 +1393,11 @@ async function fetchAddressByCep() {
     clearAddressFields();
   }
 }
-
+/**
+ * Geocodes an address string to get latitude and longitude.
+ * @param {string} address - The address to geocode.
+ * @returns {Promise<object>} An object with latitude and longitude.
+ */
 async function geocodeAddress(address) {
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
     address
@@ -1264,7 +1423,12 @@ async function geocodeAddress(address) {
     longitude: parseFloat(results[0].lon),
   };
 }
-
+/**
+ * Calculates the Haversine distance between two coordinates.
+ * @param {object} coord1 - The first coordinate.
+ * @param {object} coord2 - The second coordinate.
+ * @returns {number} The distance in kilometers.
+ */
 function haversineDistance(coord1, coord2) {
   const toRad = (value) => (value * Math.PI) / 180;
   const R = 6371;
@@ -1279,7 +1443,12 @@ function haversineDistance(coord1, coord2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
-
+/**
+ * Fetches the driving distance between two coordinates using OSRM.
+ * @param {object} origin - The origin coordinate.
+ * @param {object} destination - The destination coordinate.
+ * @returns {Promise<number>} The distance in kilometers.
+ */
 async function fetchDistance(origin, destination) {
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}?overview=false`;
@@ -1299,7 +1468,9 @@ async function fetchDistance(origin, destination) {
     return haversineDistance(origin, destination);
   }
 }
-
+/**
+ * Ensures the base coordinates of the company are geocoded.
+ */
 async function ensureBaseCoordinates() {
   if (baseCoordinates) {
     return;
@@ -1323,7 +1494,9 @@ async function ensureBaseCoordinates() {
     baseCoordinates = null;
   }
 }
-
+/**
+ * Updates the customer's coordinates and calculates the distance.
+ */
 async function updateCustomerCoordinates() {
   if (!lastCepData) {
     customerCoordinates = null;
@@ -1393,7 +1566,9 @@ async function updateCustomerCoordinates() {
 
   renderChargesSummary();
 }
-
+/**
+ * Initializes the authentication state and listeners.
+ */
 async function initializeAuth() {
   const { data } = await supabase.auth.getSession();
   currentSession = data?.session ?? null;
@@ -1435,7 +1610,9 @@ async function initializeAuth() {
     }
   });
 }
-
+/**
+ * Registers event listeners for navigation buttons.
+ */
 function registerNavigationListeners() {
   document
     .querySelectorAll(".step-actions button[data-action]")
@@ -1447,7 +1624,9 @@ function registerNavigationListeners() {
       });
     });
 }
-
+/**
+ * Registers event listeners for address input fields.
+ */
 function registerAddressListeners() {
   if (!cepInput) return;
 
@@ -1464,7 +1643,9 @@ function registerAddressListeners() {
     }
   });
 }
-
+/**
+ * Registers event listeners for the extreme conditions form.
+ */
 function registerExtremeConditionsListeners() {
   if (!extremeConditionsForm) return;
 
@@ -1480,7 +1661,9 @@ function registerExtremeConditionsListeners() {
     }
   });
 }
-
+/**
+ * Registers the event listener for the finalize budget button.
+ */
 function registerScheduleListener() {
   if (!scheduleBtn) return;
 
@@ -1666,7 +1849,11 @@ function registerScheduleListener() {
     }
   });
 }
-
+/**
+ * Persists the budget data to the database for approval.
+ * @param {object} orcamentoData - The budget data to persist.
+ * @returns {Promise<object>} The saved record from the database.
+ */
 async function persistBudgetForApproval(orcamentoData) {
   if (!currentSession?.user?.id) {
     throw new Error("Sessão expirada. Faça login novamente.");
@@ -1761,7 +1948,9 @@ async function persistBudgetForApproval(orcamentoData) {
 
   return data;
 }
-
+/**
+ * Registers a MutationObserver to watch for changes in the service summary.
+ */
 function registerServiceSummaryWatcher() {
   if (!summaryItemsDiv) return;
 
@@ -1771,7 +1960,9 @@ function registerServiceSummaryWatcher() {
 
   observer.observe(summaryItemsDiv, { childList: true, subtree: true });
 }
-
+/**
+ * Initializes the entire budgeting script.
+ */
 async function init() {
   if (!stepsWrapper) return;
 

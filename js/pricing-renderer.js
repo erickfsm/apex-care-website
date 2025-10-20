@@ -1,7 +1,16 @@
 import { planPricing } from './pricing-data.js';
+/**
+ * @fileoverview Renders pricing plans for both the homepage and the client portal.
+ * @module pricing-renderer
+ */
 
 const DEFAULT_BREAKDOWN_SUMMARY = 'Ver tabela de preços por categoria';
 
+/**
+ * Creates the HTML markup for the "starting from" price section.
+ * @param {object} startingFrom - The starting price data object.
+ * @returns {string} The HTML markup for the starting price.
+ */
 function createStartingPriceMarkup(startingFrom) {
     if (!startingFrom) {
         return '';
@@ -18,6 +27,15 @@ function createStartingPriceMarkup(startingFrom) {
     `;
 }
 
+/**
+ * Creates the HTML markup for the price breakdown section.
+ * @param {Array<object>} [sofaPricing=[]] - The pricing data for different sofa types.
+ * @param {string} [summary=DEFAULT_BREAKDOWN_SUMMARY] - The summary text for the details element.
+ * @param {object} [options={}] - Options for the price breakdown.
+ * @param {string} [options.detailsClass=''] - An additional class for the details element.
+ * @param {boolean} [options.open=true] - Whether the details element should be open by default.
+ * @returns {string} The HTML markup for the price breakdown.
+ */
 function createPriceBreakdownMarkup(sofaPricing = [], summary = DEFAULT_BREAKDOWN_SUMMARY, options = {}) {
     if (!Array.isArray(sofaPricing) || sofaPricing.length === 0) {
         return '';
@@ -47,6 +65,11 @@ function createPriceBreakdownMarkup(sofaPricing = [], summary = DEFAULT_BREAKDOW
     `;
 }
 
+/**
+ * Builds the HTML markup for a single homepage pricing card.
+ * @param {object} plan - The plan data object.
+ * @returns {string} The HTML markup for the pricing card.
+ */
 function buildHomepageCard(plan) {
     const featuresMarkup = (plan.homepageFeatures || []).map(feature => {
         if (typeof feature === 'string') {
@@ -83,6 +106,11 @@ function buildHomepageCard(plan) {
     `;
 }
 
+/**
+ * Builds the HTML markup for a single portal pricing card.
+ * @param {object} plan - The plan data object.
+ * @returns {string} The HTML markup for the pricing card.
+ */
 function buildPortalCard(plan) {
     const benefitsMarkup = (plan.portalBenefits || []).map(benefit => `
         <li>✅ ${benefit}</li>
@@ -111,6 +139,9 @@ function buildPortalCard(plan) {
     `;
 }
 
+/**
+ * Renders the homepage pricing plans in the designated container.
+ */
 export function renderHomepagePlans() {
     const container = document.querySelector('[data-pricing-grid]');
     if (!container) return;
@@ -118,6 +149,9 @@ export function renderHomepagePlans() {
     container.innerHTML = planPricing.map(buildHomepageCard).join('');
 }
 
+/**
+ * Renders the portal pricing plans in the designated container.
+ */
 export function renderPortalPlanComparison() {
     const container = document.querySelector('[data-portal-pricing]');
     if (!container) return;

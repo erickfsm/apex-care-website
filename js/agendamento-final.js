@@ -1,16 +1,38 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { showSuccess, showError, showLoading } from './feedback.js';
-
+/**
+ * @constant {string} SUPABASE_URL
+ * @description The URL of the Supabase project.
+ */
 const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
+/**
+ * @constant {string} SUPABASE_ANON_KEY
+ * @description The anonymous key for the Supabase project.
+ */
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJI-s02LcQmu79e_U';
+/**
+ * @constant {Object} supabase
+ * @description The Supabase client instance.
+ */
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+/**
+ * @constant {Array<string>} WORKING_HOURS
+ * @description The available working hours for scheduling.
+ */
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
+/**
+ * @constant {Array<string>} ACTIVE_PAYMENT_STATUSES
+ * @description The payment statuses that are considered active.
+ */
 const ACTIVE_PAYMENT_STATUSES = [
     'Pago e Confirmado',
     'Pendente (Pagar no Local)',
     'Aguardando Execução'
 ];
+/**
+ * @constant {boolean} INCLUDE_NULL_PAYMENT_STATUS
+ * @description Whether to include null payment statuses in the query.
+ */
 const INCLUDE_NULL_PAYMENT_STATUS = true;
 
 let currentUser = null;
@@ -19,7 +41,11 @@ let selectedDate = null;
 let selectedTime = null;
 let currentDate = new Date();
 let promocoesManager = null;
-
+/**
+ * @function ensurePromocoesManager
+ * @description Initializes the promotion manager if it is not already initialized.
+ * @returns {Promise<Object|null>} A promise that resolves to the promotion manager instance or null if not available.
+ */
 async function ensurePromocoesManager() {
     if (!currentUser) return null;
     if (promocoesManager) {
@@ -70,14 +96,21 @@ setTimeout(() => {
         redirectToLogin();
     }
 }, 2000);
-
+/**
+ * @function redirectToLogin
+ * @description Redirects the user to the login page.
+ */
 function redirectToLogin() {
     showError('Sessão não encontrada ou expirada. Faça login novamente.');
     setTimeout(() => {
         window.location.href = 'login.html';
     }, 2200);
 }
-
+/**
+ * @function findPendingAppointment
+ * @description Finds the last pending appointment for the current user.
+ * @returns {Promise<void>}
+ */
 async function findPendingAppointment() {
     if (!currentUser) return;
 
@@ -139,10 +172,13 @@ async function findPendingAppointment() {
         selectedTime = data.hora_agendamento;
         console.log("📅 Agendamento já tem data/hora definida");
     }
-    
-    generateCalendar(); 
-}
 
+    generateCalendar();
+}
+/**
+ * @function generateCalendar
+ * @description Generates the calendar for the current month.
+ */
 function generateCalendar() {
     calendarDays.innerHTML = '';
     const year = currentDate.getFullYear();
@@ -163,23 +199,23 @@ function generateCalendar() {
         dayDiv.textContent = day;
         const fullDate = new Date(year, month, day);
 
-        if (fullDate < today.setHours(0,0,0,0)) {
+        if (fullDate < today.setHours(0, 0, 0, 0)) {
             dayDiv.classList.add('unavailable');
         } else {
             dayDiv.classList.add('available');
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             dayDiv.dataset.date = dateStr;
-            
+
             // Se for a data já selecionada, marcar
             if (dateStr === selectedDate) {
                 dayDiv.classList.add('selected');
             }
-            
+
             dayDiv.addEventListener('click', () => handleDayClick(dayDiv, dateStr));
         }
         calendarDays.appendChild(dayDiv);
     }
-    
+
     // Se já tem data selecionada, carregar horários
     if (selectedDate) {
         const selectedDayElement = document.querySelector(`[data-date="${selectedDate}"]`);
@@ -198,7 +234,12 @@ document.getElementById('next-month-btn').addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() + 1);
     generateCalendar();
 });
-
+/**
+ * @function handleDayClick
+ * @description Handles the click event on a day of the calendar.
+ * @param {HTMLElement} dayElement - The HTML element of the clicked day.
+ * @param {string} dateStr - The date string of the clicked day.
+ */
 async function handleDayClick(dayElement, dateStr) {
     selectedDate = dateStr;
     // NÃO reseta selectedTime se já existir
@@ -254,24 +295,32 @@ async function handleDayClick(dayElement, dateStr) {
         const slotDiv = document.createElement('div');
         slotDiv.textContent = time;
         slotDiv.classList.add('time-slot');
-        
+
         // Se for o horário já selecionado, marcar
         if (time === selectedTime) {
             slotDiv.classList.add('selected');
         }
-        
+
         slotDiv.addEventListener('click', () => handleTimeClick(slotDiv, time));
         timeSlotsDiv.appendChild(slotDiv);
     });
 }
-
+/**
+ * @function handleTimeClick
+ * @description Handles the click event on a time slot.
+ * @param {HTMLElement} timeElement - The HTML element of the clicked time slot.
+ * @param {string} timeStr - The time string of the clicked time slot.
+ */
 function handleTimeClick(timeElement, timeStr) {
     selectedTime = timeStr;
     document.querySelectorAll('.time-slots .selected').forEach(el => el.classList.remove('selected'));
     timeElement.classList.add('selected');
     updateSummary();
 }
-
+/**
+ * @function updateSummary
+ * @description Updates the summary text with the selected date and time.
+ */
 function updateSummary() {
     if (selectedDate && selectedTime) {
         const [year, month, day] = selectedDate.split('-');
