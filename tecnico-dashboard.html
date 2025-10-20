@@ -535,11 +535,17 @@
             try {
                 console.log('🔍 Carregando agendamentos...');
 
-                // Buscar TODOS os agendamentos primeiro
-                const { data: appointments, error } = await supabase
+                // Buscar agendamentos respeitando o escopo do perfil atual
+                let query = supabase
                     .from('agendamentos')
                     .select('*')
                     .order('created_at', { ascending: false });
+
+                if (currentRole === 'tecnico' && currentUser?.id) {
+                    query = query.eq('tecnico_id', currentUser.id);
+                }
+
+                const { data: appointments, error } = await query;
 
                 if (error) throw error;
 
@@ -645,11 +651,18 @@
             const container = document.getElementById('appointments-container');
 
             if (appointments.length === 0) {
+                const emptyTitle = currentRole === 'tecnico'
+                    ? 'Você ainda não possui ordens de serviço'
+                    : 'Nenhum agendamento encontrado';
+                const emptyMessage = currentRole === 'tecnico'
+                    ? 'Assim que houver OS atribuídas a você, elas aparecerão aqui.'
+                    : 'Não há agendamentos para exibir no momento.';
+
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <h3>Nenhum agendamento encontrado</h3>
-                        <p>Não há agendamentos para exibir no momento.</p>
+                        <h3>${emptyTitle}</h3>
+                        <p>${emptyMessage}</p>
                     </div>
                 `;
                 return;
