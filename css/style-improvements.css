@@ -1360,3 +1360,134 @@
         }
     }
 }
+/* ==========================================
+   NOTIFICAÇÕES GLOBAIS E ESTADOS DE CARREGAMENTO
+   ========================================== */
+.apex-toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 2100;
+    max-width: min(360px, calc(100vw - 2rem));
+}
+
+.apex-toast {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    border: 1px solid transparent;
+    background: #ffffff;
+    color: #1f2933;
+    outline: none;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.apex-toast.is-leaving {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
+.apex-toast-text {
+    flex: 1;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.apex-toast-title {
+    font-size: 0.95rem;
+    color: inherit;
+}
+
+.apex-toast--success {
+    border-color: rgba(56, 142, 60, 0.35);
+    background: linear-gradient(135deg, rgba(200, 230, 201, 0.85), rgba(232, 245, 233, 0.95));
+}
+
+.apex-toast--error {
+    border-color: rgba(229, 57, 53, 0.35);
+    background: linear-gradient(135deg, rgba(255, 205, 210, 0.9), rgba(255, 235, 238, 0.95));
+}
+
+.apex-toast-close {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.apex-toast-close:focus-visible,
+.apex-toast-close:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 600px) {
+    .apex-toast-container {
+        left: 1rem;
+        right: 1rem;
+        top: auto;
+        bottom: 1.5rem;
+    }
+}
+
+.apex-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 23, 38, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.apex-loading-overlay.is-visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.apex-loading-content {
+    background: #ffffff;
+    padding: 1.75rem 2.25rem;
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+    display: grid;
+    justify-items: center;
+    gap: 1rem;
+    text-align: center;
+    max-width: 90vw;
+}
+
+.apex-loading-spinner {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 4px solid rgba(0, 169, 157, 0.2);
+    border-top-color: var(--color-cyan, #00a99d);
+    animation: apex-spin 1s linear infinite;
+}
+
+.apex-loading-message {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-graphite, #1f2933);
+}
+
+@keyframes apex-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
