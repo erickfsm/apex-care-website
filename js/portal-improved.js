@@ -19,6 +19,17 @@ function formatCurrency(value) {
   return `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
 }
 
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return value
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 async function initPortal() {
   const { data } = await supabase.auth.getUser();
 
@@ -214,6 +225,55 @@ function renderAppointments(appointments, element, isUpcoming) {
     const horario = appt.hora_agendamento ? ` às ${appt.hora_agendamento}` : '';
     const statusClass = getStatusClass(appt.status_pagamento);
 
+    const metadata = [];
+    if (Number.isFinite(Number(appt.distancia_km))) {
+      const distanciaValue = Number(appt.distancia_km);
+      metadata.push(
+        `<li><strong>Distância estimada:</strong> ${distanciaValue.toFixed(1)} km</li>`
+      );
+    }
+
+    if (!Number.isNaN(Number(appt.taxa_deslocamento))) {
+      metadata.push(
+        `<li><strong>Taxa de deslocamento:</strong> ${formatCurrency(
+          appt.taxa_deslocamento
+        )}</li>`
+      );
+    }
+
+    if (!Number.isNaN(Number(appt.adicionais_condicoes))) {
+      metadata.push(
+        `<li><strong>Adicionais por condições:</strong> ${formatCurrency(
+          appt.adicionais_condicoes
+        )}</li>`
+      );
+    }
+
+    const condicoesLabels = Array.isArray(appt.condicoes_extremas?.selections)
+      ? appt.condicoes_extremas.selections
+          .map((item) => item?.label || item?.id)
+          .filter(Boolean)
+      : [];
+
+    if (condicoesLabels.length) {
+      metadata.push(
+        `<li><strong>Condições especiais:</strong> ${escapeHtml(
+          condicoesLabels.join(', ')
+        )}</li>`
+      );
+    }
+
+    const observacoesText = appt.observacoes?.trim();
+    if (observacoesText) {
+      metadata.push(
+        `<li><strong>Observações:</strong> ${escapeHtml(observacoesText)}</li>`
+      );
+    }
+
+    const metaSection = metadata.length
+      ? `<ul class="appointment-meta">${metadata.join('')}</ul>`
+      : '';
+
     let actionButton = '';
 
     if (isUpcoming) {
@@ -256,6 +316,7 @@ function renderAppointments(appointments, element, isUpcoming) {
           <h4>📅 ${dataFormatada}${horario}</h4>
           <p><strong>Serviços:</strong> ${servicesText}</p>
           <p><strong>Valor:</strong> ${formatCurrency(appt.valor_total)}</p>
+          ${metaSection}
         </div>
         ${actionButton}
       </div>
