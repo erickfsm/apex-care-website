@@ -406,12 +406,14 @@
                                 <th>Técnico</th>
                                 <th>Status</th>
                                 <th>Valor</th>
+                                <th>Deslocamento</th>
+                                <th>Condições / Observações</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="appointments-tbody">
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px;">Carregando...</td>
+                                <td colspan="9" style="text-align: center; padding: 40px;">Carregando...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -559,6 +561,16 @@
         const assignModal = document.getElementById('assign-modal');
 
         const formatCurrency = (value) => `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
+        const escapeHtml = (value) => {
+            if (value === null || value === undefined) return '';
+            return value
+                .toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        };
 
         function normalizeRole(role) {
             return (role || '').toString().toLowerCase();
@@ -729,7 +741,7 @@
             const tbody = document.getElementById('appointments-tbody');
             
             if (allAppointments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Nenhum agendamento encontrado</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;">Nenhum agendamento encontrado</td></tr>';
                 return;
             }
 
@@ -742,6 +754,46 @@
                     : 'Sem data';
                 const statusBadge = `<span class="status-badge ${getStatusClass(appt.status_pagamento)}">${appt.status_pagamento}</span>`;
                 const valorFormatado = formatCurrency(appt.valor_total);
+
+                const distanciaValue = Number(appt.distancia_km);
+                const distanciaTexto = Number.isFinite(distanciaValue)
+                    ? `${distanciaValue.toFixed(1)} km`
+                    : '—';
+                const taxaValue = Number(appt.taxa_deslocamento) || 0;
+                const adicionaisValue = Number(appt.adicionais_condicoes) || 0;
+
+                const deslocamentoResumo = `
+                    <ul class="table-meta-list">
+                        <li><span class="meta-label">Distância:</span> ${distanciaTexto}</li>
+                        <li><span class="meta-label">Taxa:</span> ${formatCurrency(taxaValue)}</li>
+                        <li><span class="meta-label">Adicionais:</span> ${formatCurrency(adicionaisValue)}</li>
+                    </ul>
+                `;
+
+                const condicoesLabels = Array.isArray(appt.condicoes_extremas?.selections)
+                    ? appt.condicoes_extremas.selections
+                        .map(item => item?.label || item?.id)
+                        .filter(Boolean)
+                    : [];
+                const condicoesTexto = condicoesLabels.length ? condicoesLabels.join(', ') : '';
+                const observacoesTexto = (appt.observacoes || '').trim();
+                const backofficeTexto = (appt.anotacoes_backoffice || '').trim();
+
+                const condicoesItens = [];
+                if (condicoesTexto) {
+                    condicoesItens.push(`<li><span class="meta-label">Condições:</span> ${escapeHtml(condicoesTexto)}</li>`);
+                }
+                if (observacoesTexto) {
+                    condicoesItens.push(`<li><span class="meta-label">Observações:</span> ${escapeHtml(observacoesTexto)}</li>`);
+                }
+                if (backofficeTexto) {
+                    condicoesItens.push(`<li><span class="meta-label">Backoffice:</span> ${escapeHtml(backofficeTexto)}</li>`);
+                }
+                if (!condicoesItens.length) {
+                    condicoesItens.push('<li>—</li>');
+                }
+
+                const condicoesResumo = `<ul class="table-meta-list">${condicoesItens.join('')}</ul>`;
 
                 const actionButtons = [
                     `<button class="action-btn btn-assign" onclick="openAssignModal('${appt.id}')">Atribuir</button>`,
@@ -765,6 +817,8 @@
                     <td>${tecnicoNome}</td>
                     <td>${statusBadge}</td>
                     <td>${valorFormatado}</td>
+                    <td>${deslocamentoResumo}</td>
+                    <td>${condicoesResumo}</td>
                     <td>${actionButtons.join(' ')}</td>
                 `;
                 tbody.appendChild(row);
