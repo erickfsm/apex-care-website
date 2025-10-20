@@ -12,6 +12,10 @@ class PromocoesManager {
         await this.carregarPromocoesAtivas();
     }
 
+    setUser(userId) {
+        this.userId = userId;
+    }
+
     async carregarPromocoesAtivas() {
         try {
             const hoje = new Date().toISOString().split('T')[0];
@@ -42,17 +46,43 @@ class PromocoesManager {
         let melhorDesconto = 0;
         let melhorPromocao = null;
 
+        // Buscar em lote os usos das promoções pelo cliente
+        const usosPorPromocao = new Map();
+        if (this.userId) {
+            const promocoesComLimite = this.promocoesAtivas
+                .filter(promo => promo.uso_por_cliente)
+                .map(promo => promo.id);
+
+            if (promocoesComLimite.length) {
+                try {
+                    const { data, error } = await supabase
+                        .from('promocoes_uso')
+                        .select('promocao_id')
+                        .eq('cliente_id', this.userId)
+                        .in('promocao_id', promocoesComLimite);
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    (data || []).forEach(({ promocao_id }) => {
+                        const usoAtual = usosPorPromocao.get(promocao_id) || 0;
+                        usosPorPromocao.set(promocao_id, usoAtual + 1);
+                    });
+                } catch (error) {
+                    console.error('Erro ao buscar usos de promoções:', error);
+                    throw error;
+                }
+            }
+        }
+
         // Verificar cada promoção
         for (const promo of this.promocoesAtivas) {
             // Verificar se já usou (se tiver limite por cliente)
             if (promo.uso_por_cliente && this.userId) {
-                const { count } = await supabase
-                    .from('promocoes_uso')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('promocao_id', promo.id)
-                    .eq('cliente_id', this.userId);
+                const usosRegistrados = usosPorPromocao.get(promo.id) || 0;
 
-                if (count >= promo.uso_por_cliente) {
+                if (usosRegistrados >= promo.uso_por_cliente) {
                     continue; // Já usou o máximo permitido
                 }
             }
@@ -183,23 +213,45 @@ class PromocoesManager {
     }
 
     // Registrar uso de promoção após confirmação do agendamento
-    async registrarUso(promocaoId, agendamentoId, valorDesconto) {
-        if (!this.userId) return;
+    async registrarUso(promocaoId, agendamentoId, valorDesconto, options = {}) {
+        const clienteId = options?.clienteId || this.userId;
+        const descontoNumerico = Math.abs(Number(valorDesconto || 0));
+
+        if (!clienteId || !promocaoId || !agendamentoId || descontoNumerico <= 0) {
+            console.warn('Informações insuficientes para registrar uso de promoção.');
+            return { inserted: false };
+        }
 
         try {
+            const { count, error: countError } = await supabase
+                .from('promocoes_uso')
+                .select('id', { count: 'exact', head: true })
+                .eq('promocao_id', promocaoId)
+                .eq('agendamento_id', agendamentoId)
+                .eq('cliente_id', clienteId);
+
+            if (countError) throw countError;
+
+            if (count && count > 0) {
+                console.log('⚠️ Uso de promoção já registrado anteriormente.');
+                return { inserted: false, alreadyExists: true };
+            }
+
             const { error } = await supabase
                 .from('promocoes_uso')
                 .insert({
                     promocao_id: promocaoId,
-                    cliente_id: this.userId,
+                    cliente_id: clienteId,
                     agendamento_id: agendamentoId,
-                    valor_desconto: valorDesconto
+                    valor_desconto: descontoNumerico
                 });
 
             if (error) throw error;
             console.log('✅ Uso de promoção registrado');
+            return { inserted: true };
         } catch (error) {
             console.error('Erro ao registrar uso:', error);
+            throw error;
         }
     }
 

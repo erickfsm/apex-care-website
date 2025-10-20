@@ -278,6 +278,108 @@
             font-size: 0.85em;
         }
 
+        .form-group-admin select[multiple] {
+            min-height: 140px;
+        }
+
+        .combo-extra {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .combo-extra h4 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+            color: #475569;
+        }
+
+        .combo-faixas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .combo-faixa-item {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            align-items: end;
+        }
+
+        .combo-faixa-item label {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #64748b;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .combo-faixa-item input {
+            width: 100%;
+        }
+
+        .combo-faixa-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .combo-faixa-remove:hover {
+            background: #dc2626;
+        }
+
+        .combo-add-faixa {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .combo-add-faixa:hover {
+            background: #0284c7;
+        }
+
+        .promo-extra-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .promo-extra-tags span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+
+        .promo-extra-tags span i {
+            font-style: normal;
+            font-size: 1.1em;
+        }
+
         @media (max-width: 768px) {
             .promo-info {
                 grid-template-columns: 1fr;
@@ -392,6 +494,56 @@
                 </div>
 
                 <div class="form-group-admin">
+                    <label>Serviços Participantes</label>
+                    <select id="promo-servicos" multiple>
+                        <option disabled>Carregando serviços...</option>
+                    </select>
+                    <small>Selecione os serviços que fazem parte da promoção. Deixe vazio para aplicar a todos.</small>
+                </div>
+
+                <div class="form-group-admin" id="combo-config-container">
+                    <label>Lógica de Combo/Condições Especiais</label>
+                    <select id="combo-tipo">
+                        <option value="">Sem lógica especial</option>
+                        <option value="buy_x_get_y">Leve X e ganhe Y</option>
+                        <option value="desconto_progressivo">Desconto progressivo por quantidade</option>
+                        <option value="primeira_compra">Primeira compra</option>
+                    </select>
+                    <small>Configure combos especiais para promoções do tipo Combo ou defina condições avançadas.</small>
+                </div>
+
+                <div class="combo-extra" id="combo-campos-buy-x">
+                    <h4>Configuração "Leve X e ganhe Y"</h4>
+                    <div style="display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                        <div>
+                            <label for="combo-compre" style="display:block;font-weight:600;margin-bottom:4px;">Quantidade para ativar</label>
+                            <input type="number" id="combo-compre" min="1" placeholder="Ex: 3">
+                        </div>
+                        <div>
+                            <label for="combo-ganhe" style="display:block;font-weight:600;margin-bottom:4px;">Itens gratuitos</label>
+                            <input type="number" id="combo-ganhe" min="1" placeholder="Ex: 1">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="combo-extra" id="combo-campos-faixas">
+                    <h4>Faixas de Desconto Progressivo</h4>
+                    <div id="combo-faixas-list" class="combo-faixas-container"></div>
+                    <button type="button" class="combo-add-faixa" id="combo-add-faixa">➕ Adicionar faixa</button>
+                </div>
+
+                <div class="combo-extra" id="combo-campos-primeira">
+                    <h4>Primeira Compra</h4>
+                    <p style="margin: 0; font-size: 0.9em; color: #475569;">Use para conceder benefícios somente na primeira contratação do cliente.</p>
+                </div>
+
+                <div class="combo-extra" id="combo-valor-minimo-wrapper">
+                    <label>Valor Mínimo para Aplicar a Condição</label>
+                    <input type="number" id="combo-valor-minimo" step="0.01" min="0" placeholder="Ex: 300">
+                    <small>Opcional. Se preenchido, a promoção só será aplicada quando o pedido atingir esse valor.</small>
+                </div>
+
+                <div class="form-group-admin">
                     <label>Data Início*</label>
                     <input type="date" id="promo-inicio" required>
                 </div>
@@ -444,6 +596,8 @@
 
         let currentUser = null;
         let editandoPromo = null;
+        let todosServicos = [];
+        let comboFaixas = [];
 
         // Inicialização
         async function init() {
@@ -469,6 +623,9 @@
             }
 
             currentUser = user;
+            await carregarServicos();
+            preencherSelectServicos();
+            atualizarComboCampos();
             await carregarPromocoes();
             await carregarEstatisticas();
         }
@@ -521,6 +678,160 @@
             }
         }
 
+        async function carregarServicos() {
+            try {
+                const { data, error } = await supabase
+                    .from('servicos')
+                    .select('id, name, nome, titulo, category, tipo, is_active')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+
+                todosServicos = (data || [])
+                    .filter(item => item?.is_active !== false)
+                    .map(item => ({
+                        id: item.id,
+                        name: item.name || item.nome || item.titulo || `Serviço ${item.id}`,
+                        category: item.category || item.tipo || null
+                    }));
+
+                const selecionados = Array.isArray(editandoPromo?.servicos_ids)
+                    ? editandoPromo.servicos_ids
+                    : [];
+                preencherSelectServicos(selecionados);
+            } catch (error) {
+                console.error('Erro ao carregar serviços:', error);
+                todosServicos = [];
+                const select = document.getElementById('promo-servicos');
+                if (select) {
+                    select.innerHTML = '<option disabled>Erro ao carregar serviços</option>';
+                }
+            }
+        }
+
+        function preencherSelectServicos(selecionados = []) {
+            const select = document.getElementById('promo-servicos');
+            if (!select) return;
+
+            const selecionadosSet = new Set((selecionados || []).map(id => Number(id)));
+
+            if (!todosServicos.length) {
+                select.innerHTML = '<option disabled>Nenhum serviço disponível</option>';
+                return;
+            }
+
+            select.innerHTML = todosServicos.map(servico => {
+                const categoria = servico.category ? ` • ${servico.category}` : '';
+                const selected = selecionadosSet.has(Number(servico.id)) ? 'selected' : '';
+                return `<option value="${servico.id}" ${selected}>${servico.name}${categoria}</option>`;
+            }).join('');
+        }
+
+        function atualizarComboCampos() {
+            const tipo = document.getElementById('combo-tipo')?.value || '';
+            const buyX = document.getElementById('combo-campos-buy-x');
+            const faixas = document.getElementById('combo-campos-faixas');
+            const primeira = document.getElementById('combo-campos-primeira');
+            const valorMinimo = document.getElementById('combo-valor-minimo-wrapper');
+
+            if (buyX) buyX.style.display = tipo === 'buy_x_get_y' ? 'block' : 'none';
+            if (faixas) {
+                faixas.style.display = tipo === 'desconto_progressivo' ? 'block' : 'none';
+                if (tipo === 'desconto_progressivo' && comboFaixas.length === 0) {
+                    comboFaixas.push({ min: 1, max: null, desconto: 5 });
+                }
+            }
+            if (primeira) primeira.style.display = tipo === 'primeira_compra' ? 'block' : 'none';
+
+            if (valorMinimo) {
+                const temValor = document.getElementById('combo-valor-minimo')?.value;
+                valorMinimo.style.display = tipo || temValor ? 'block' : 'none';
+            }
+
+            renderComboFaixas();
+        }
+
+        function renderComboFaixas() {
+            const container = document.getElementById('combo-faixas-list');
+            if (!container) return;
+
+            const tipo = document.getElementById('combo-tipo')?.value || '';
+            if (tipo !== 'desconto_progressivo') {
+                container.innerHTML = '';
+                return;
+            }
+
+            if (!comboFaixas.length) {
+                container.innerHTML = '<p style="margin: 0; color: #475569;">Adicione faixas para configurar descontos progressivos.</p>';
+                return;
+            }
+
+            container.innerHTML = comboFaixas.map((faixa, index) => `
+                <div class="combo-faixa-item" data-index="${index}">
+                    <div>
+                        <label>Qtd mínima</label>
+                        <input type="number" class="combo-faixa-min" data-index="${index}" min="1" value="${faixa.min ?? ''}">
+                    </div>
+                    <div>
+                        <label>Qtd máxima</label>
+                        <input type="number" class="combo-faixa-max" data-index="${index}" min="1" value="${faixa.max ?? ''}" placeholder="∞">
+                    </div>
+                    <div>
+                        <label>% de desconto</label>
+                        <input type="number" class="combo-faixa-desconto" data-index="${index}" min="0" step="0.01" value="${faixa.desconto ?? ''}">
+                    </div>
+                    <button type="button" class="combo-faixa-remove" data-index="${index}">Remover</button>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.combo-faixa-min').forEach(input => {
+                input.addEventListener('input', (event) => {
+                    const idx = Number(event.target.dataset.index);
+                    comboFaixas[idx].min = event.target.value ? Number(event.target.value) : null;
+                });
+            });
+
+            container.querySelectorAll('.combo-faixa-max').forEach(input => {
+                input.addEventListener('input', (event) => {
+                    const idx = Number(event.target.dataset.index);
+                    comboFaixas[idx].max = event.target.value ? Number(event.target.value) : null;
+                });
+            });
+
+            container.querySelectorAll('.combo-faixa-desconto').forEach(input => {
+                input.addEventListener('input', (event) => {
+                    const idx = Number(event.target.dataset.index);
+                    comboFaixas[idx].desconto = event.target.value ? Number(event.target.value) : null;
+                });
+            });
+
+            container.querySelectorAll('.combo-faixa-remove').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const idx = Number(event.target.dataset.index);
+                    comboFaixas.splice(idx, 1);
+                    renderComboFaixas();
+                });
+            });
+        }
+
+        document.getElementById('combo-tipo').addEventListener('change', () => {
+            atualizarComboCampos();
+        });
+
+        document.getElementById('combo-add-faixa').addEventListener('click', () => {
+            const tipoAtual = document.getElementById('combo-tipo').value;
+            if (tipoAtual !== 'desconto_progressivo') {
+                document.getElementById('combo-tipo').value = 'desconto_progressivo';
+                comboFaixas = [];
+            }
+            comboFaixas.push({ min: 1, max: null, desconto: 5 });
+            atualizarComboCampos();
+        });
+
+        document.getElementById('combo-valor-minimo').addEventListener('input', () => {
+            atualizarComboCampos();
+        });
+
         function renderizarPromocoes(promocoes) {
             const container = document.getElementById('promocoes-lista');
 
@@ -536,13 +847,57 @@
 
             container.innerHTML = promocoes.map(promo => {
                 const hoje = new Date().toISOString().split('T')[0];
-                const estaAtiva = promo.ativo && 
-                                 promo.data_inicio <= hoje && 
+                const estaAtiva = promo.ativo &&
+                                 promo.data_inicio <= hoje &&
                                  promo.data_fim >= hoje;
 
-                const valorDisplay = promo.tipo_desconto === 'percentual' 
-                    ? `${promo.valor_desconto}%`
-                    : `R$ ${promo.valor_desconto.toFixed(2).replace('.', ',')}`;
+                const comboConfig = parseComboConfig(promo.combo_config);
+                const valorBase = Number(promo.valor_desconto || 0);
+
+                let valorDisplay = '';
+                let legendaDisplay = '';
+
+                if (promo.tipo_desconto === 'percentual') {
+                    valorDisplay = `${valorBase}%`;
+                    legendaDisplay = 'DE DESCONTO';
+                } else if (promo.tipo_desconto === 'valor_fixo') {
+                    valorDisplay = `R$ ${formatCurrency(valorBase)}`;
+                    legendaDisplay = 'DE DESCONTO';
+                } else if (promo.tipo_desconto === 'combo') {
+                    if (valorBase > 0) {
+                        valorDisplay = `R$ ${formatCurrency(valorBase)}`;
+                        legendaDisplay = 'BÔNUS';
+                    } else {
+                        valorDisplay = 'Combo Especial';
+                        legendaDisplay = 'COMBO';
+                    }
+                } else {
+                    valorDisplay = valorBase ? `R$ ${formatCurrency(valorBase)}` : promo.tipo_desconto;
+                    legendaDisplay = '';
+                }
+
+                const extraTags = [];
+                const servicosTag = formatServicosTag(promo.servicos_ids);
+                if (servicosTag) {
+                    extraTags.push(`<span><i>🛠️</i>${servicosTag}</span>`);
+                }
+
+                const comboResumo = formatComboResumo(promo, comboConfig);
+                if (comboResumo) {
+                    extraTags.push(`<span><i>🧩</i>${comboResumo}</span>`);
+                }
+
+                if (promo.quantidade_minima && promo.quantidade_minima > 1) {
+                    extraTags.push(`<span><i>📦</i>Mínimo de ${promo.quantidade_minima} serviços</span>`);
+                }
+
+                if (promo.valor_minimo) {
+                    extraTags.push(`<span><i>💰</i>Pedido mínimo de R$ ${formatCurrency(promo.valor_minimo)}</span>`);
+                } else if (comboConfig?.valor_minimo) {
+                    extraTags.push(`<span><i>💰</i>Aplicável acima de R$ ${formatCurrency(comboConfig.valor_minimo)}</span>`);
+                }
+
+                const tipoLabel = formatarTipoDesconto(promo.tipo_desconto);
 
                 return `
                     <div class="promo-card ${promo.tipo_desconto}">
@@ -557,9 +912,7 @@
 
                         <div class="promo-desconto">
                             <div class="promo-desconto-valor">${valorDisplay}</div>
-                            <div style="font-size: 0.9em; margin-top: 5px; opacity: 0.9;">
-                                ${promo.tipo_desconto === 'percentual' ? 'DE DESCONTO' : 'OFF'}
-                            </div>
+                            ${legendaDisplay ? `<div style="font-size: 0.9em; margin-top: 5px; opacity: 0.9;">${legendaDisplay}</div>` : ''}
                         </div>
 
                         <div class="promo-info">
@@ -572,14 +925,20 @@
                                 <span class="promo-info-value">${new Date(promo.data_fim).toLocaleDateString('pt-BR')}</span>
                             </div>
                             <div class="promo-info-item">
-                                <span class="promo-info-label">Limite</span>
+                                <span class="promo-info-label">Limite total</span>
                                 <span class="promo-info-value">${promo.limite_uso || '∞'} usos</span>
                             </div>
                             <div class="promo-info-item">
+                                <span class="promo-info-label">Uso/cliente</span>
+                                <span class="promo-info-value">${promo.uso_por_cliente || '∞'}</span>
+                            </div>
+                            <div class="promo-info-item">
                                 <span class="promo-info-label">Tipo</span>
-                                <span class="promo-info-value">${promo.tipo_desconto}</span>
+                                <span class="promo-info-value">${tipoLabel}</span>
                             </div>
                         </div>
+
+                        ${extraTags.length ? `<div class="promo-extra-tags">${extraTags.join('')}</div>` : ''}
 
                         <div class="promo-actions">
                             <button class="btn-admin btn-edit" onclick="editarPromocao('${promo.id}')">
@@ -597,12 +956,114 @@
             }).join('');
         }
 
+        function parseComboConfig(rawConfig) {
+            if (!rawConfig) return null;
+            if (typeof rawConfig === 'string') {
+                try {
+                    return JSON.parse(rawConfig);
+                } catch (error) {
+                    console.warn('Não foi possível converter combo_config:', error);
+                    return null;
+                }
+            }
+            return rawConfig;
+        }
+
+        function formatCurrency(valor) {
+            const numero = Number(valor || 0);
+            return numero.toFixed(2).replace('.', ',');
+        }
+
+        function formatarTipoDesconto(tipo) {
+            switch (tipo) {
+                case 'percentual':
+                    return 'Percentual';
+                case 'valor_fixo':
+                    return 'Valor Fixo';
+                case 'combo':
+                    return 'Combo Especial';
+                default:
+                    return tipo || '-';
+            }
+        }
+
+        function formatServicosTag(servicosIds) {
+            if (!servicosIds || !servicosIds.length) {
+                return 'Todos os serviços';
+            }
+
+            const ids = servicosIds.map(id => Number(id));
+            const nomes = ids
+                .map(id => {
+                    const servico = todosServicos.find(s => Number(s.id) === id);
+                    return servico?.name;
+                })
+                .filter(Boolean);
+
+            if (!nomes.length) {
+                return `Serviços IDs: ${ids.join(', ')}`;
+            }
+
+            return `Válido para ${nomes.join(' + ')}`;
+        }
+
+        function formatComboResumo(promo, comboConfig) {
+            if (!comboConfig) return '';
+
+            if (Array.isArray(comboConfig.faixas) && comboConfig.faixas.length) {
+                return comboConfig.faixas
+                    .map(faixa => {
+                        const minimo = faixa.min ?? 0;
+                        const maximo = faixa.max ?? null;
+                        const desconto = faixa.desconto ?? 0;
+
+                        const faixaTexto = maximo
+                            ? `${minimo} a ${maximo} itens`
+                            : `${minimo}+ itens`;
+
+                        return `${faixaTexto}: ${desconto}% off`;
+                    })
+                    .join(' · ');
+            }
+
+            if (comboConfig.tipo === 'buy_x_get_y') {
+                const compre = comboConfig.compre;
+                const ganhe = comboConfig.ganhe;
+                if (compre && ganhe) {
+                    const paga = Math.max(compre - ganhe, 0);
+                    return paga > 0
+                        ? `Leve ${compre} pague ${paga}`
+                        : `Leve ${compre} e ganhe ${ganhe}`;
+                }
+            }
+
+            if (comboConfig.tipo === 'primeira_compra') {
+                if (comboConfig.valor_minimo) {
+                    return `Primeira compra acima de R$ ${formatCurrency(comboConfig.valor_minimo)}`;
+                }
+                return 'Válido na primeira compra';
+            }
+
+            if (comboConfig.valor_minimo && promo.tipo_desconto !== 'combo') {
+                return `Aplicável acima de R$ ${formatCurrency(comboConfig.valor_minimo)}`;
+            }
+
+            return '';
+        }
+
         // Abrir modal para nova promoção
         window.abrirModalNova = function() {
             editandoPromo = null;
             document.getElementById('modal-title').textContent = 'Nova Promoção';
             document.getElementById('form-promo').reset();
             document.getElementById('promo-id').value = '';
+            comboFaixas = [];
+            document.getElementById('combo-tipo').value = '';
+            document.getElementById('combo-compre').value = '';
+            document.getElementById('combo-ganhe').value = '';
+            document.getElementById('combo-valor-minimo').value = '';
+            preencherSelectServicos([]);
+            atualizarComboCampos();
             document.getElementById('modal-promo').classList.add('active');
         };
 
@@ -623,6 +1084,12 @@
                 if (error) throw error;
 
                 editandoPromo = data;
+                const comboConfig = parseComboConfig(data.combo_config);
+
+                if (!todosServicos.length) {
+                    await carregarServicos();
+                }
+
                 document.getElementById('modal-title').textContent = 'Editar Promoção';
                 document.getElementById('promo-id').value = data.id;
                 document.getElementById('promo-nome').value = data.nome;
@@ -637,6 +1104,28 @@
                 document.getElementById('promo-uso-cliente').value = data.uso_por_cliente || 1;
                 document.getElementById('promo-ativo').checked = data.ativo;
 
+                const servicosSelecionados = Array.isArray(data.servicos_ids) ? data.servicos_ids : [];
+                preencherSelectServicos(servicosSelecionados);
+
+                const comboTipo = comboConfig?.tipo || (comboConfig?.faixas?.length ? 'desconto_progressivo' : '');
+                document.getElementById('combo-tipo').value = comboTipo || '';
+                document.getElementById('combo-compre').value = comboConfig?.compre || '';
+                document.getElementById('combo-ganhe').value = comboConfig?.ganhe || '';
+                if (comboConfig && Object.prototype.hasOwnProperty.call(comboConfig, 'valor_minimo')) {
+                    document.getElementById('combo-valor-minimo').value = comboConfig.valor_minimo ?? '';
+                } else {
+                    document.getElementById('combo-valor-minimo').value = '';
+                }
+
+                comboFaixas = Array.isArray(comboConfig?.faixas)
+                    ? comboConfig.faixas.map(faixa => ({
+                        min: faixa.min ?? null,
+                        max: faixa.max ?? null,
+                        desconto: faixa.desconto ?? null
+                    }))
+                    : [];
+
+                atualizarComboCampos();
                 document.getElementById('modal-promo').classList.add('active');
             } catch (error) {
                 alert('Erro ao carregar promoção: ' + error.message);
@@ -648,19 +1137,83 @@
             e.preventDefault();
 
             const id = document.getElementById('promo-id').value;
+
+            const valorDescontoInput = parseFloat(document.getElementById('promo-valor').value);
+            const valorMinimoPedidoInput = document.getElementById('promo-valor-minimo').value;
+
             const dados = {
                 nome: document.getElementById('promo-nome').value,
                 descricao: document.getElementById('promo-descricao').value || null,
                 tipo_desconto: document.getElementById('promo-tipo').value,
-                valor_desconto: parseFloat(document.getElementById('promo-valor').value),
-                valor_minimo: parseFloat(document.getElementById('promo-valor-minimo').value) || null,
-                quantidade_minima: parseInt(document.getElementById('promo-qtd-minima').value) || 1,
+                valor_desconto: Number.isNaN(valorDescontoInput) ? 0 : valorDescontoInput,
+                valor_minimo: valorMinimoPedidoInput !== '' ? parseFloat(valorMinimoPedidoInput) : null,
+                quantidade_minima: parseInt(document.getElementById('promo-qtd-minima').value, 10) || 1,
                 data_inicio: document.getElementById('promo-inicio').value,
                 data_fim: document.getElementById('promo-fim').value,
-                limite_uso: parseInt(document.getElementById('promo-limite-uso').value) || null,
-                uso_por_cliente: parseInt(document.getElementById('promo-uso-cliente').value) || 1,
+                limite_uso: parseInt(document.getElementById('promo-limite-uso').value, 10) || null,
+                uso_por_cliente: parseInt(document.getElementById('promo-uso-cliente').value, 10) || 1,
                 ativo: document.getElementById('promo-ativo').checked
             };
+
+            const servicosSelecionados = Array.from(document.getElementById('promo-servicos').selectedOptions || [])
+                .map(option => Number(option.value))
+                .filter(value => !Number.isNaN(value));
+
+            dados.servicos_ids = servicosSelecionados.length ? servicosSelecionados : null;
+
+            const comboTipo = document.getElementById('combo-tipo').value;
+            const valorMinimoComboEntrada = document.getElementById('combo-valor-minimo').value;
+            const valorMinimoCombo = valorMinimoComboEntrada !== '' ? parseFloat(valorMinimoComboEntrada) : null;
+            let comboConfig = null;
+
+            if (comboTipo === 'buy_x_get_y') {
+                const compre = parseInt(document.getElementById('combo-compre').value, 10);
+                const ganhe = parseInt(document.getElementById('combo-ganhe').value, 10);
+
+                if (!compre || !ganhe) {
+                    alert('Informe os valores de "Quantidade para ativar" e "Itens gratuitos" para o combo.');
+                    return;
+                }
+
+                comboConfig = { tipo: 'buy_x_get_y', compre, ganhe };
+            } else if (comboTipo === 'desconto_progressivo') {
+                const faixasValidas = comboFaixas
+                    .map(faixa => ({
+                        min: faixa.min ? Number(faixa.min) : null,
+                        max: faixa.max ? Number(faixa.max) : null,
+                        desconto: faixa.desconto ? Number(faixa.desconto) : null
+                    }))
+                    .filter(f => f.min && f.desconto);
+
+                if (!faixasValidas.length) {
+                    alert('Adicione pelo menos uma faixa válida de desconto progressivo.');
+                    return;
+                }
+
+                faixasValidas.sort((a, b) => a.min - b.min);
+
+                comboConfig = {
+                    tipo: 'desconto_progressivo',
+                    faixas: faixasValidas.map(f => ({
+                        min: f.min,
+                        max: f.max,
+                        desconto: f.desconto
+                    }))
+                };
+            } else if (comboTipo === 'primeira_compra') {
+                comboConfig = { tipo: 'primeira_compra' };
+            }
+
+            if (valorMinimoCombo !== null && !Number.isNaN(valorMinimoCombo)) {
+                comboConfig = comboConfig || {};
+                comboConfig.valor_minimo = valorMinimoCombo;
+            }
+
+            if (comboConfig && Object.keys(comboConfig).length === 0) {
+                comboConfig = null;
+            }
+
+            dados.combo_config = comboConfig;
 
             try {
                 if (id) {

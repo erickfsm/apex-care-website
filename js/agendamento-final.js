@@ -1,12 +1,39 @@
 import { supabase } from './supabase-client.js';
 
 const WORKING_HOURS = ["09:00", "11:00", "14:00", "16:00"];
+const ACTIVE_PAYMENT_STATUSES = [
+    'Pago e Confirmado',
+    'Pendente (Pagar no Local)',
+    'Aguardando Execução'
+];
+const INCLUDE_NULL_PAYMENT_STATUS = true;
 
 let currentUser = null;
 let pendingAppointment = null;
 let selectedDate = null;
 let selectedTime = null;
 let currentDate = new Date();
+let promocoesManager = null;
+
+async function ensurePromocoesManager() {
+    if (!currentUser) return null;
+    if (promocoesManager) {
+        return promocoesManager;
+    }
+
+    if (!window?.PromocoesManager) {
+        console.warn('PromocoesManager não disponível no contexto atual.');
+        return null;
+    }
+
+    promocoesManager = new window.PromocoesManager();
+    try {
+        await promocoesManager.init(currentUser.id);
+    } catch (error) {
+        console.warn('Não foi possível inicializar o PromocoesManager:', error);
+    }
+    return promocoesManager;
+}
 
 const calendarDays = document.getElementById('calendar-days');
 const timeSlotsDiv = document.getElementById('time-slots');
@@ -20,10 +47,12 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'INITIAL_SESSION' && session?.user) {
         console.log("✅ Sessão válida encontrada!", session.user.email);
         currentUser = session.user;
+        ensurePromocoesManager();
         findPendingAppointment();
     } else if (event === 'SIGNED_IN') {
         console.log("✅ Usuário acabou de logar!", session.user.email);
         currentUser = session.user;
+        ensurePromocoesManager();
         findPendingAppointment();
     } else if (event === 'SIGNED_OUT') {
         redirectToLogin();
@@ -67,6 +96,13 @@ async function findPendingAppointment() {
 
     pendingAppointment = data;
     console.log("✅ Agendamento encontrado:", pendingAppointment);
+
+    await ensurePromocoesManager();
+
+    const promocaoAplicada = extractPromotionFromAppointment(pendingAppointment);
+    if (promocaoAplicada) {
+        console.log('🎯 Promoção vinculada ao agendamento:', promocaoAplicada);
+    }
 
     if (pendingAppointment.status_pagamento === 'Em Aprovação') {
         alert('Seu orçamento ainda está em análise. Assim que for aprovado, liberaremos a agenda para escolha de horários.');
@@ -156,16 +192,36 @@ async function handleDayClick(dayElement, dateStr) {
     document.querySelectorAll('.days .selected').forEach(el => el.classList.remove('selected'));
     dayElement.classList.add('selected');
 
-    const { data: bookedAppointments, error } = await supabase
-        .from('agendamentos')
-        .select('hora_agendamento')
-        .eq('data_agendamento', dateStr);
+    const queries = [
+        supabase
+            .from('agendamentos')
+            .select('hora_agendamento')
+            .eq('data_agendamento', dateStr)
+            .in('status_pagamento', ACTIVE_PAYMENT_STATUSES)
+    ];
 
-    if (error) {
-        console.error("❌ Erro ao verificar horários:", error);
+    if (INCLUDE_NULL_PAYMENT_STATUS) {
+        queries.push(
+            supabase
+                .from('agendamentos')
+                .select('hora_agendamento')
+                .eq('data_agendamento', dateStr)
+                .is('status_pagamento', null)
+        );
+    }
+
+    const results = await Promise.all(queries);
+    const errorResult = results.find(result => result.error);
+
+    if (errorResult?.error) {
+        console.error("❌ Erro ao verificar horários:", errorResult.error);
         timeSlotsDiv.innerHTML = "<p>Erro ao verificar horários.</p>";
         return;
     }
+
+    const bookedAppointments = results
+        .map(result => result.data ?? [])
+        .reduce((all, current) => all.concat(current), []);
 
     const bookedTimes = bookedAppointments.map(appt => appt.hora_agendamento);
     const availableTimes = WORKING_HOURS.filter(time => !bookedTimes.includes(time));
@@ -221,7 +277,7 @@ payOnSiteBtn.addEventListener('click', async () => {
 
     const { error } = await supabase
         .from('agendamentos')
-        .update({ 
+        .update({
             data_agendamento: selectedDate,
             hora_agendamento: selectedTime,
             status_pagamento: 'Pendente (Pagar no Local)'
@@ -235,6 +291,21 @@ payOnSiteBtn.addEventListener('click', async () => {
         payOnlineBtn.disabled = false;
         payOnSiteBtn.textContent = "Agendar e Pagar no Local";
     } else {
+        pendingAppointment.data_agendamento = selectedDate;
+        pendingAppointment.hora_agendamento = selectedTime;
+        pendingAppointment.status_pagamento = 'Pendente (Pagar no Local)';
+
+        try {
+            const managerInstance = await ensurePromocoesManager();
+            if (managerInstance) {
+                await registrarUsoPromocaoSeAplicavel(managerInstance, pendingAppointment, {
+                    clienteId: pendingAppointment.cliente_id || currentUser?.id || null,
+                });
+            }
+        } catch (registroError) {
+            console.error('Erro ao registrar uso da promoção (pagamento local):', registroError);
+        }
+
         alert("✅ Agendamento confirmado com sucesso! O pagamento será realizado no dia do serviço.");
         window.location.href = 'portal-cliente.html';
     }

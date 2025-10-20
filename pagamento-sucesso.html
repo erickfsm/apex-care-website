@@ -292,12 +292,24 @@
                 }
 
                 if (agendamento) {
-                    // Atualizar status do pagamento
                     if (status === 'approved') {
                         await supabase
                             .from('agendamentos')
                             .update({ status_pagamento: 'Pago e Confirmado' })
                             .eq('id', agendamento.id);
+
+                        agendamento.status_pagamento = 'Pago e Confirmado';
+
+                        try {
+                            const managerInstance = await ensurePromocoesManager(user.id);
+                            if (managerInstance) {
+                                await registrarUsoPromocaoSeAplicavel(managerInstance, agendamento, {
+                                    clienteId: user.id,
+                                });
+                            }
+                        } catch (registroError) {
+                            console.error('Erro ao registrar uso da promoção (pagamento aprovado):', registroError);
+                        }
                     }
 
                     // Exibir detalhes
