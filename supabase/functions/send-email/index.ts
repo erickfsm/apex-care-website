@@ -2,6 +2,29 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 console.log("Função 'send-email' iniciada.");
 
+const DEFAULT_PORTAL_URL = "https://apexcare.com.br/portal-cliente.html";
+
+function resolvePortalUrl(): string {
+  const siteUrl = Deno.env.get("PUBLIC_SITE_URL");
+
+  if (!siteUrl) {
+    return DEFAULT_PORTAL_URL;
+  }
+
+  try {
+    const baseUrl = new URL(siteUrl);
+    return new URL("/portal-cliente.html", baseUrl).toString();
+  } catch (error) {
+    console.warn(
+      "PUBLIC_SITE_URL inválida. Usando fallback padrão.",
+      error instanceof Error ? error.message : error,
+    );
+    return DEFAULT_PORTAL_URL;
+  }
+}
+
+const portalUrl = resolvePortalUrl();
+
 serve(async (req) => {
   
   if (req.method === "OPTIONS") {
@@ -141,7 +164,7 @@ function generateEmailHTML(emailType: string, data: any): string {
               <li>Nosso técnico entrará em contato antes de chegar</li>
             </ul>
 
-            <a href="https://seusite.com/portal-cliente.html" class="btn">Ver Meu Agendamento</a>
+            <a href="${portalUrl}" class="btn">Ver Meu Agendamento</a>
           </div>
           <div class="footer">
             <p>&copy; 2025 Apex Care - Performance que traz tranquilidade</p>
@@ -229,7 +252,7 @@ function generateEmailHTML(emailType: string, data: any): string {
 
             <p>Em breve você receberá fotos do antes e depois do tratamento!</p>
 
-            <a href="https://seusite.com/portal-cliente.html" class="btn">Acompanhar Serviço</a>
+            <a href="${portalUrl}" class="btn">Acompanhar Serviço</a>
           </div>
           <div class="footer">
             <p>&copy; 2025 Apex Care</p>
@@ -272,7 +295,7 @@ function generateEmailHTML(emailType: string, data: any): string {
 
             <p><strong>Sua opinião é muito importante!</strong> Avalie nosso serviço:</p>
 
-            <a href="https://seusite.com/portal-cliente.html" class="btn">Avaliar Serviço</a>
+            <a href="${portalUrl}" class="btn">Avaliar Serviço</a>
           </div>
           <div class="footer">
             <p>&copy; 2025 Apex Care - Obrigado pela confiança!</p>
