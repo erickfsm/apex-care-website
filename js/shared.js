@@ -1,26 +1,19 @@
 import { supabase } from './supabase-client.js';
-/**
- * @fileoverview Manages the shared authentication state and renders the user profile dropdown in the header.
- * @module shared
- */
 
 const authContainer = document.getElementById('auth-container-header') || document.getElementById('auth-container');
 let dropdownMenu = null;
 
-// Listens for authentication changes
+// Ouve mudanças de autenticação
 supabase.auth.onAuthStateChange((event, session) => {
     if (session && session.user) {
-        // User is logged in
+        // USUÁRIO ESTÁ LOGADO
         loadUserProfile(session.user.id);
     } else {
-        // User is not logged in
+        // USUÁRIO NÃO ESTÁ LOGADO
         renderLoggedOutState();
     }
 });
 
-/**
- * Renders the header in a logged-out state.
- */
 function renderLoggedOutState() {
     if (!authContainer) return;
 
@@ -30,10 +23,6 @@ function renderLoggedOutState() {
     `;
 }
 
-/**
- * Loads the user profile from the database.
- * @param {string} userId - The ID of the user.
- */
 async function loadUserProfile(userId) {
     if (!authContainer) return;
 
@@ -52,10 +41,6 @@ async function loadUserProfile(userId) {
     }
 }
 
-/**
- * Renders the header in a logged-in state.
- * @param {string} userName - The name of the user.
- */
 function renderLoggedInState(userName) {
     authContainer.innerHTML = `
         <div class="auth-dropdown">
@@ -71,7 +56,7 @@ function renderLoggedInState(userName) {
         </div>
     `;
 
-    // Setup dropdown
+    // Setup do dropdown
     const dropdownBtn = document.getElementById('auth-dropdown-btn');
     const dropdownMenuEl = document.getElementById('auth-dropdown-menu');
     const logoutBtn = document.getElementById('logout-btn');
@@ -94,12 +79,7 @@ function renderLoggedInState(userName) {
     });
 }
 
-/**
- * @global
- * @property {object} authHelpers - A global object for authentication helpers.
- * @property {object} authHelpers.supabase - The Supabase client instance.
- * @property {function} authHelpers.loadUserProfile - A function to load the user profile.
- */
+// Exportar funções para uso em outros scripts
 window.authHelpers = {
     supabase,
     loadUserProfile

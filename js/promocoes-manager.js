@@ -1,41 +1,21 @@
 // js/promocoes-manager.js - Sistema de Promoções
 import { supabase } from './supabase-client.js';
 
-/**
- * @class PromocoesManager
- * @description Manages promotions, including loading, calculating, and registering their use.
- */
 class PromocoesManager {
-    /**
-     * @constructor
-     */
     constructor() {
-        /** @type {Array<object>} */
         this.promocoesAtivas = [];
-        /** @type {string|null} */
         this.userId = null;
     }
 
-    /**
-     * Initializes the promotions manager for a specific user.
-     * @param {string} userId - The ID of the user.
-     */
     async init(userId) {
         this.userId = userId;
         await this.carregarPromocoesAtivas();
     }
 
-    /**
-     * Sets the user ID for the manager.
-     * @param {string} userId - The ID of the user.
-     */
     setUser(userId) {
         this.userId = userId;
     }
 
-    /**
-     * Loads active promotions from the database.
-     */
     async carregarPromocoesAtivas() {
         try {
             const hoje = new Date().toISOString().split('T')[0];
@@ -57,12 +37,7 @@ class PromocoesManager {
         }
     }
 
-    /**
-     * Calculates the best promotion for the given services and subtotal.
-     * @param {Array<object>} servicos - The list of selected services.
-     * @param {number} subtotal - The subtotal of the services.
-     * @returns {Promise<object>} An object with the discount, promotion, and message.
-     */
+    // Calcular melhor promoção para o carrinho
     async calcularMelhorPromocao(servicos, subtotal) {
         if (!this.promocoesAtivas.length) {
             return { desconto: 0, promocao: null, mensagem: null };
@@ -71,6 +46,7 @@ class PromocoesManager {
         let melhorDesconto = 0;
         let melhorPromocao = null;
 
+        // Buscar em lote os usos das promoções pelo cliente
         const usosPorPromocao = new Map();
         if (this.userId) {
             const promocoesComLimite = this.promocoesAtivas
@@ -100,19 +76,23 @@ class PromocoesManager {
             }
         }
 
+        // Verificar cada promoção
         for (const promo of this.promocoesAtivas) {
+            // Verificar se já usou (se tiver limite por cliente)
             if (promo.uso_por_cliente && this.userId) {
                 const usosRegistrados = usosPorPromocao.get(promo.id) || 0;
 
                 if (usosRegistrados >= promo.uso_por_cliente) {
-                    continue;
+                    continue; // Já usou o máximo permitido
                 }
             }
 
+            // Verificar elegibilidade
             if (!this.servicosElegiveis(servicos, promo)) {
                 continue;
             }
 
+            // Calcular desconto
             const desconto = this.calcularDesconto(servicos, subtotal, promo);
 
             if (desconto > melhorDesconto) {
@@ -128,21 +108,18 @@ class PromocoesManager {
         };
     }
 
-    /**
-     * Checks if the selected services are eligible for a promotion.
-     * @param {Array<object>} servicos - The list of selected services.
-     * @param {object} promocao - The promotion object.
-     * @returns {boolean} True if the services are eligible, false otherwise.
-     */
     servicosElegiveis(servicos, promocao) {
+        // Se servicos_ids é null, todos são elegíveis
         if (!promocao.servicos_ids || promocao.servicos_ids.length === 0) {
             return true;
         }
 
-        const servicosElegiveis = servicos.filter(s =>
+        // Verificar se pelo menos um serviço está na lista
+        const servicosElegiveis = servicos.filter(s => 
             promocao.servicos_ids.includes(s.id)
         );
 
+        // Verificar quantidade mínima
         if (servicosElegiveis.length < (promocao.quantidade_minima || 1)) {
             return false;
         }
@@ -150,19 +127,14 @@ class PromocoesManager {
         return true;
     }
 
-    /**
-     * Calculates the discount for a promotion.
-     * @param {Array<object>} servicos - The list of selected services.
-     * @param {number} subtotal - The subtotal of the services.
-     * @param {object} promocao - The promotion object.
-     * @returns {number} The calculated discount amount.
-     */
     calcularDesconto(servicos, subtotal, promocao) {
         const { tipo_desconto, valor_desconto, combo_config } = promocao;
 
+        // DESCONTO PERCENTUAL SIMPLES
         if (tipo_desconto === 'percentual' && valor_desconto) {
+            // Calcular apenas sobre serviços elegíveis
             let valorElegivel = subtotal;
-
+            
             if (promocao.servicos_ids && promocao.servicos_ids.length > 0) {
                 valorElegivel = servicos
                     .filter(s => promocao.servicos_ids.includes(s.id))
@@ -172,13 +144,16 @@ class PromocoesManager {
             return (valorElegivel * valor_desconto) / 100;
         }
 
+        // DESCONTO VALOR FIXO
         if (tipo_desconto === 'valor_fixo' && valor_desconto) {
+            // Verificar valor mínimo se existir
             if (combo_config?.valor_minimo && subtotal < combo_config.valor_minimo) {
                 return 0;
             }
             return valor_desconto;
         }
 
+        // COMBOS ESPECIAIS
         if (tipo_desconto === 'combo' && combo_config) {
             return this.calcularDescontoCombo(servicos, subtotal, promocao);
         }
@@ -186,18 +161,12 @@ class PromocoesManager {
         return 0;
     }
 
-    /**
-     * Calculates the discount for a combo promotion.
-     * @param {Array<object>} servicos - The list of selected services.
-     * @param {number} subtotal - The subtotal of the services.
-     * @param {object} promocao - The promotion object.
-     * @returns {number} The calculated discount amount.
-     */
     calcularDescontoCombo(servicos, subtotal, promocao) {
         const { combo_config } = promocao;
 
+        // TIPO: Buy X Get Y (Leve 3 Pague 2)
         if (combo_config.tipo === 'buy_x_get_y') {
-            const servicosElegiveis = servicos.filter(s =>
+            const servicosElegiveis = servicos.filter(s => 
                 promocao.servicos_ids.includes(s.id)
             );
 
@@ -205,6 +174,7 @@ class PromocoesManager {
             const { compre, ganhe } = combo_config;
 
             if (totalItens >= compre) {
+                // Dar de graça o item mais barato
                 const itensMaisBaratos = servicosElegiveis
                     .sort((a, b) => a.price - b.price)
                     .slice(0, ganhe);
@@ -213,10 +183,11 @@ class PromocoesManager {
             }
         }
 
+        // TIPO: Desconto Progressivo (quanto mais itens, maior desconto)
         if (combo_config.faixas) {
             const totalItens = servicos.reduce((sum, s) => sum + s.quantity, 0);
-
-            const faixaAplicavel = combo_config.faixas.find(f =>
+            
+            const faixaAplicavel = combo_config.faixas.find(f => 
                 totalItens >= f.min && totalItens <= f.max
             );
 
@@ -225,7 +196,9 @@ class PromocoesManager {
             }
         }
 
+        // TIPO: Primeira Compra
         if (combo_config.tipo === 'primeira_compra') {
+            // Verificar se é primeira compra (feito no backend)
             if (subtotal >= combo_config.valor_minimo) {
                 return promocao.valor_desconto;
             }
@@ -234,25 +207,12 @@ class PromocoesManager {
         return 0;
     }
 
-    /**
-     * Generates a message for the applied promotion.
-     * @param {object} promocao - The promotion object.
-     * @param {number} valorDesconto - The discount amount.
-     * @returns {string} The promotion message.
-     */
     gerarMensagem(promocao, valorDesconto) {
         const valorFormatado = valorDesconto.toFixed(2).replace('.', ',');
         return `🎉 Promoção "${promocao.nome}" aplicada! Você economizou R$ ${valorFormatado}`;
     }
 
-    /**
-     * Registers the use of a promotion.
-     * @param {string} promocaoId - The ID of the promotion.
-     * @param {string} agendamentoId - The ID of the appointment.
-     * @param {number} valorDesconto - The discount amount.
-     * @param {object} [options={}] - Additional options.
-     * @returns {Promise<object>} An object indicating if the registration was successful.
-     */
+    // Registrar uso de promoção após confirmação do agendamento
     async registrarUso(promocaoId, agendamentoId, valorDesconto, options = {}) {
         const clienteId = options?.clienteId || this.userId;
         const descontoNumerico = Math.abs(Number(valorDesconto || 0));
@@ -295,20 +255,17 @@ class PromocoesManager {
         }
     }
 
-    /**
-     * Renders a banner of active promotions.
-     * @param {string} containerId - The ID of the container element.
-     */
+    // Renderizar banner de promoções ativas
     renderBannerPromocoes(containerId) {
         const container = document.getElementById(containerId);
         if (!container || !this.promocoesAtivas.length) return;
 
         const bannersHTML = this.promocoesAtivas
-            .filter(p => p.descricao)
-            .slice(0, 3)
+            .filter(p => p.descricao) // Apenas com descrição
+            .slice(0, 3) // Máximo 3
             .map(promo => {
                 const diasRestantes = this.calcularDiasRestantes(promo.data_fim);
-
+                
                 return `
                     <div class="promo-banner" style="
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -347,11 +304,6 @@ class PromocoesManager {
         container.innerHTML = bannersHTML;
     }
 
-    /**
-     * Calculates the remaining days for a promotion.
-     * @param {string} dataFim - The end date of the promotion.
-     * @returns {number} The number of remaining days.
-     */
     calcularDiasRestantes(dataFim) {
         const hoje = new Date();
         const fim = new Date(dataFim);

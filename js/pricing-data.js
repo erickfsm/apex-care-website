@@ -1,29 +1,3 @@
-/**
- * @fileoverview This file contains the pricing and feature data for the subscription plans.
- * It exports a single constant, `planPricing`, which is an array of plan objects.
- * Each object defines the properties and content for a specific plan, used to render
- * pricing tables and feature lists on both the homepage and the client portal.
- *
- * @property {string} id - A unique identifier for the plan (e.g., 'trimestral').
- * @property {string} name - The display name of the plan.
- * @property {string} homepageTitle - The title used on the homepage pricing card.
- * @property {string} tagline - A short descriptive tagline for the plan.
- * @property {object} homepage - Configuration for the homepage pricing card.
- * @property {string|null} homepage.badge - A badge label (e.g., 'MAIS POPULAR').
- * @property {boolean} homepage.featured - Whether the card should be visually highlighted.
- * @property {object} homepage.cta - Call-to-action button configuration.
- * @property {object} portal - Configuration for the portal plan comparison card.
- * @property {string} portal.title - The title used in the portal.
- * @property {string} portal.badge - A badge label for the portal card.
- * @property {boolean} portal.featured - Whether the portal card is featured.
- * @property {string} portal.economyBadge - A badge highlighting cost savings.
- * @property {object} startingFrom - "Starting from" price details.
- * @property {string} billingNote - A note about the billing cycle and terms.
- * @property {string} priceSummary - A summary link for detailed pricing.
- * @property {Array<object>} sofaPricing - An array of pricing details per sofa category.
- * @property {Array<object>} homepageFeatures - A list of features for the homepage card.
- * @property {Array<string>} portalBenefits - A list of benefits for the portal card.
- */
 export const planPricing = [
     {
         id: 'trimestral',

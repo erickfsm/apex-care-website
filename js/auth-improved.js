@@ -3,11 +3,7 @@ import { supabase } from './supabase-client.js';
 // Configura a conexão compartilhada
 
 const RESUME_STATE_KEY = 'apexCareResumeState';
-/**
- * @function getResumeState
- * @description Retrieves the resume state from local storage.
- * @returns {Object|null} The parsed resume state object or null if not found or on error.
- */
+
 function getResumeState() {
     try {
         const stored = localStorage.getItem(RESUME_STATE_KEY);
@@ -17,10 +13,7 @@ function getResumeState() {
         return null;
     }
 }
-/**
- * @function clearResumeState
- * @description Clears the resume state from local storage.
- */
+
 function clearResumeState() {
     localStorage.removeItem(RESUME_STATE_KEY);
 }
@@ -28,7 +21,7 @@ function clearResumeState() {
 // --- LÓGICA DE CADASTRO ---
 const registerForm = document.getElementById('register-form');
 
-if (registerForm) {
+if (registerForm) { 
     const errorMessage = document.getElementById('error-message');
 
     registerForm.addEventListener('submit', async (e) => {
@@ -39,13 +32,13 @@ if (registerForm) {
         const endereco = document.getElementById('address').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-
+        
         errorMessage.textContent = '';
 
         try {
             console.log("🔐 Iniciando cadastro para:", email);
 
-            // Create user in Supabase auth
+            // ✅ PASSO 1: Cria o usuário na autenticação
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -54,7 +47,7 @@ if (registerForm) {
                         nome_completo: nome,
                         whatsapp: whatsapp,
                         endereco: endereco,
-                        user_type: 'cliente' // Default user type is 'cliente'
+                        user_type: 'cliente' // Por padrão, cadastro é sempre cliente
                     }
                 }
             });
@@ -63,7 +56,7 @@ if (registerForm) {
                 console.error("❌ Erro na autenticação:", authError);
                 throw authError;
             }
-
+            
             if (!authData.user) {
                 throw new Error("Usuário não foi criado, tente novamente.");
             }
@@ -71,10 +64,10 @@ if (registerForm) {
             const userId = authData.user.id;
             console.log("✅ Usuário criado com ID:", userId);
 
-            // Wait for the trigger to create the profile
+            // ✅ PASSO 2: Aguarda um pouco para o trigger criar o profile
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Update the profile with complete data
+            // ✅ PASSO 3: Atualiza o profile com os dados completos
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
@@ -90,10 +83,10 @@ if (registerForm) {
             } else {
                 console.log("✅ Perfil do usuário atualizado");
             }
-
-            // Retrieve and save the budget
+                    
+            // ✅ PASSO 4: Recupera o orçamento e salva em 'agendamentos'
             const orcamentoSalvo = localStorage.getItem('apexCareOrcamento');
-
+            
             if (orcamentoSalvo) {
                 try {
                     const orcamentoData = JSON.parse(orcamentoSalvo);
@@ -142,8 +135,8 @@ if (registerForm) {
             } else {
                 console.warn("⚠️ Nenhum orçamento encontrado em localStorage");
             }
-
-            // Redirect on success
+                    
+            // ✅ PASSO 5: Redireciona com sucesso
             const temOrcamento = orcamentoSalvo && orcamentoSalvo.length > 0;
             const resumeState = getResumeState();
 
@@ -171,7 +164,7 @@ if (registerForm) {
 // --- LÓGICA DE LOGIN COM SUPORTE A TÉCNICOS ---
 const loginForm = document.getElementById('login-form');
 
-if (loginForm) {
+if (loginForm) { 
     const errorMessage = document.getElementById('error-message');
 
     loginForm.addEventListener('submit', async (e) => {
@@ -179,14 +172,14 @@ if (loginForm) {
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const userType = document.getElementById('user-type').value; // 'cliente' or 'tecnico'
-
+        const userType = document.getElementById('user-type').value; // cliente ou tecnico
+        
         errorMessage.textContent = '';
 
         try {
             console.log("🔐 Tentando login para:", email, "Tipo:", userType);
 
-            // Sign in the user
+            // ✅ PASSO 1: Faz o login
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password,
@@ -196,7 +189,7 @@ if (loginForm) {
 
             console.log("✅ Login bem-sucedido!");
 
-            // Check the user type in the profile
+            // ✅ PASSO 2: Verifica o tipo de usuário no profile
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('user_type')
@@ -212,20 +205,22 @@ if (loginForm) {
             console.log("👤 Tipo de usuário no banco:", userTypeFromDB);
             console.log("👤 Tipo selecionado no login:", userType);
 
-            // Validate if the selected type matches the registered type
+            // ✅ PASSO 3: Valida se o tipo selecionado corresponde ao cadastrado
             if (userType === 'tecnico' && userTypeFromDB !== 'tecnico') {
+                // Usuário tentou logar como técnico, mas não é
                 await supabase.auth.signOut();
                 errorMessage.textContent = "Esta conta não é de técnico. Selecione 'Cliente' para entrar.";
                 return;
             }
 
             if (userType === 'cliente' && userTypeFromDB === 'tecnico') {
+                // Técnico tentou logar como cliente
                 await supabase.auth.signOut();
                 errorMessage.textContent = "Esta é uma conta de técnico. Selecione 'Técnico' para entrar.";
                 return;
             }
 
-            // Redirect to the correct page
+            // ✅ PASSO 4: Redireciona para a página correta
             alert("Login efetuado com sucesso!");
 
             const resumeState = getResumeState();
@@ -237,7 +232,7 @@ if (loginForm) {
             }
 
             if (userTypeFromDB === 'tecnico') {
-                window.location.href = 'tecnico-dashboard.html';
+                window.location.href = 'tecnico-dashboard.html'; // ← NOVA ROTA PARA TÉCNICOS
             } else {
                 window.location.href = 'index.html';
             }

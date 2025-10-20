@@ -1,37 +1,23 @@
 // js/tecnico-painel.js
 import { supabase } from './supabase-client.js';
-/**
- * @fileoverview Manages the technician panel for handling service orders.
- * @module tecnico-painel
- */
 
-// --- GLOBAL STATE ---
-/** @type {object|null} The current authenticated user object. */
 let currentUser = null;
-/** @type {object|null} The current service order being viewed. */
 let currentOS = null;
-/** @type {string|null} The role of the current user. */
 let currentRole = null;
-/** @type {object|null} The profile of the current user. */
 let currentProfile = null;
-/** @type {boolean} A flag to prevent multiple activity submissions at once. */
 let isSavingActivity = false;
-/** @type {object} An object to store uploaded photo URLs. */
 let uploadedPhotos = {
     antes: null,
     durante: [],
     depois: null
 };
 
-// --- INITIALIZATION ---
-/**
- * Initializes the technician panel.
- */
+// Inicialização
 async function init() {
     try {
-        // Verify authentication
+        // Verificar autenticação
         const { data: { user } } = await supabase.auth.getUser();
-
+        
         if (!user) {
             alert('Sessão não encontrada. Faça login novamente.');
             window.location.href = 'login.html';
@@ -40,7 +26,7 @@ async function init() {
 
         currentUser = user;
 
-        // Verify if user is a technician
+        // Verificar se é técnico
         const { data: profile } = await supabase
             .from('profiles')
             .select('user_type, nome_completo')
@@ -57,7 +43,7 @@ async function init() {
         currentRole = profile?.user_type || 'tecnico';
         currentProfile = profile;
 
-        // Load service order from URL
+        // Carregar OS da URL
         const urlParams = new URLSearchParams(window.location.search);
         const osId = urlParams.get('os');
 
@@ -75,10 +61,7 @@ async function init() {
         alert('Erro ao carregar a Ordem de Serviço.');
     }
 }
-/**
- * Loads a service order from the database.
- * @param {string} osId - The ID of the service order to load.
- */
+
 async function loadOS(osId) {
     try {
         const { data, error } = await supabase
@@ -106,34 +89,32 @@ async function loadOS(osId) {
         alert('Erro ao carregar OS: ' + error.message);
     }
 }
-/**
- * Renders the details of the service order.
- */
+
 function renderOSDetails() {
-    // Update header
+    // Atualizar cabeçalho
     document.getElementById('os-id').textContent = `OS #${currentOS.id}`;
-
-    const dataFormatada = currentOS.data_agendamento
-        ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        })
+    
+    const dataFormatada = currentOS.data_agendamento 
+        ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
         : 'Data não definida';
-
+    
     document.getElementById('os-date').textContent = dataFormatada;
     document.getElementById('os-time').textContent = currentOS.hora_agendamento || '--:--';
 
-    // Client information
+    // Informações do cliente
     document.getElementById('cliente-nome').textContent = currentOS.cliente?.nome_completo || 'N/A';
     document.getElementById('cliente-telefone').textContent = currentOS.cliente?.whatsapp || 'N/A';
     document.getElementById('cliente-endereco').textContent = currentOS.cliente?.endereco || 'N/A';
 
-    // Render services
+    // Renderizar serviços
     const servicosContainer = document.getElementById('servicos-list');
     servicosContainer.innerHTML = '';
-
+    
     currentOS.servicos_escolhidos.forEach((servico, index) => {
         const item = document.createElement('div');
         item.className = 'checklist-item';
@@ -146,7 +127,7 @@ function renderOSDetails() {
         servicosContainer.appendChild(item);
     });
 
-    // Total value
+    // Valor total
     const valorTotalElement = document.getElementById('valor-total');
     if (valorTotalElement) {
         if (currentRole === 'tecnico') {
@@ -159,10 +140,7 @@ function renderOSDetails() {
         }
     }
 }
-/**
- * Loads the activities for the current service order.
- * @param {boolean} [showLoader=true] - Whether to show a loading indicator.
- */
+
 async function loadActivities(showLoader = true) {
     const timeline = document.querySelector('.timeline');
     if (!timeline || !currentOS) return;
@@ -187,10 +165,7 @@ async function loadActivities(showLoader = true) {
         timeline.innerHTML = '<div class="timeline-empty">Erro ao carregar atividades.</div>';
     }
 }
-/**
- * Renders the timeline of activities.
- * @param {Array<object>} activities - A list of activities to render.
- */
+
 function renderTimeline(activities) {
     const timeline = document.querySelector('.timeline');
     if (!timeline) return;
@@ -222,11 +197,7 @@ function renderTimeline(activities) {
         timeline.appendChild(item);
     });
 }
-/**
- * Formats a date string for display in the timeline.
- * @param {string} dateString - The date string to format.
- * @returns {string} The formatted date string.
- */
+
 function formatActivityTime(dateString) {
     try {
         const date = new Date(dateString);
@@ -241,11 +212,7 @@ function formatActivityTime(dateString) {
         return '--/-- --:--';
     }
 }
-/**
- * Escapes HTML special characters in a string.
- * @param {string} unsafe - The string to escape.
- * @returns {string} The escaped string.
- */
+
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return '';
     return unsafe
@@ -255,11 +222,7 @@ function escapeHtml(unsafe) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
-/**
- * Shows a toast notification.
- * @param {string} message - The message to display.
- * @param {string} [type='success'] - The type of toast ('success', 'error').
- */
+
 function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -284,13 +247,11 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
-/**
- * Sets up event listeners for the page.
- */
+
 function setupEventListeners() {
-    // Service checkboxes
+    // Checkboxes de serviços
     document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
+        checkbox.addEventListener('change', function() {
             if (this.checked) {
                 this.parentElement.classList.add('completed');
             } else {
@@ -299,38 +260,38 @@ function setupEventListeners() {
         });
     });
 
-    // Photo uploads
+    // Upload de fotos
     document.getElementById('upload-antes').addEventListener('change', (e) => handlePhotoUpload(e, 'antes'));
     document.getElementById('upload-durante').addEventListener('change', (e) => handlePhotoUpload(e, 'durante'));
     document.getElementById('upload-depois').addEventListener('change', (e) => handlePhotoUpload(e, 'depois'));
 
-    // Action buttons
+    // Botões de ação
     document.getElementById('btn-iniciar-servico').addEventListener('click', iniciarServico);
     document.getElementById('btn-concluir-servico').addEventListener('click', concluirServico);
 }
-/**
- * Handles the photo upload process.
- * @param {Event} event - The file input change event.
- * @param {string} tipo - The type of photo ('antes', 'durante', 'depois').
- */
+
 async function handlePhotoUpload(event, tipo) {
     const file = event.target.files[0];
     if (!file) return;
 
+    // Validar tamanho (máx 5MB)
     if (file.size > 5 * 1024 * 1024) {
         alert('Arquivo muito grande. Máximo 5MB.');
         return;
     }
 
+    // Validar tipo
     if (!file.type.startsWith('image/')) {
         alert('Apenas imagens são permitidas.');
         return;
     }
 
     try {
+        // Mostrar loading
         const preview = document.getElementById(`preview-${tipo}`);
         preview.innerHTML = '<p>Enviando...</p>';
 
+        // Upload para o Supabase Storage
         const fileName = `${currentOS.id}_${tipo}_${Date.now()}.${file.name.split('.').pop()}`;
         const { data, error } = await supabase.storage
             .from('os-photos')
@@ -338,16 +299,19 @@ async function handlePhotoUpload(event, tipo) {
 
         if (error) throw error;
 
+        // Obter URL pública
         const { data: urlData } = supabase.storage
             .from('os-photos')
             .getPublicUrl(fileName);
 
+        // Armazenar no estado
         if (tipo === 'durante') {
             uploadedPhotos.durante.push(urlData.publicUrl);
         } else {
             uploadedPhotos[tipo] = urlData.publicUrl;
         }
 
+        // Atualizar preview
         preview.innerHTML = `<img src="${urlData.publicUrl}" alt="Foto ${tipo}" style="max-width: 100%; border-radius: 5px;">`;
 
         console.log('Foto enviada:', urlData.publicUrl);
@@ -357,13 +321,12 @@ async function handlePhotoUpload(event, tipo) {
         alert('Erro ao enviar foto: ' + error.message);
     }
 }
-/**
- * Starts the service and updates the status.
- */
+
 async function iniciarServico() {
     if (!confirm('Deseja iniciar este serviço agora?')) return;
 
     try {
+        // Atualizar status no banco
         const { error } = await supabase
             .from('agendamentos')
             .update({
@@ -374,6 +337,7 @@ async function iniciarServico() {
 
         if (error) throw error;
 
+        // Enviar notificações (email + WhatsApp)
         const notificationsSent = await sendNotifications('started');
 
         if (notificationsSent) {
@@ -382,6 +346,7 @@ async function iniciarServico() {
             alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
         }
 
+        // Atualizar interface
         document.getElementById('os-status').textContent = '🔄 Em Andamento';
         document.getElementById('btn-iniciar-servico').disabled = true;
 
@@ -390,10 +355,9 @@ async function iniciarServico() {
         alert('Erro ao iniciar serviço: ' + error.message);
     }
 }
-/**
- * Concludes the service and updates the status.
- */
+
 async function concluirServico() {
+    // Validações
     if (!uploadedPhotos.antes || !uploadedPhotos.depois) {
         alert('Por favor, envie pelo menos as fotos de ANTES e DEPOIS.');
         return;
@@ -409,6 +373,7 @@ async function concluirServico() {
     if (!confirm('Tem certeza que deseja CONCLUIR esta Ordem de Serviço?')) return;
 
     try {
+        // Atualizar no banco
         const { error } = await supabase
             .from('agendamentos')
             .update({
@@ -423,6 +388,7 @@ async function concluirServico() {
 
         if (error) throw error;
 
+        // Enviar notificações (email + WhatsApp)
         const notificationsSent = await sendNotifications('completed');
 
         if (notificationsSent) {
@@ -438,11 +404,9 @@ async function concluirServico() {
         alert('Erro ao concluir serviço: ' + error.message);
     }
 }
-/**
- * Adds an activity to the service order.
- * @global
- */
-window.addActivity = async function () {
+
+// Funções globais
+window.addActivity = async function() {
     if (!currentOS || !currentUser) {
         showToast('Ordem de serviço não carregada.', 'error');
         return;
@@ -482,14 +446,12 @@ window.addActivity = async function () {
         isSavingActivity = false;
     }
 };
-/**
- * Sends notifications to the client.
- * @param {string} tipo - The type of notification ('started' or 'completed').
- * @returns {Promise<boolean>} True if at least one notification was sent successfully, false otherwise.
- */
+
+// Adicionar no js/tecnico-painel.js
+
 async function sendNotifications(tipo) {
     try {
-        const dataFormatada = currentOS.data_agendamento
+        const dataFormatada = currentOS.data_agendamento 
             ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
             : 'N/A';
 
@@ -503,6 +465,7 @@ async function sendNotifications(tipo) {
             endereco: currentOS.cliente?.endereco
         };
 
+        // 1. ENVIAR EMAIL
         const emailData = {
             to: currentOS.cliente.email,
             subject: tipo === 'started' ? '🔧 Seu serviço foi iniciado!' : '🎉 Serviço concluído!',
@@ -514,6 +477,7 @@ async function sendNotifications(tipo) {
             body: emailData
         });
 
+        // 2. ENVIAR WHATSAPP
         let whatsappMessage = '';
 
         if (tipo === 'started') {
@@ -552,7 +516,7 @@ Obrigado pela confiança!`;
 
             if (whatsappNumber.length > 0) {
                 if (!whatsappNumber.startsWith('55')) {
-                    whatsappNumber = '55' + whatsappNumber;
+                    whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
                 }
 
                 const whatsappData = {
@@ -573,6 +537,7 @@ Obrigado pela confiança!`;
             console.info('ℹ️ Cliente sem número de WhatsApp cadastrado. Notificação enviada apenas por email.');
         }
 
+        // 3. AGUARDAR CANAIS DISPONÍVEIS (mas não bloquear se algum falhar)
         const settledResults = await Promise.allSettled(promises.map(item => item.promise));
 
         let emailResult;
@@ -585,6 +550,7 @@ Obrigado pela confiança!`;
             }
         });
 
+        // Log dos resultados
         if (emailResult?.status === 'fulfilled') {
             console.log('✅ Email enviado com sucesso');
         } else {
@@ -599,6 +565,7 @@ Obrigado pela confiança!`;
             }
         }
 
+        // Retornar sucesso se pelo menos uma notificação foi enviada
         const emailSuccess = emailResult?.status === 'fulfilled';
         const whatsappSuccess = whatsappResult?.status === 'fulfilled';
 
@@ -609,5 +576,6 @@ Obrigado pela confiança!`;
         return false;
     }
 }
-// --- START ---
+
+// Iniciar
 init();
