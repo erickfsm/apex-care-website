@@ -1,4 +1,3 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { renderPortalPlanComparison } from './pricing-renderer.js';
 import { showSuccess, showError, showLoading } from './feedback.js';
 
@@ -14,9 +13,94 @@ const statsDiv = document.getElementById('stats-container');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
 const pastAppointmentsDiv = document.getElementById('past-appointments');
 const logoutBtn = document.getElementById('logout-btn');
+const portalToast = document.getElementById('portal-status-toast');
+const portalToastMessage = portalToast?.querySelector('.toast-message');
+const portalToastIcon = portalToast?.querySelector('.toast-icon');
+let toastTimeoutId = null;
+
+if (portalToast) {
+  const closeBtn = portalToast.querySelector('.toast-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', hidePortalToast);
+  }
+}
+
+function showPortalToast(message, type = 'info') {
+  if (!portalToast || !portalToastMessage || !portalToastIcon) return;
+
+  const iconMap = {
+    success: '✅',
+    error: '⚠️',
+    info: 'ℹ️',
+  };
+
+  portalToastMessage.textContent = message;
+  portalToastIcon.textContent = iconMap[type] || iconMap.info;
+  portalToast.className = `portal-status-toast ${type}`;
+  portalToast.classList.add('visible');
+
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+  }
+
+  toastTimeoutId = setTimeout(() => {
+    hidePortalToast();
+  }, 5000);
+}
+
+function hidePortalToast() {
+  if (!portalToast) return;
+  portalToast.classList.remove('visible');
+  if (toastTimeoutId) {
+    clearTimeout(toastTimeoutId);
+    toastTimeoutId = null;
+  }
+}
+
+function setButtonLoadingState(button, isLoading) {
+  if (!button) return;
+
+  const labelEl = button.querySelector('.btn-label');
+
+  if (isLoading) {
+    if (!button.dataset.originalLabel) {
+      button.dataset.originalLabel = labelEl ? labelEl.textContent : button.textContent;
+    }
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.setAttribute('aria-busy', 'true');
+    if (labelEl) {
+      labelEl.textContent = 'Cancelando...';
+    } else {
+      button.textContent = 'Cancelando...';
+    }
+  } else {
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    button.removeAttribute('aria-busy');
+    const originalLabel = button.dataset.originalLabel;
+    if (labelEl && originalLabel) {
+      labelEl.textContent = originalLabel;
+    } else if (!labelEl && originalLabel) {
+      button.textContent = originalLabel;
+    }
+    delete button.dataset.originalLabel;
+  }
+}
 
 function formatCurrency(value) {
   return `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
+}
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return value
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 async function initPortal() {
@@ -229,6 +313,55 @@ function renderAppointments(appointments, element, isUpcoming) {
     const horario = appt.hora_agendamento ? ` às ${appt.hora_agendamento}` : '';
     const statusClass = getStatusClass(appt.status_pagamento);
 
+    const metadata = [];
+    if (Number.isFinite(Number(appt.distancia_km))) {
+      const distanciaValue = Number(appt.distancia_km);
+      metadata.push(
+        `<li><strong>Distância estimada:</strong> ${distanciaValue.toFixed(1)} km</li>`
+      );
+    }
+
+    if (!Number.isNaN(Number(appt.taxa_deslocamento))) {
+      metadata.push(
+        `<li><strong>Taxa de deslocamento:</strong> ${formatCurrency(
+          appt.taxa_deslocamento
+        )}</li>`
+      );
+    }
+
+    if (!Number.isNaN(Number(appt.adicionais_condicoes))) {
+      metadata.push(
+        `<li><strong>Adicionais por condições:</strong> ${formatCurrency(
+          appt.adicionais_condicoes
+        )}</li>`
+      );
+    }
+
+    const condicoesLabels = Array.isArray(appt.condicoes_extremas?.selections)
+      ? appt.condicoes_extremas.selections
+          .map((item) => item?.label || item?.id)
+          .filter(Boolean)
+      : [];
+
+    if (condicoesLabels.length) {
+      metadata.push(
+        `<li><strong>Condições especiais:</strong> ${escapeHtml(
+          condicoesLabels.join(', ')
+        )}</li>`
+      );
+    }
+
+    const observacoesText = appt.observacoes?.trim();
+    if (observacoesText) {
+      metadata.push(
+        `<li><strong>Observações:</strong> ${escapeHtml(observacoesText)}</li>`
+      );
+    }
+
+    const metaSection = metadata.length
+      ? `<ul class="appointment-meta">${metadata.join('')}</ul>`
+      : '';
+
     let actionButton = '';
 
     if (isUpcoming) {
@@ -239,7 +372,10 @@ function renderAppointments(appointments, element, isUpcoming) {
         actionButton = `
           <div class="appointment-actions">
             <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-            <button class="btn-small btn-cancel" onclick="cancelAppointment('${appt.id}')">Cancelar</button>
+            <button class="btn-small btn-cancel" data-appointment-id="${appt.id}" onclick="cancelAppointment('${appt.id}', this)">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btn-label">Cancelar</span>
+            </button>
           </div>
         `;
       } else {
@@ -271,125 +407,14 @@ function renderAppointments(appointments, element, isUpcoming) {
           <h4>📅 ${dataFormatada}${horario}</h4>
           <p><strong>Serviços:</strong> ${servicesText}</p>
           <p><strong>Valor:</strong> ${formatCurrency(appt.valor_total)}</p>
+          ${metaSection}
         </div>
         ${actionButton}
       </div>
     `;
-
-    element.insertAdjacentHTML('beforeend', cardHTML);
-  });
 }
 
-function getStatusClass(status) {
-  const map = {
-    'Em Aprovação': 'status-em-aprovacao',
-    Aprovado: 'status-aprovado',
-    'Aguardando Agendamento': 'status-aprovado',
-    'Pendente (Pagar no Local)': 'status-pendente',
-    'Pago e Confirmado': 'status-confirmado',
-    'Aguardando Execução': 'status-confirmado',
-    'Em Andamento': 'status-em-andamento',
-    Concluído: 'status-concluido',
-    Cancelado: 'status-cancelado',
-    Reprovado: 'status-reprovado',
-  };
-  return map[status] || 'status-pendente';
-}
-
-function updateStats() {
-  if (!statsDiv) return;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const upcoming = allAppointments.filter((appt) => {
-    if (!appt.data_agendamento) return false;
-    if (appt.status_pagamento === 'Cancelado') return false;
-    const apptDate = new Date(`${appt.data_agendamento}T00:00:00`);
-    return apptDate >= today;
-  }).length;
-
-  const completed = allAppointments.filter((appt) => appt.status_pagamento === 'Concluído').length;
-  const economiaTotalPromo = allAppointments
-    .filter((appt) => appt?.status_pagamento !== 'Cancelado' && appt?.desconto_aplicado)
-    .reduce((sum, appt) => sum + (Number(appt?.desconto_aplicado) || 0), 0);
-
-  const pontosFidelidade = completed * 10;
-
-  const ultimoServico = allAppointments
-    .filter((appt) => appt?.status_pagamento === 'Concluído' && appt?.data_agendamento)
-    .sort(
-      (a, b) =>
-        new Date(`${b.data_agendamento}T00:00:00`).getTime() -
-        new Date(`${a.data_agendamento}T00:00:00`).getTime()
-    )[0];
-
-  let diasDesdeUltimo = 'N/A';
-  if (ultimoServico) {
-    const dataUltimo = new Date(`${ultimoServico.data_agendamento}T00:00:00`);
-    const diffTime = Date.now() - dataUltimo.getTime();
-    diasDesdeUltimo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
-
-  const planoAtivo = allAppointments.some(
-    (appt) => appt?.plano_id && appt?.status_pagamento !== 'Cancelado'
-  );
-
-  statsDiv.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-value">${upcoming}</div>
-        <div class="stat-label">Próximos Agendamentos</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
-        <div class="stat-value">${completed}</div>
-        <div class="stat-label">Serviços Concluídos</div>
-      </div>
-      <div class="stat-card" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: white;">
-        <div class="stat-icon">💰</div>
-        <div class="stat-value" style="color: white;">${formatCurrency(
-          economiaTotalPromo
-        )}</div>
-        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Economia em Promoções</div>
-      </div>
-      <div class="stat-card" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white;">
-        <div class="stat-icon">⭐</div>
-        <div class="stat-value" style="color: white;">${pontosFidelidade}</div>
-        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Pontos Apex Club</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📆</div>
-        <div class="stat-value">${diasDesdeUltimo}</div>
-        <div class="stat-label">${
-          diasDesdeUltimo === 'N/A' ? 'Sem Histórico' : 'Dias Desde o Último Serviço'
-        }</div>
-      </div>
-      <div class="stat-card" ${planoAtivo ? 'style="border: 2px solid var(--color-cyan);"' : ''}>
-        <div class="stat-icon">${planoAtivo ? '🛡️' : '💳'}</div>
-        <div class="stat-value">${planoAtivo ? 'ATIVO' : 'NENHUM'}</div>
-        <div class="stat-label">Plano de Cuidado</div>
-      </div>
-    </div>
-    ${
-      diasDesdeUltimo > 90 && diasDesdeUltimo !== 'N/A'
-        ? `
-        <div class="alert-box">
-          <span class="alert-icon">⏰</span>
-          <div>
-            <strong>Hora de cuidar novamente!</strong>
-            <p>Já faz ${diasDesdeUltimo} dias desde seu último serviço. Recomendamos higienização a cada 3-6 meses.</p>
-          </div>
-          <a href="orcamento.html" class="alert-btn">Agendar agora</a>
-        </div>
-      `
-        : ''
-    }
-  `;
-}
-
-window.cancelAppointment = async function cancelAppointment(appointmentId) {
+window.cancelAppointment = async function cancelAppointment(appointmentId, buttonEl) {
   if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 
   const dismissLoading = showLoading('Cancelando seu agendamento...');
@@ -403,6 +428,7 @@ window.cancelAppointment = async function cancelAppointment(appointmentId) {
 
     if (error) throw error;
 
+    showPortalToast('Agendamento cancelado com sucesso.', 'success');
     await loadPortalData();
     showSuccess('Agendamento cancelado com sucesso.');
   } catch (error) {
@@ -432,4 +458,3 @@ window.rebookAppointment = function rebookAppointment(servicesData) {
 };
 
 renderPortalPlanComparison();
-initPortal();

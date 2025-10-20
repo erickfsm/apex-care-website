@@ -136,32 +136,9 @@
             color: var(--color-graphite);
         }
 
-        .appointment-status {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .status-pendente {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-
-        .status-confirmado {
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .status-em-andamento {
-            background-color: #cfe2ff;
-            color: #084298;
-        }
-
-        .status-concluido {
-            background-color: #d4edda;
-            color: #155724;
+        .appointment-header .status-badge {
+            min-width: 140px;
+            justify-content: center;
         }
 
         .appointment-info {
@@ -424,11 +401,7 @@
     </footer>
 
     <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        import { supabase } from './js/supabase-client.js';
 
         let currentUser = null;
         let currentRole = 'tecnico';
@@ -535,11 +508,17 @@
             try {
                 console.log('🔍 Carregando agendamentos...');
 
-                // Buscar TODOS os agendamentos primeiro
-                const { data: appointments, error } = await supabase
+                // Buscar agendamentos respeitando o escopo do perfil atual
+                let query = supabase
                     .from('agendamentos')
                     .select('*')
                     .order('created_at', { ascending: false });
+
+                if (currentRole === 'tecnico' && currentUser?.id) {
+                    query = query.eq('tecnico_id', currentUser.id);
+                }
+
+                const { data: appointments, error } = await query;
 
                 if (error) throw error;
 
@@ -645,11 +624,18 @@
             const container = document.getElementById('appointments-container');
 
             if (appointments.length === 0) {
+                const emptyTitle = currentRole === 'tecnico'
+                    ? 'Você ainda não possui ordens de serviço'
+                    : 'Nenhum agendamento encontrado';
+                const emptyMessage = currentRole === 'tecnico'
+                    ? 'Assim que houver OS atribuídas a você, elas aparecerão aqui.'
+                    : 'Não há agendamentos para exibir no momento.';
+
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">📭</div>
-                        <h3>Nenhum agendamento encontrado</h3>
-                        <p>Não há agendamentos para exibir no momento.</p>
+                        <h3>${emptyTitle}</h3>
+                        <p>${emptyMessage}</p>
                     </div>
                 `;
                 return;
@@ -679,7 +665,7 @@
                     <div class="appointment-card">
                         <div class="appointment-header">
                             <span class="appointment-id">📋 OS #${appt.id}</span>
-                            <span class="appointment-status ${statusClass}">
+                            <span class="status-badge ${statusClass}">
                                 ${appt.status_pagamento || 'Pendente'}
                             </span>
                         </div>

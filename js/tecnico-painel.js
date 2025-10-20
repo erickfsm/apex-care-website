@@ -1,13 +1,11 @@
 // js/tecnico-painel.js
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-const SUPABASE_URL = 'https://xrajjehettusnbvjielf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from './supabase-client.js';
 
 let currentUser = null;
 let currentOS = null;
 let currentRole = null;
+let currentProfile = null;
+let isSavingActivity = false;
 let uploadedPhotos = {
     antes: null,
     durante: [],
@@ -31,7 +29,7 @@ async function init() {
         // Verificar se é técnico
         const { data: profile } = await supabase
             .from('profiles')
-            .select('user_type')
+            .select('user_type, nome_completo')
             .eq('id', user.id)
             .single();
 
@@ -43,6 +41,7 @@ async function init() {
         }
 
         currentRole = profile?.user_type || 'tecnico';
+        currentProfile = profile;
 
         // Carregar OS da URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -83,6 +82,7 @@ async function loadOS(osId) {
 
         currentOS = data;
         renderOSDetails();
+        await loadActivities();
 
     } catch (error) {
         console.error('Erro ao carregar OS:', error);
@@ -139,6 +139,113 @@ function renderOSDetails() {
             valorTotalElement.textContent = `R$ ${valorFormatado}`;
         }
     }
+}
+
+async function loadActivities(showLoader = true) {
+    const timeline = document.querySelector('.timeline');
+    if (!timeline || !currentOS) return;
+
+    if (showLoader) {
+        timeline.innerHTML = '<div class="timeline-empty">Carregando atividades...</div>';
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('os_atividades')
+            .select('id, descricao, created_at, tecnico_id, tecnico_nome')
+            .eq('agendamento_id', currentOS.id)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        renderTimeline(data || []);
+    } catch (error) {
+        console.error('Erro ao carregar atividades:', error);
+        showToast('Não foi possível carregar o histórico de atividades.', 'error');
+        timeline.innerHTML = '<div class="timeline-empty">Erro ao carregar atividades.</div>';
+    }
+}
+
+function renderTimeline(activities) {
+    const timeline = document.querySelector('.timeline');
+    if (!timeline) return;
+
+    if (!activities.length) {
+        timeline.innerHTML = '<div class="timeline-empty">Nenhuma atividade registrada até o momento.</div>';
+        return;
+    }
+
+    timeline.innerHTML = '';
+
+    activities.forEach(activity => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+
+        const timeElement = document.createElement('div');
+        timeElement.className = 'timeline-time';
+        timeElement.textContent = formatActivityTime(activity.created_at);
+
+        const descElement = document.createElement('div');
+        descElement.className = 'timeline-desc';
+        descElement.innerHTML = `
+            <p>${escapeHtml(activity.descricao).replace(/\n/g, '<br>')}</p>
+            <span class="timeline-meta">${activity.tecnico_nome ? escapeHtml(activity.tecnico_nome) : 'Técnico'}</span>
+        `;
+
+        item.appendChild(timeElement);
+        item.appendChild(descElement);
+        timeline.appendChild(item);
+    });
+}
+
+function formatActivityTime(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return '--/-- --:--';
+    }
+}
+
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast--${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add('toast--visible');
+    });
+
+    setTimeout(() => {
+        toast.classList.remove('toast--visible');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 function setupEventListeners() {
@@ -222,7 +329,7 @@ async function iniciarServico() {
         // Atualizar status no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Em Andamento',
                 data_inicio: new Date().toISOString()
             })
@@ -230,11 +337,15 @@ async function iniciarServico() {
 
         if (error) throw error;
 
-        // Enviar email para o cliente
-        await sendEmail('started');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('started');
 
-        alert('✅ Serviço iniciado! Cliente notificado por email.');
-        
+        if (notificationsSent) {
+            alert('✅ Serviço iniciado! Cliente notificado.');
+        } else {
+            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
+        }
+
         // Atualizar interface
         document.getElementById('os-status').textContent = '🔄 Em Andamento';
         document.getElementById('btn-iniciar-servico').disabled = true;
@@ -265,7 +376,7 @@ async function concluirServico() {
         // Atualizar no banco
         const { error } = await supabase
             .from('agendamentos')
-            .update({ 
+            .update({
                 status_pagamento: 'Concluído',
                 data_conclusao: new Date().toISOString(),
                 fotos_antes: uploadedPhotos.antes,
@@ -277,10 +388,15 @@ async function concluirServico() {
 
         if (error) throw error;
 
-        // Enviar email de conclusão
-        await sendEmail('completed');
+        // Enviar notificações (email + WhatsApp)
+        const notificationsSent = await sendNotifications('completed');
 
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        if (notificationsSent) {
+            alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
+        } else {
+            alert('⚠️ Ordem de Serviço concluída, mas houve erro ao enviar notificações.');
+        }
+
         window.location.href = 'tecnico-dashboard.html';
 
     } catch (error) {
@@ -289,55 +405,45 @@ async function concluirServico() {
     }
 }
 
-async function sendEmail(tipo) {
-    try {
-        const dataFormatada = currentOS.data_agendamento 
-            ? new Date(currentOS.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR')
-            : 'N/A';
-
-        const emailData = {
-            to: currentOS.cliente.email,
-            subject: tipo === 'started' ? '🔧 Seu serviço foi iniciado!' : '🎉 Serviço concluído!',
-            emailType: tipo,
-            appointmentData: {
-                clienteNome: currentOS.cliente.nome_completo,
-                dataAgendamento: dataFormatada,
-                horaAgendamento: currentOS.hora_agendamento,
-                servicos: currentOS.servicos_escolhidos,
-                valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
-                osId: currentOS.id
-            }
-        };
-
-        const { error } = await supabase.functions.invoke('send-email', {
-            body: emailData
-        });
-
-        if (error) {
-            console.error('Erro ao enviar email:', error);
-            // Não bloqueia o fluxo se o email falhar
-        }
-
-    } catch (error) {
-        console.error('Erro na função de email:', error);
-    }
-}
-
 // Funções globais
-window.addActivity = function() {
-    const now = new Date();
-    const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const activity = prompt('Descreva a atividade realizada:');
-    
-    if (activity) {
-        const timeline = document.querySelector('.timeline');
-        const newActivity = document.createElement('div');
-        newActivity.className = 'timeline-item';
-        newActivity.innerHTML = `
-            <div class="timeline-time">${time}</div>
-            <div class="timeline-desc">${activity}</div>
-        `;
-        timeline.appendChild(newActivity);
+window.addActivity = async function() {
+    if (!currentOS || !currentUser) {
+        showToast('Ordem de serviço não carregada.', 'error');
+        return;
+    }
+
+    if (isSavingActivity) {
+        return;
+    }
+
+    const descricao = prompt('Descreva a atividade realizada:');
+    if (!descricao || !descricao.trim()) {
+        return;
+    }
+
+    const payload = {
+        agendamento_id: currentOS.id,
+        descricao: descricao.trim(),
+        tecnico_id: currentUser.id,
+        tecnico_nome: currentProfile?.nome_completo || currentUser.email || 'Técnico',
+        created_at: new Date().toISOString()
+    };
+
+    try {
+        isSavingActivity = true;
+        const { error } = await supabase
+            .from('os_atividades')
+            .insert(payload);
+
+        if (error) throw error;
+
+        showToast('Atividade registrada com sucesso.');
+        await loadActivities(false);
+    } catch (error) {
+        console.error('Erro ao salvar atividade:', error);
+        showToast('Erro ao registrar atividade. Tente novamente.', 'error');
+    } finally {
+        isSavingActivity = false;
     }
 };
 
@@ -350,13 +456,13 @@ async function sendNotifications(tipo) {
             : 'N/A';
 
         const notificationData = {
-            clienteNome: currentOS.cliente.nome_completo,
+            clienteNome: currentOS.cliente?.nome_completo,
             dataAgendamento: dataFormatada,
             horaAgendamento: currentOS.hora_agendamento,
             servicos: currentOS.servicos_escolhidos,
-            valorTotal: currentOS.valor_total.toFixed(2).replace('.', ','),
+            valorTotal: Number(currentOS?.valor_total || 0).toFixed(2).replace('.', ','),
             osId: currentOS.id,
-            endereco: currentOS.cliente.endereco
+            endereco: currentOS.cliente?.endereco
         };
 
         // 1. ENVIAR EMAIL
@@ -373,7 +479,7 @@ async function sendNotifications(tipo) {
 
         // 2. ENVIAR WHATSAPP
         let whatsappMessage = '';
-        
+
         if (tipo === 'started') {
             whatsappMessage = `🔧 *Serviço Iniciado - Apex Care*
 
@@ -401,114 +507,73 @@ ${window.location.origin}/avaliacao.html?os=${notificationData.osId}
 Obrigado pela confiança!`;
         }
 
-        // Formatar número de WhatsApp (remover caracteres especiais e adicionar código do país)
-        let whatsappNumber = currentOS.cliente.whatsapp.replace(/\D/g, '');
-        if (!whatsappNumber.startsWith('55')) {
-            whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+        const promises = [{ channel: 'email', promise: emailPromise }];
+        let whatsappResult;
+
+        const rawWhatsapp = currentOS.cliente?.whatsapp;
+        if (rawWhatsapp) {
+            let whatsappNumber = rawWhatsapp.replace(/\D/g, '');
+
+            if (whatsappNumber.length > 0) {
+                if (!whatsappNumber.startsWith('55')) {
+                    whatsappNumber = '55' + whatsappNumber; // Adiciona código do Brasil
+                }
+
+                const whatsappData = {
+                    to: `whatsapp:+${whatsappNumber}`,
+                    message: whatsappMessage,
+                    messageType: tipo
+                };
+
+                const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
+                    body: whatsappData
+                });
+
+                promises.push({ channel: 'whatsapp', promise: whatsappPromise });
+            } else {
+                console.warn('⚠️ Número de WhatsApp inválido fornecido:', rawWhatsapp);
+            }
+        } else {
+            console.info('ℹ️ Cliente sem número de WhatsApp cadastrado. Notificação enviada apenas por email.');
         }
 
-        const whatsappData = {
-            to: `whatsapp:+${whatsappNumber}`,
-            message: whatsappMessage,
-            messageType: tipo
-        };
+        // 3. AGUARDAR CANAIS DISPONÍVEIS (mas não bloquear se algum falhar)
+        const settledResults = await Promise.allSettled(promises.map(item => item.promise));
 
-        const whatsappPromise = supabase.functions.invoke('send-whatsapp', {
-            body: whatsappData
+        let emailResult;
+        settledResults.forEach((result, index) => {
+            const channel = promises[index].channel;
+            if (channel === 'email') {
+                emailResult = result;
+            } else if (channel === 'whatsapp') {
+                whatsappResult = result;
+            }
         });
 
-        // 3. AGUARDAR AMBOS (mas não bloquear se algum falhar)
-        const [emailResult, whatsappResult] = await Promise.allSettled([
-            emailPromise,
-            whatsappPromise
-        ]);
-
         // Log dos resultados
-        if (emailResult.status === 'fulfilled') {
+        if (emailResult?.status === 'fulfilled') {
             console.log('✅ Email enviado com sucesso');
         } else {
-            console.error('❌ Erro ao enviar email:', emailResult.reason);
+            console.error('❌ Erro ao enviar email:', emailResult?.reason);
         }
 
-        if (whatsappResult.status === 'fulfilled') {
-            console.log('✅ WhatsApp enviado com sucesso');
-        } else {
-            console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+        if (whatsappResult) {
+            if (whatsappResult.status === 'fulfilled') {
+                console.log('✅ WhatsApp enviado com sucesso');
+            } else {
+                console.error('❌ Erro ao enviar WhatsApp:', whatsappResult.reason);
+            }
         }
 
         // Retornar sucesso se pelo menos uma notificação foi enviada
-        return emailResult.status === 'fulfilled' || whatsappResult.status === 'fulfilled';
+        const emailSuccess = emailResult?.status === 'fulfilled';
+        const whatsappSuccess = whatsappResult?.status === 'fulfilled';
+
+        return emailSuccess || whatsappSuccess;
 
     } catch (error) {
         console.error('Erro geral ao enviar notificações:', error);
         return false;
-    }
-}
-
-// Atualizar função iniciarServico
-async function iniciarServico() {
-    if (!confirm('Deseja iniciar este serviço agora?')) return;
-
-    try {
-        // Atualizar status no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Em Andamento',
-                data_inicio: new Date().toISOString()
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        const notificationsSent = await sendNotifications('started');
-        
-        if (notificationsSent) {
-            alert('✅ Serviço iniciado! Cliente notificado.');
-        } else {
-            alert('⚠️ Serviço iniciado, mas houve erro ao enviar notificações.');
-        }
-        
-        // Atualizar interface
-        document.getElementById('os-status').textContent = '🔄 Em Andamento';
-        document.getElementById('btn-iniciar-servico').disabled = true;
-
-    } catch (error) {
-        console.error('Erro ao iniciar serviço:', error);
-        alert('Erro ao iniciar serviço: ' + error.message);
-    }
-}
-
-// Atualizar função concluirServico
-async function concluirServico() {
-    // ... validações existentes ...
-
-    try {
-        // Atualizar no banco
-        const { error } = await supabase
-            .from('agendamentos')
-            .update({ 
-                status_pagamento: 'Concluído',
-                data_conclusao: new Date().toISOString(),
-                fotos_antes: uploadedPhotos.antes,
-                fotos_durante: uploadedPhotos.durante,
-                fotos_depois: uploadedPhotos.depois,
-                observacoes_tecnico: observacoes
-            })
-            .eq('id', currentOS.id);
-
-        if (error) throw error;
-
-        // Enviar notificações (email + WhatsApp)
-        await sendNotifications('completed');
-
-        alert('✅ Ordem de Serviço concluída com sucesso! Cliente notificado.');
-        window.location.href = 'tecnico-dashboard.html';
-
-    } catch (error) {
-        console.error('Erro ao concluir serviço:', error);
-        alert('Erro ao concluir serviço: ' + error.message);
     }
 }
 

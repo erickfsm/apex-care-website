@@ -1,9 +1,4 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-const SUPABASE_URL = "https://xrajjehettusnbvjielf.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyYWpqZWhldHR1c25idmppZWxmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5NjE2NzMsImV4cCI6MjA3NTUzNzY3M30.LIl1PcGEA31y2TVYmA7zH7mnCPjot-s02LcQmu79e_U";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+import { supabase } from "./supabase-client.js";
 
 const RESUME_STATE_KEY = "apexCareResumeState";
 const BASE_LOCATION = {
@@ -100,6 +95,21 @@ let promocoesManager = null;
 let extremeConditionChargesTotal = 0;
 let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
+let lastPromotionInfo = null;
+
+async function ensurePromocoesManagerInitialized() {
+  if (!currentSession?.user?.id) {
+    return null;
+  }
+
+  if (!promocoesManager) {
+    promocoesManager = new window.PromocoesManager();
+    await promocoesManager.init(currentSession.user.id);
+    promocoesManager.renderBannerPromocoes("promocoes-banner");
+  }
+
+  return promocoesManager;
+}
 
 function formatCurrency(value) {
   return `R$ ${Number(value || 0)
@@ -117,6 +127,64 @@ function applyCepMask(value) {
     return digits;
   }
   return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
+}
+
+function getCurrentCepValue() {
+  const inputCep = cepInput?.value ? sanitizeCep(cepInput.value) : "";
+  if (inputCep.length === 8) {
+    return inputCep;
+  }
+  return stepData.step2?.cep ? sanitizeCep(stepData.step2.cep) : "";
+}
+
+function getCurrentNumeroValue() {
+  const inputNumero = numeroInput?.value?.trim();
+  if (inputNumero) {
+    return inputNumero;
+  }
+  const storedNumero = stepData.step2?.numero;
+  return typeof storedNumero === "string" ? storedNumero.trim() : "";
+}
+
+function hasValidAddressForTotals() {
+  const cepValue = getCurrentCepValue();
+  const numeroValue = getCurrentNumeroValue();
+  const ruaValue = (ruaInput?.value || stepData.step2?.rua || "").trim();
+  const cidadeValue =
+    (cidadeInput?.value || stepData.step2?.cidadeDetalhe || "").trim();
+  const estadoValue = (estadoInput?.value || stepData.step2?.estado || "").trim();
+  const hasAddressDetails = Boolean(
+    lastCepData || (ruaValue && (cidadeValue || estadoValue))
+  );
+
+  return (
+    cepValue.length === 8 &&
+    numeroValue.length > 0 &&
+    hasAddressDetails &&
+    Number.isFinite(distanceKm)
+  );
+}
+
+function renderStatusMessage(element, message, { isLoading = false } = {}) {
+  if (!element) return;
+
+  element.textContent = "";
+  const wrapper = document.createElement("span");
+  wrapper.className = "status-indicator";
+
+  if (isLoading) {
+    const spinner = document.createElement("span");
+    spinner.className = "status-indicator__spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    wrapper.appendChild(spinner);
+  }
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "status-indicator__text";
+  textSpan.textContent = message;
+  wrapper.appendChild(textSpan);
+
+  element.appendChild(wrapper);
 }
 
 function setLoginWarningVisible(visible) {
@@ -540,11 +608,14 @@ async function renderChargesSummary() {
         amount: distanceSurcharge,
       });
       if (distanceInfoDiv) {
-        distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(
-          1
-        )} km. Aplicamos ${formatCurrency(
-          DISTANCE_FEE_PER_KM
-        )} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`;
+        renderStatusMessage(
+          distanceInfoDiv,
+          `Distância estimada até a filial: ${distanceKm.toFixed(
+            1
+          )} km. Aplicamos ${formatCurrency(
+            DISTANCE_FEE_PER_KM
+          )} por quilômetro excedente após ${DISTANCE_THRESHOLD_KM} km.`
+        );
       }
     } else {
       distanceSurcharge = 0;
@@ -553,20 +624,30 @@ async function renderChargesSummary() {
         amount: 0,
       });
       if (distanceInfoDiv) {
-        distanceInfoDiv.textContent = `Distância estimada até a filial: ${distanceKm.toFixed(
-          1
-        )} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
+        renderStatusMessage(
+          distanceInfoDiv,
+          `Distância estimada até a filial: ${distanceKm.toFixed(
+            1
+          )} km (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`
+        );
       }
     }
   } else {
     distanceSurcharge = 0;
     if (distanceInfoDiv) {
-      distanceInfoDiv.textContent = `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`;
+      renderStatusMessage(
+        distanceInfoDiv,
+        isCalculatingDistance
+          ? "Calculando distância até a filial..."
+          : `Informe CEP e número para calcular a distância (até ${DISTANCE_THRESHOLD_KM} km sem taxa adicional).`,
+        { isLoading: isCalculatingDistance }
+      );
     }
   }
 
   let descontoPromocao = 0;
   let mensagemPromocao = null;
+  lastPromotionInfo = null;
 
   if (promocoesManager && selectedServices.length > 0) {
     try {
@@ -576,6 +657,13 @@ async function renderChargesSummary() {
       );
       descontoPromocao = resultado.desconto;
       mensagemPromocao = resultado.mensagem;
+      if (resultado.promocao && descontoPromocao > 0) {
+        lastPromotionInfo = {
+          id: resultado.promocao.id,
+          nome: resultado.promocao.nome,
+          valor: descontoPromocao,
+        };
+      }
     } catch (error) {
       console.warn("Não foi possível calcular promoções:", error);
     }
@@ -628,15 +716,16 @@ async function renderChargesSummary() {
       : "R$ --";
   }
 
-  updateScheduleButtonState();
+  updateSummaryVisibility();
 }
 
 function shouldRevealTotals() {
-  return currentStep >= FINAL_STEP;
+  return stepData.services.length > 0 && hasValidAddressForTotals();
 }
 
 function updateSummaryVisibility() {
   const revealTotals = shouldRevealTotals();
+  const onFinalStep = currentStep >= FINAL_STEP;
   if (summaryTotalContainer) {
     summaryTotalContainer.classList.toggle("hidden", !revealTotals);
   }
@@ -644,7 +733,7 @@ function updateSummaryVisibility() {
     summaryLockedMessage.classList.toggle("hidden", revealTotals);
   }
   if (scheduleBtn) {
-    scheduleBtn.classList.toggle("hidden", !revealTotals);
+    scheduleBtn.classList.toggle("hidden", !onFinalStep);
   }
 
   if (totalPriceSpan) {
@@ -658,8 +747,10 @@ function updateSummaryVisibility() {
 function updateScheduleButtonState() {
   if (!scheduleBtn) return;
   const hasServices = stepData.services.length > 0;
+  const totalsReady = shouldRevealTotals();
+  const distanceReady = Number.isFinite(distanceKm);
   const canFinish =
-    shouldRevealTotals() && hasServices && Number.isFinite(distanceKm);
+    currentStep >= FINAL_STEP && totalsReady && hasServices && distanceReady;
   scheduleBtn.disabled = !canFinish || !currentSession;
 }
 
@@ -695,14 +786,14 @@ function clearResumeState() {
   localStorage.removeItem(RESUME_STATE_KEY);
 }
 
-function queueResumeState() {
+async function queueResumeState() {
   pendingResumeState = getResumeState();
   if (currentSession) {
-    applyResumeState();
+    await applyResumeState();
   }
 }
 
-function applyResumeState() {
+async function applyResumeState() {
   if (!pendingResumeState || resumeStateRestored) return;
 
   stepData.step1 = pendingResumeState.step1 || {};
@@ -733,6 +824,9 @@ function applyResumeState() {
     pendingResumeState.targetStep || 1,
     stepSections.length
   );
+  if (currentSession) {
+    await ensurePromocoesManagerInitialized();
+  }
   showStep(targetStep);
   renderChargesSummary();
 
@@ -1257,10 +1351,14 @@ async function updateCustomerCoordinates() {
   ].filter(Boolean);
 
   const lookupId = ++latestDistanceLookupId;
+  distanceKm = null;
   isCalculatingDistance = true;
   if (distanceInfoDiv) {
-    distanceInfoDiv.textContent = "Calculando distância até a filial...";
+    renderStatusMessage(distanceInfoDiv, "Calculando distância até a filial...", {
+      isLoading: true,
+    });
   }
+  updateSummaryVisibility();
 
   try {
     customerCoordinates = await geocodeAddress(addressParts.join(", "));
@@ -1294,7 +1392,6 @@ async function updateCustomerCoordinates() {
   }
 
   renderChargesSummary();
-  updateScheduleButtonState();
 }
 
 async function initializeAuth() {
@@ -1317,7 +1414,7 @@ async function initializeAuth() {
 
     if (session) {
       if (pendingResumeState) {
-        applyResumeState();
+        await applyResumeState();
       }
       const contactReady = await hydrateStep1FromSession({ force: true });
       if (
@@ -1449,6 +1546,9 @@ function registerScheduleListener() {
         quantity: 1,
         line_total: -lastPromotionDiscount,
         type: "discount",
+        promotion_id: lastPromotionInfo?.id || null,
+        promotion_nome: lastPromotionInfo?.nome || null,
+        promotion_valor: lastPromotionInfo?.valor || lastPromotionDiscount,
       });
     }
 
@@ -1496,6 +1596,34 @@ function registerScheduleListener() {
       });
     }
 
+    const extremeSelections = stepData.extremeConditions?.selections ?? [];
+    const formattedExtremeSelections = extremeSelections
+      .map((item) => item.label || item.id || "")
+      .filter(Boolean)
+      .join(", ");
+
+    const backofficeAnnotations = [
+      Number.isFinite(distanceKm)
+        ? `Distância estimada: ${distanceKm.toFixed(1)} km`
+        : null,
+      Number.isFinite(distanceSurcharge)
+        ? `Taxa de deslocamento: ${formatCurrency(distanceSurcharge)}`
+        : null,
+      Number.isFinite(extremeConditionChargesTotal)
+        ? `Adicionais condições: ${formatCurrency(
+            extremeConditionChargesTotal
+          )}`
+        : null,
+      formattedExtremeSelections
+        ? `Condições extremas selecionadas: ${formattedExtremeSelections}`
+        : null,
+      stepData.extremeConditions?.observations
+        ? `Observações do cliente: ${stepData.extremeConditions.observations}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
     const orcamentoData = {
       cliente: stepData.step1,
       imovel: stepData.step2,
@@ -1505,7 +1633,10 @@ function registerScheduleListener() {
       taxa_deslocamento: distanceSurcharge,
       adicionais_condicoes: extremeConditionChargesTotal,
       condicoes_extremas: stepData.extremeConditions,
+      observacoes: stepData.extremeConditions?.observations || "",
+      anotacoes_backoffice: backofficeAnnotations,
       desconto_promocional: lastPromotionDiscount,
+      promocao_aplicada: lastPromotionInfo,
       valor_total: totalPrice,
       criado_em: new Date().toISOString(),
     };
@@ -1545,7 +1676,7 @@ async function persistBudgetForApproval(orcamentoData) {
 
   const { data: existingList, error: fetchError } = await supabase
     .from("agendamentos")
-    .select("id, status_pagamento")
+    .select("id, status_pagamento, data_agendamento, hora_agendamento")
     .eq("cliente_id", clienteId)
     .in("status_pagamento", [
       "Em Aprovação",
@@ -1561,20 +1692,52 @@ async function persistBudgetForApproval(orcamentoData) {
 
   const existingAppointment = existingList?.[0] || null;
 
+  const sanitizedDistance = Number.isFinite(orcamentoData.distancia_km)
+    ? Number(orcamentoData.distancia_km)
+    : null;
+  const sanitizedSurcharge = Number(orcamentoData.taxa_deslocamento) || 0;
+  const sanitizedExtremeCharges = Number(
+    orcamentoData.adicionais_condicoes
+  ) || 0;
+
   const basePayload = {
     cliente_id: clienteId,
     servicos_escolhidos: orcamentoData.servicos,
     valor_total: orcamentoData.valor_total,
     status_pagamento: "Em Aprovação",
     desconto_aplicado: orcamentoData.desconto_promocional || 0,
+    distancia_km: sanitizedDistance,
+    taxa_deslocamento: sanitizedSurcharge,
+    adicionais_condicoes: sanitizedExtremeCharges,
+    condicoes_extremas: orcamentoData.condicoes_extremas || null,
+    observacoes: orcamentoData.observacoes || "",
+    anotacoes_backoffice: orcamentoData.anotacoes_backoffice || "",
     data_agendamento: null,
     hora_agendamento: null,
   };
 
   if (existingAppointment) {
+    const updatePayload = { ...basePayload };
+
+    if (
+      ["Aprovado", "Aguardando Agendamento"].includes(
+        existingAppointment.status_pagamento
+      )
+    ) {
+      updatePayload.status_pagamento = existingAppointment.status_pagamento;
+    }
+
+    if (existingAppointment.data_agendamento) {
+      updatePayload.data_agendamento = existingAppointment.data_agendamento;
+    }
+
+    if (existingAppointment.hora_agendamento) {
+      updatePayload.hora_agendamento = existingAppointment.hora_agendamento;
+    }
+
     const { data, error } = await supabase
       .from("agendamentos")
-      .update(basePayload)
+      .update(updatePayload)
       .eq("id", existingAppointment.id)
       .select()
       .single();
@@ -1613,7 +1776,7 @@ async function init() {
   if (!stepsWrapper) return;
 
   await initializeAuth();
-  queueResumeState();
+  await queueResumeState();
 
   registerNavigationListeners();
   registerAddressListeners();
@@ -1625,20 +1788,15 @@ async function init() {
   await ensureBaseCoordinates();
   await loadServices();
 
-  if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
-  }
-
   if (pendingResumeState && currentSession) {
-    applyResumeState();
+    await applyResumeState();
     return;
   }
 
   if (resumeStateRestored) {
+    if (currentSession) {
+      await ensurePromocoesManagerInitialized();
+    }
     showStep(currentStep);
     return;
   }
@@ -1650,14 +1808,10 @@ async function init() {
 
   const initialStep =
     currentSession && shouldAutoAdvanceAfterAuth && contactReady ? 2 : 1;
-  showStep(initialStep);
   if (currentSession) {
-    promocoesManager = new window.PromocoesManager();
-    await promocoesManager.init(currentSession.user.id);
-
-    // Renderizar banner de promoções
-    promocoesManager.renderBannerPromocoes("promocoes-banner");
+    await ensurePromocoesManagerInitialized();
   }
+  showStep(initialStep);
 }
 
 init();
