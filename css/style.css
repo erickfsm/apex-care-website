@@ -5,6 +5,28 @@
     --color-white: #ffffff;
     --color-light-gray: #f4f6f9;
     --font-main: 'Montserrat', sans-serif;
+    --status-pendente-bg: #fff3e0;
+    --status-pendente-text: #fb8c00;
+    --status-confirmado-bg: #e8f5e9;
+    --status-confirmado-text: #2e7d32;
+    --status-em-andamento-bg: #e0f2f1;
+    --status-em-andamento-text: #00897b;
+    --status-concluido-bg: #c8e6c9;
+    --status-concluido-text: #2e7d32;
+    --status-cancelado-bg: #ffebee;
+    --status-cancelado-text: #c62828;
+    --status-pago-bg: #d4edda;
+    --status-pago-text: #155724;
+    --status-em-aprovacao-bg: #fff8e1;
+    --status-em-aprovacao-text: #ff8f00;
+    --status-aprovado-bg: #e3f2fd;
+    --status-aprovado-text: #1e88e5;
+    --status-reprovado-bg: #ffebee;
+    --status-reprovado-text: #c62828;
+    --status-ativa-bg: #d4edda;
+    --status-ativa-text: #155724;
+    --status-inativa-bg: #f8d7da;
+    --status-inativa-text: #721c24;
 }
 
 /* Reset e Estilos Globais */
