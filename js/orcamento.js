@@ -1,5 +1,6 @@
 import { supabase } from "./supabase-client.js";
 import { planPricing } from './pricing-data.js';
+import { sanitizeCep, applyCepMask, fetchCepData } from "./cep-utils.js";
 /**
  * @fileoverview Manages the multi-step budgeting and scheduling process for cleaning services.
  * @module orcamento
@@ -196,26 +197,6 @@ function formatCurrency(value) {
   return `R$ ${Number(value || 0)
     .toFixed(2)
     .replace(".", ",")}`;
-}
-/**
- * Sanitizes a CEP string by removing non-digit characters.
- * @param {string} value - The CEP string to sanitize.
- * @returns {string} The sanitized CEP string.
- */
-function sanitizeCep(value) {
-  return value.replace(/\D/g, "");
-}
-/**
- * Applies a mask to a CEP string (e.g., "12345-678").
- * @param {string} value - The CEP string to mask.
- * @returns {string} The masked CEP string.
- */
-function applyCepMask(value) {
-  const digits = sanitizeCep(value);
-  if (digits.length <= 5) {
-    return digits;
-  }
-  return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
 }
 /**
  * Gets the current CEP value from the input or stored data.
@@ -1418,20 +1399,10 @@ async function fetchAddressByCep() {
   const lookupId = ++latestCepLookupId;
 
   try {
-    const response = await fetch(
-      `https://viacep.com.br/ws/${sanitizedCep}/json/`
-    );
-    if (!response.ok) throw new Error("Falha ao consultar CEP.");
-    const data = await response.json();
+    const data = await fetchCepData(sanitizedCep);
     if (lookupId !== latestCepLookupId) {
       return;
     }
-    if (data.erro) {
-      alert("CEP não encontrado. Verifique e tente novamente.");
-      clearAddressFields();
-      return;
-    }
-
     lastCepData = data;
     if (ruaInput) ruaInput.value = data.logradouro || "";
     if (bairroInput) bairroInput.value = data.bairro || "";
@@ -1441,7 +1412,8 @@ async function fetchAddressByCep() {
     await updateCustomerCoordinates();
   } catch (error) {
     console.error("Erro ao buscar CEP:", error);
-    alert("Não foi possível buscar o endereço pelo CEP informado.");
+    const message = error instanceof Error ? error.message : String(error);
+    alert(message || "Não foi possível buscar o endereço pelo CEP informado.");
     clearAddressFields();
   }
 }
