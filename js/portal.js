@@ -8,6 +8,8 @@ import { supabase } from './supabase-client.js';
 let currentUser = null;
 /** @type {Array<object>} A list of all appointments for the current user. */
 let allAppointments = [];
+/** @type {number} The current loyalty points balance for the user. */
+let loyaltyPoints = 0;
 // --- DOM ELEMENT REFERENCES ---
 const userNameSpan = document.getElementById('user-name');
 const upcomingAppointmentsDiv = document.getElementById('upcoming-appointments');
@@ -36,13 +38,16 @@ async function loadPortalData() {
         // Load profile
         const { data: profile } = await supabase
             .from('profiles')
-            .select('nome_completo')
+            .select('nome_completo, pontos_fidelidade')
             .eq('id', currentUser.id)
             .single();
 
         if (profile && userNameSpan) {
             userNameSpan.textContent = profile.nome_completo.split(' ')[0];
         }
+
+        const rawPoints = profile ? profile.pontos_fidelidade : null;
+        loyaltyPoints = Number(rawPoints) || 0;
 
         // Load appointments
         const { data: appointments, error } = await supabase
@@ -188,6 +193,11 @@ function updateStats() {
     statsDiv.innerHTML = `
         <div class="stats-grid">
             <div class="stat-card">
+                <div class="stat-icon">🎁</div>
+                <div class="stat-value">${formatLoyaltyPoints(loyaltyPoints)} pts</div>
+                <div class="stat-label">Pontos de fidelidade disponíveis</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-icon">📅</div>
                 <div class="stat-value">${upcoming}</div>
                 <div class="stat-label">Próximos Agendamentos</div>
@@ -204,6 +214,26 @@ function updateStats() {
             </div>
         </div>
     `;
+}
+
+/**
+ * Formats loyalty points using Brazilian number formatting.
+ * @param {number} value - Points to format.
+ * @returns {string} Formatted points string.
+ */
+function formatLoyaltyPoints(value) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return '0';
+    }
+
+    const hasDecimals = Math.abs(numericValue % 1) > 0;
+
+    return new Intl.NumberFormat('pt-BR', {
+        minimumFractionDigits: hasDecimals ? 2 : 0,
+        maximumFractionDigits: hasDecimals ? 2 : 0,
+    }).format(Math.max(numericValue, 0));
 }
 /**
  * Cancels an appointment.
