@@ -29,14 +29,41 @@ const logoutBtn = document.getElementById('logout-btn');
 const portalToast = document.getElementById('portal-status-toast');
 const portalToastMessage = portalToast?.querySelector('.toast-message');
 const portalToastIcon = portalToast?.querySelector('.toast-icon');
+const appointmentModal = document.getElementById('appointment-details-modal');
+const appointmentModalBody = document.getElementById('appointment-modal-body');
+const appointmentModalTitle = document.getElementById('appointment-modal-title');
+const appointmentModalCloseButton = document.getElementById('appointment-modal-close');
+const appointmentModalCloseIcon = document.getElementById('appointment-modal-close-icon');
 /** @type {number|null} Timeout ID for the portal toast. */
 let toastTimeoutId = null;
+/** @type {((event: KeyboardEvent) => void)|null} */
+let modalEscapeHandler = null;
 
 // --- INITIALIZATION ---
 if (portalToast) {
   const closeBtn = portalToast.querySelector('.toast-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', hidePortalToast);
+  }
+}
+
+if (appointmentModal) {
+  const closeModal = () => {
+    closeAppointmentDetails();
+  };
+
+  appointmentModal.addEventListener('click', (event) => {
+    if (event.target === appointmentModal) {
+      closeModal();
+    }
+  });
+
+  if (appointmentModalCloseButton) {
+    appointmentModalCloseButton.addEventListener('click', closeModal);
+  }
+
+  if (appointmentModalCloseIcon) {
+    appointmentModalCloseIcon.addEventListener('click', closeModal);
   }
 }
 /**
@@ -349,124 +376,229 @@ function renderAppointments(appointments, element, isUpcoming) {
   element.innerHTML = '';
 
   appointments.forEach((appt) => {
-    const servicesText = Array.isArray(appt.servicos_escolhidos)
+    const servicesList = Array.isArray(appt.servicos_escolhidos)
       ? appt.servicos_escolhidos
           .filter((service) => service?.name)
           .map((service) => {
             const quantity = service.quantity && service.quantity > 1 ? ` (x${service.quantity})` : '';
-            return `${service.name}${quantity}`;
+            return `${escapeHtml(service.name)}${quantity}`;
           })
-          .join(', ')
-      : 'Serviços não informados';
+      : [];
+
+    const servicesText = servicesList.length ? servicesList.join(', ') : 'Serviços não informados';
 
     const dataFormatada = appt.data_agendamento
       ? new Date(`${appt.data_agendamento}T00:00:00`).toLocaleDateString('pt-BR')
       : 'A definir';
 
-    const horario = appt.hora_agendamento ? ` às ${appt.hora_agendamento}` : '';
+    const horarioTexto = appt.hora_agendamento ? ` às ${escapeHtml(appt.hora_agendamento)}` : '';
     const statusClass = getStatusClass(appt.status_pagamento);
+    const statusLabel = escapeHtml(appt.status_pagamento || 'Status não informado');
+    const detailButton = `<button class="btn-small btn-details" data-appointment-id="${appt.id}" onclick="openAppointmentDetails('${appt.id}')">Ver detalhes</button>`;
 
-    const metadata = [];
-    if (Number.isFinite(Number(appt.distancia_km))) {
-      const distanciaValue = Number(appt.distancia_km);
-      metadata.push(
-        `<li><strong>Distância estimada:</strong> ${distanciaValue.toFixed(1)} km</li>`
-      );
-    }
-
-    if (!Number.isNaN(Number(appt.taxa_deslocamento))) {
-      metadata.push(
-        `<li><strong>Taxa de deslocamento:</strong> ${formatCurrency(
-          appt.taxa_deslocamento
-        )}</li>`
-      );
-    }
-
-    if (!Number.isNaN(Number(appt.adicionais_condicoes))) {
-      metadata.push(
-        `<li><strong>Adicionais por condições:</strong> ${formatCurrency(
-          appt.adicionais_condicoes
-        )}</li>`
-      );
-    }
-
-    const condicoesLabels = Array.isArray(appt.condicoes_extremas?.selections)
-      ? appt.condicoes_extremas.selections
-          .map((item) => item?.label || item?.id)
-          .filter(Boolean)
-      : [];
-
-    if (condicoesLabels.length) {
-      metadata.push(
-        `<li><strong>Condições especiais:</strong> ${escapeHtml(
-          condicoesLabels.join(', ')
-        )}</li>`
-      );
-    }
-
-    const observacoesText = appt.observacoes?.trim();
-    if (observacoesText) {
-      metadata.push(
-        `<li><strong>Observações:</strong> ${escapeHtml(observacoesText)}</li>`
-      );
-    }
-
-    const metaSection = metadata.length
-      ? `<ul class="appointment-meta">${metadata.join('')}</ul>`
-      : '';
-
-    let actionButton = '';
+    const actions = [`<span class="status-badge ${statusClass}">${statusLabel}</span>`, detailButton];
 
     if (isUpcoming) {
       const canCancel = ['Pendente (Pagar no Local)', 'Pago e Confirmado', 'Aguardando Execução'].includes(
         appt.status_pagamento
       );
       if (canCancel) {
-        actionButton = `
-          <div class="appointment-actions">
-            <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-            <button class="btn-small btn-cancel" data-appointment-id="${appt.id}" onclick="cancelAppointment('${appt.id}', this)">
-              <span class="spinner" aria-hidden="true"></span>
-              <span class="btn-label">Cancelar</span>
-            </button>
-          </div>
-        `;
-      } else {
-        actionButton = `
-          <div class="appointment-actions">
-            <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-          </div>
-        `;
+        actions.push(`
+          <button class="btn-small btn-cancel" data-appointment-id="${appt.id}" onclick="cancelAppointment('${appt.id}', this)">
+            <span class="spinner" aria-hidden="true"></span>
+            <span class="btn-label">Cancelar</span>
+          </button>
+        `);
       }
-    } else {
-      let extraButtons = '';
-
-      if (appt.status_pagamento === 'Concluído') {
-        const servicesData = encodeURIComponent(JSON.stringify(appt.servicos_escolhidos || []));
-        extraButtons += `<button class="btn-small btn-rebook" onclick="rebookAppointment('${servicesData}')">Agendar novamente</button>`;
-      }
-
-      actionButton = `
-        <div class="appointment-actions">
-          <span class="status-badge ${statusClass}">${appt.status_pagamento}</span>
-          ${extraButtons}
-        </div>
-      `;
+    } else if (appt.status_pagamento === 'Concluído') {
+      const servicesData = encodeURIComponent(JSON.stringify(appt.servicos_escolhidos || []));
+      actions.push(`<button class="btn-small btn-rebook" onclick="rebookAppointment('${servicesData}')">Agendar novamente</button>`);
     }
+
+    const actionSection = `<div class="appointment-actions">${actions.join('')}</div>`;
 
     const cardHTML = `
       <div class="appointment-card">
         <div class="appointment-info">
-          <h4>📅 ${dataFormatada}${horario}</h4>
+          <h4>📅 ${dataFormatada}${horarioTexto}</h4>
           <p><strong>Serviços:</strong> ${servicesText}</p>
           <p><strong>Valor:</strong> ${formatCurrency(appt.valor_total)}</p>
-          ${metaSection}
         </div>
-        ${actionButton}
+        ${actionSection}
       </div>
     `;
     element.insertAdjacentHTML('beforeend', cardHTML);
   });
+}
+
+/**
+ * Builds the HTML markup for the appointment details modal.
+ * @param {object} appointment - The appointment data.
+ * @returns {string} The HTML markup for the modal body.
+ */
+function buildAppointmentDetailsMarkup(appointment) {
+  const dataFormatada = appointment.data_agendamento
+    ? new Date(`${appointment.data_agendamento}T00:00:00`).toLocaleDateString('pt-BR')
+    : 'A definir';
+  const horarioTexto = appointment.hora_agendamento
+    ? ` às ${escapeHtml(appointment.hora_agendamento)}`
+    : '';
+  const statusLabel = escapeHtml(appointment.status_pagamento || 'Status não informado');
+
+  const generalItems = [
+    `<li><strong>Status:</strong> ${statusLabel}</li>`,
+    `<li><strong>Data:</strong> ${dataFormatada}${horarioTexto}</li>`,
+    `<li><strong>Valor total:</strong> ${formatCurrency(appointment.valor_total)}</li>`,
+  ];
+
+  const descontoAplicado = Number(appointment.desconto_aplicado);
+  if (!Number.isNaN(descontoAplicado) && descontoAplicado > 0) {
+    generalItems.push(
+      `<li><strong>Desconto aplicado:</strong> ${formatCurrency(-Math.abs(descontoAplicado))}</li>`
+    );
+  }
+
+  const servicesList = Array.isArray(appointment.servicos_escolhidos)
+    ? appointment.servicos_escolhidos
+        .filter((service) => service?.name)
+        .map((service) => {
+          const quantity = service.quantity && service.quantity > 1 ? ` (x${service.quantity})` : '';
+          return `${escapeHtml(service.name)}${quantity}`;
+        })
+    : [];
+
+  const servicesSectionContent = servicesList.length
+    ? `<ul class="appointment-details-list">${servicesList.map((item) => `<li>${item}</li>`).join('')}</ul>`
+    : '<p class="appointment-details-empty">Nenhum serviço informado.</p>';
+
+  const additionalItems = [];
+  const distanciaValue = Number(appointment.distancia_km);
+  if (Number.isFinite(distanciaValue) && distanciaValue > 0) {
+    additionalItems.push(
+      `<li><strong>Distância estimada:</strong> ${distanciaValue.toFixed(1).replace('.', ',')} km</li>`
+    );
+  }
+
+  const taxaDeslocamento = Number(appointment.taxa_deslocamento);
+  if (!Number.isNaN(taxaDeslocamento) && taxaDeslocamento !== 0) {
+    additionalItems.push(
+      `<li><strong>Taxa de deslocamento:</strong> ${formatCurrency(taxaDeslocamento)}</li>`
+    );
+  }
+
+  const adicionaisCondicoes = Number(appointment.adicionais_condicoes);
+  if (!Number.isNaN(adicionaisCondicoes) && adicionaisCondicoes !== 0) {
+    additionalItems.push(
+      `<li><strong>Adicionais por condições:</strong> ${formatCurrency(adicionaisCondicoes)}</li>`
+    );
+  }
+
+  const additionalSection = additionalItems.length
+    ? `<div class="appointment-details-section">
+        <h4>Adicionais</h4>
+        <ul class="appointment-details-list">${additionalItems.join('')}</ul>
+      </div>`
+    : '';
+
+  const condicoesLabels = Array.isArray(appointment.condicoes_extremas?.selections)
+    ? appointment.condicoes_extremas.selections
+        .map((item) => item?.label || item?.id)
+        .filter(Boolean)
+    : [];
+
+  const condicoesSection = condicoesLabels.length
+    ? `<div class="appointment-details-section">
+        <h4>Condições especiais</h4>
+        <div class="appointment-details-tags">
+          ${condicoesLabels
+            .map((label) => `<span class="appointment-details-tag">${escapeHtml(label)}</span>`)
+            .join('')}
+        </div>
+      </div>`
+    : '';
+
+  const observacoesText = appointment.observacoes?.trim();
+  const observacoesSection = observacoesText
+    ? `<div class="appointment-details-section">
+        <h4>Notas do cliente</h4>
+        <p>${escapeHtml(observacoesText).replace(/\n/g, '<br>')}</p>
+      </div>`
+    : '';
+
+  return `
+    <div class="appointment-details-section">
+      <h4>Resumo geral</h4>
+      <ul class="appointment-details-list">${generalItems.join('')}</ul>
+    </div>
+    <div class="appointment-details-section">
+      <h4>Serviços selecionados</h4>
+      ${servicesSectionContent}
+    </div>
+    ${additionalSection}
+    ${condicoesSection}
+    ${observacoesSection}
+  `;
+}
+
+/**
+ * Opens the appointment details modal with the provided appointment data.
+ * This function is exposed to the global window object.
+ * @param {string|number} appointmentId - The identifier of the appointment to display.
+ */
+function openAppointmentDetails(appointmentId) {
+  if (!appointmentModal || !appointmentModalBody || !appointmentModalTitle) {
+    return;
+  }
+
+  const normalizedId = decodeURIComponent(String(appointmentId));
+  const appointment = allAppointments.find((item) => String(item.id) === normalizedId);
+
+  if (!appointment) {
+    showPortalToast('Não foi possível localizar os detalhes deste agendamento.', 'error');
+    return;
+  }
+
+  appointmentModalTitle.textContent = `Agendamento #${appointment.id}`;
+  appointmentModalBody.innerHTML = buildAppointmentDetailsMarkup(appointment);
+  appointmentModal.classList.add('active');
+  appointmentModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+
+  if (modalEscapeHandler) {
+    document.removeEventListener('keydown', modalEscapeHandler);
+  }
+
+  modalEscapeHandler = (event) => {
+    if (event.key === 'Escape') {
+      closeAppointmentDetails();
+    }
+  };
+
+  document.addEventListener('keydown', modalEscapeHandler);
+}
+
+/**
+ * Closes the appointment details modal.
+ */
+function closeAppointmentDetails() {
+  if (!appointmentModal) return;
+
+  appointmentModal.classList.remove('active');
+  appointmentModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+
+  if (appointmentModalBody) {
+    appointmentModalBody.innerHTML = '';
+  }
+
+  if (appointmentModalTitle) {
+    appointmentModalTitle.textContent = 'Detalhes do agendamento';
+  }
+
+  if (modalEscapeHandler) {
+    document.removeEventListener('keydown', modalEscapeHandler);
+    modalEscapeHandler = null;
+  }
 }
 
 /**
@@ -540,6 +672,8 @@ function getStatusClass(status) {
  * @param {string} appointmentId - The ID of the appointment to cancel.
  * @param {HTMLElement} buttonEl - The button element that was clicked.
  */
+window.openAppointmentDetails = openAppointmentDetails;
+
 window.cancelAppointment = async function cancelAppointment(appointmentId, buttonEl) {
   if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
 

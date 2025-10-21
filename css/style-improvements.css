@@ -306,6 +306,15 @@
     background-color: #C0392B;
 }
 
+.btn-details {
+    background-color: #e5e7eb;
+    color: var(--color-graphite);
+}
+
+.btn-details:hover {
+    background-color: #d1d5db;
+}
+
 .btn-rebook {
     background-color: var(--color-cyan);
     color: white;
@@ -544,6 +553,23 @@
     width: 90%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     animation: slideUp 0.3s;
+    position: relative;
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-graphite);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--color-cyan);
 }
 
 .modal-header {
@@ -590,6 +616,10 @@
 
 .modal-btn-secondary:hover {
     background-color: #d1d5db;
+}
+
+body.modal-open {
+    overflow: hidden;
 }
 
 @keyframes fadeIn {
