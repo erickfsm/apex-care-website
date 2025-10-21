@@ -36,12 +36,17 @@ const header = document.querySelector('.main-header');
  * @description Adds or removes the 'scrolled' class from the header based on the scroll position.
  */
 window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) { // If scrolled more than 50 pixels
-        header.classList.add('scrolled');
-    } else {
-        header.classList.remove('scrolled');
-    }
+    if (!header) return;
+    const shouldScroll = window.scrollY > 50;
+    header.classList.toggle('scrolled', shouldScroll);
+    header.classList.toggle('is-transparent', !shouldScroll);
 });
+
+if (header) {
+    const shouldScroll = window.scrollY > 50;
+    header.classList.toggle('scrolled', shouldScroll);
+    header.classList.toggle('is-transparent', !shouldScroll);
+}
 // --- DYNAMIC PLAN RENDERING ---
 /**
  * Renders the homepage plans dynamically.
