@@ -66,10 +66,6 @@
                             <span class="step-index">5</span>
                             <span class="step-label">Resumo do carrinho</span>
                         </div>
-                        <div class="progress-step" data-step="6">
-                            <span class="step-index">6</span>
-                            <span class="step-label">Preço final</span>
-                        </div>
                         <div class="progress-bar">
                             <div class="progress-bar-fill" id="progress-bar-fill"></div>
                         </div>
@@ -207,7 +203,7 @@
                         <!-- Step 5: Cart Summary -->
                         <section class="step-section hidden" data-step="5">
                             <h2>Etapa 5 – Resumo do carrinho</h2>
-                            <p class="step-description">Revise todas as informações antes de confirmar. O valor final aparecerá somente após essa confirmação.</p>
+                            <p class="step-description">Revise todas as informações e confirme para liberar o agendamento. O valor final fica disponível no painel lateral.</p>
                             <div class="resume-grid">
                                 <div class="resume-card">
                                     <h3>Seus dados</h3>
@@ -233,30 +229,16 @@
                                         <li><span>Cidade/UF:</span> <span id="resume-cidade-estado">-</span></li>
                                     </ul>
                                 </div>
-                            </div>
-                            <div class="step-actions">
-                                <button class="ghost-button" data-action="prev">Voltar</button>
-                                <button class="cta-button-hero" data-action="next">Confirmar resumo</button>
-                            </div>
-                        </section>
-
-                        <!-- Step 6: Final Price Confirmation -->
-                        <section class="step-section hidden" data-step="6">
-                            <h2>Etapa 6 – Confirmação e preço final</h2>
-                            <p class="step-description">Confira o valor final com todos os adicionais aplicados. Se estiver tudo certo, finalize o agendamento.</p>
-                            <div class="resume-grid">
                                 <div class="resume-card">
-                                    <h3>Resumo final</h3>
-                                    <p>Os valores ao lado consideram serviços, deslocamento e adicionais informados.</p>
-                                </div>
-                                <div class="resume-card">
-                                    <h3>Observações enviadas</h3>
+                                    <h3>Observações e adicionais</h3>
                                     <p id="resume-extreme-notes">Nenhuma observação adicional.</p>
                                 </div>
                             </div>
                             <div class="step-actions">
                                 <button class="ghost-button" data-action="prev">Voltar</button>
+                                <button class="cta-button-hero" data-action="next">Confirmar resumo</button>
                             </div>
+                            <p id="summary-confirmation-feedback" class="confirmation-feedback hidden">Resumo confirmado! Agora você pode concluir o agendamento no painel lateral.</p>
                         </section>
                     </div>
 
@@ -269,6 +251,7 @@
                         <div id="summary-charges" class="summary-charges"></div>
                         <div id="distance-info" class="summary-distance" aria-live="polite">Informe CEP e número para calcular a distância (até 20 km sem taxa adicional).</div>
                         <div id="summary-total-locked" class="summary-total-locked">Informe CEP, número e selecione os serviços para liberar o valor estimado.</div>
+                        <p class="summary-note">Os valores exibidos aqui consideram serviços, deslocamento e quaisquer adicionais selecionados.</p>
                         <div class="summary-total">
                             <span>Total Estimado:</span>
                             <span id="total-price">R$ 0,00</span>

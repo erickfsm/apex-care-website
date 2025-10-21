@@ -19,7 +19,7 @@ const DISTANCE_THRESHOLD_KM = 20;
 /** @constant {number} The fee per KM for distances exceeding the threshold. */
 const DISTANCE_FEE_PER_KM = 1;
 /** @constant {number} The final step number in the form process. */
-const FINAL_STEP = 6;
+const FINAL_STEP = 5;
 
 // --- DOM ELEMENT REFERENCES ---
 const stepSections = Array.from(document.querySelectorAll(".step-section"));
@@ -37,6 +37,9 @@ const totalPriceSpan = document.getElementById("total-price");
 const summaryTotalContainer = document.querySelector(".summary-total");
 const summaryLockedMessage = document.getElementById("summary-total-locked");
 const scheduleBtn = document.getElementById("finalize-budget-btn");
+const summaryConfirmationFeedback = document.getElementById(
+  "summary-confirmation-feedback"
+);
 
 const extremeConditionsForm = document.getElementById(
   "extreme-conditions-form"
@@ -136,6 +139,8 @@ let lastPromotionDiscount = 0;
 let lastPromotionInfo = null;
 /** @type {object|null} The user's active subscription plan. */
 let userSubscription = null;
+/** @type {boolean} Flag indicating whether the summary was confirmed. */
+let summaryConfirmed = false;
 
 
 /**
@@ -411,6 +416,9 @@ function prefillStepForms(step) {
  * @param {number} step - The step number to show.
  */
 function showStep(step) {
+  if (step < FINAL_STEP && summaryConfirmed) {
+    summaryConfirmed = false;
+  }
   currentStep = step;
   stepSections.forEach((section) => {
     const sectionStep = Number(section.dataset.step);
@@ -687,6 +695,7 @@ function applyPendingServiceSelection() {
  * Updates the summary section with the selected services and calculates the subtotal.
  */
 function updateSummary() {
+  invalidateSummaryConfirmation();
   const selectedServices = getSelectedServices();
   stepData.services = selectedServices;
 
@@ -720,6 +729,7 @@ function updateSummary() {
  * Renders the charges summary, including subtotal, distance fee, and promotions.
  */
 export async function renderChargesSummary() {
+  const previousTotal = lastCalculatedTotal;
   const charges = [];
   const selectedServices = stepData.services || [];
   charges.push({ label: "Subtotal de serviços", amount: serviceSubtotal });
@@ -870,6 +880,16 @@ export async function renderChargesSummary() {
     descontoPromocao - planDiscount;
   lastPromotionDiscount = descontoPromocao;
 
+  const totalsChanged =
+    summaryConfirmed &&
+    currentStep >= FINAL_STEP &&
+    Number.isFinite(previousTotal) &&
+    Math.abs(lastCalculatedTotal - previousTotal) > 0.009;
+
+  if (totalsChanged) {
+    invalidateSummaryConfirmation();
+  }
+
   if (totalPriceSpan) {
     totalPriceSpan.textContent = shouldRevealTotals()
       ? formatCurrency(lastCalculatedTotal)
@@ -900,6 +920,12 @@ function updateSummaryVisibility() {
   if (scheduleBtn) {
     scheduleBtn.classList.toggle("hidden", !onFinalStep);
   }
+  if (summaryConfirmationFeedback) {
+    summaryConfirmationFeedback.classList.toggle(
+      "hidden",
+      !summaryConfirmed || !onFinalStep
+    );
+  }
 
   if (totalPriceSpan) {
     totalPriceSpan.textContent = revealTotals
@@ -916,9 +942,29 @@ function updateScheduleButtonState() {
   const hasServices = stepData.services.length > 0;
   const totalsReady = shouldRevealTotals();
   const distanceReady = Number.isFinite(distanceKm);
+  const onFinalStep = currentStep >= FINAL_STEP;
   const canFinish =
-    currentStep >= FINAL_STEP && totalsReady && hasServices && distanceReady;
+    onFinalStep &&
+    totalsReady &&
+    hasServices &&
+    distanceReady &&
+    summaryConfirmed;
   scheduleBtn.disabled = !canFinish || !currentSession;
+}
+
+/**
+ * Invalidates the confirmed summary state when the data changes.
+ */
+function invalidateSummaryConfirmation() {
+  if (!summaryConfirmed) {
+    return;
+  }
+
+  summaryConfirmed = false;
+
+  if (currentStep >= FINAL_STEP) {
+    updateSummaryVisibility();
+  }
 }
 /**
  * Saves the current state of the budget form to localStorage.
@@ -1031,6 +1077,11 @@ async function handleNavigation(action) {
     }
 
     const nextStep = Math.min(currentStep + 1, stepSections.length);
+    if (currentStep === FINAL_STEP) {
+      summaryConfirmed = true;
+      updateSummaryVisibility();
+      return;
+    }
     if (nextStep >= 3 && !currentSession) {
       alert(
         "Para continuar, faça login com sua conta. Estamos guardando suas informações."
