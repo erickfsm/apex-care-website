@@ -63,13 +63,14 @@ class PromocoesManager {
      * @param {number} subtotal - The subtotal of the services.
      * @returns {Promise<object>} An object with the discount, promotion, and message.
      */
-    async calcularMelhorPromocao(servicos, subtotal) {
+    async calcularMelhorPromocao(servicos, subtotal, catalogoServicos = []) {
         if (!this.promocoesAtivas.length) {
-            return { desconto: 0, promocao: null, mensagem: null };
+            return { desconto: 0, promocao: null, mensagem: null, oportunidades: [] };
         }
 
         let melhorDesconto = 0;
         let melhorPromocao = null;
+        const oportunidades = [];
 
         const usosPorPromocao = new Map();
         if (this.userId) {
@@ -109,22 +110,50 @@ class PromocoesManager {
                 }
             }
 
-            if (!this.servicosElegiveis(servicos, promo)) {
-                continue;
-            }
-
-            const desconto = this.calcularDesconto(servicos, subtotal, promo);
+            const atendeRequisitos = this.servicosElegiveis(servicos, promo);
+            const desconto = atendeRequisitos
+                ? this.calcularDesconto(servicos, subtotal, promo)
+                : 0;
 
             if (desconto > melhorDesconto) {
                 melhorDesconto = desconto;
                 melhorPromocao = promo;
             }
+
+            const oportunidade = this.calcularGapPromocional(
+                servicos,
+                subtotal,
+                promo,
+                catalogoServicos
+            );
+
+            if (oportunidade) {
+                oportunidades.push({
+                    promocaoId: promo.id,
+                    promocaoNome: promo.nome,
+                    mensagem: oportunidade.mensagem,
+                    tipo: oportunidade.tipo,
+                    faltaQuantidade: oportunidade.missingQuantity ?? null,
+                    faltaValor: oportunidade.missingValue ?? null,
+                    beneficio: oportunidade.beneficio,
+                    prioridade: oportunidade.prioridade,
+                });
+            }
         }
+
+        const oportunidadesOrdenadas = oportunidades
+            .sort(
+                (a, b) =>
+                    (a.prioridade ?? Number.MAX_SAFE_INTEGER) -
+                    (b.prioridade ?? Number.MAX_SAFE_INTEGER)
+            )
+            .map(({ prioridade, ...rest }) => rest);
 
         return {
             desconto: melhorDesconto,
             promocao: melhorPromocao,
-            mensagem: melhorPromocao ? this.gerarMensagem(melhorPromocao, melhorDesconto) : null
+            mensagem: melhorPromocao ? this.gerarMensagem(melhorPromocao, melhorDesconto) : null,
+            oportunidades: oportunidadesOrdenadas
         };
     }
 
@@ -232,6 +261,285 @@ class PromocoesManager {
         }
 
         return 0;
+    }
+
+    calcularGapPromocional(servicos, subtotal, promocao, catalogoServicos = []) {
+        if (!promocao) {
+            return null;
+        }
+
+        const descontoAtual = this.calcularDesconto(servicos, subtotal, promocao);
+        if (descontoAtual > 0) {
+            return null;
+        }
+
+        const comboConfig = promocao.combo_config || {};
+        const elegiveisSelecionados = this.obterServicosSelecionadosElegiveis(servicos, promocao);
+        const quantidadeSelecionada = elegiveisSelecionados.reduce(
+            (sum, item) => sum + (Number(item?.quantity) || 0),
+            0
+        );
+        const valorSelecionado = elegiveisSelecionados.reduce(
+            (sum, item) =>
+                sum + (Number(item?.price) || 0) * (Number(item?.quantity) || 0),
+            0
+        );
+        const nomesElegiveis = this.obterNomesServicosElegiveis(
+            promocao,
+            catalogoServicos,
+            servicos
+        );
+        const labelServicos = this.montarRotuloServicos(nomesElegiveis);
+        const beneficioPadrao = this.descreverBeneficio(promocao);
+
+        const prepararResultado = (info) => {
+            const enriquecido = {
+                ...info,
+                labelServicos,
+                beneficio: info.beneficio || beneficioPadrao,
+            };
+            const mensagem = this.gerarMensagemOportunidade(promocao, enriquecido);
+            if (!mensagem) {
+                return null;
+            }
+
+            const prioridadeBase =
+                typeof enriquecido.missingQuantity === 'number'
+                    ? enriquecido.missingQuantity
+                    : typeof enriquecido.missingValue === 'number'
+                    ? enriquecido.missingValue
+                    : Number.MAX_SAFE_INTEGER;
+
+            return {
+                ...enriquecido,
+                mensagem,
+                prioridade: prioridadeBase,
+            };
+        };
+
+        if (comboConfig.tipo === 'buy_x_get_y') {
+            const required = Number(comboConfig.compre) || 0;
+            if (required && quantidadeSelecionada < required) {
+                const missing = required - quantidadeSelecionada;
+                if (this.isNearQuantity(missing, required)) {
+                    return prepararResultado({
+                        tipo: 'quantity',
+                        missingQuantity: missing,
+                        requiredQuantity: required,
+                        beneficio: comboConfig.ganhe
+                            ? `${comboConfig.ganhe} ${comboConfig.ganhe > 1 ? 'itens grátis' : 'item grátis'}`
+                            : beneficioPadrao,
+                    });
+                }
+            }
+        }
+
+        if (Array.isArray(comboConfig.faixas) && comboConfig.faixas.length) {
+            const totalItens = servicos.reduce(
+                (sum, item) => sum + (Number(item?.quantity) || 0),
+                0
+            );
+            const faixasOrdenadas = [...comboConfig.faixas]
+                .filter((faixa) => typeof faixa?.min === 'number')
+                .sort((a, b) => a.min - b.min);
+
+            const proximaFaixa = faixasOrdenadas.find((faixa) => totalItens < faixa.min);
+            if (proximaFaixa) {
+                const missing = proximaFaixa.min - totalItens;
+                if (missing > 0 && this.isNearQuantity(missing, proximaFaixa.min)) {
+                    return prepararResultado({
+                        tipo: 'quantity',
+                        missingQuantity: missing,
+                        requiredQuantity: proximaFaixa.min,
+                        beneficio: proximaFaixa.desconto
+                            ? `${proximaFaixa.desconto}% de desconto`
+                            : beneficioPadrao,
+                    });
+                }
+            }
+        }
+
+        const valorMinimo = Number(
+            promocao.valor_minimo ||
+            comboConfig.valor_minimo ||
+            comboConfig.valorMinimo ||
+            0
+        );
+
+        if (valorMinimo) {
+            const valorConsiderado = promocao.servicos_ids?.length
+                ? valorSelecionado
+                : subtotal;
+            if (valorConsiderado < valorMinimo) {
+                const missingValue = valorMinimo - valorConsiderado;
+                if (this.isNearValue(missingValue, valorMinimo)) {
+                    return prepararResultado({
+                        tipo: 'value',
+                        missingValue,
+                        requiredValue: valorMinimo,
+                    });
+                }
+            }
+        }
+
+        if (promocao.quantidade_minima) {
+            if (quantidadeSelecionada < promocao.quantidade_minima) {
+                const missing = promocao.quantidade_minima - quantidadeSelecionada;
+                if (this.isNearQuantity(missing, promocao.quantidade_minima)) {
+                    return prepararResultado({
+                        tipo: 'quantity',
+                        missingQuantity: missing,
+                        requiredQuantity: promocao.quantidade_minima,
+                    });
+                }
+            }
+        }
+
+        return null;
+    }
+
+    obterServicosSelecionadosElegiveis(servicos, promocao) {
+        if (!Array.isArray(servicos) || !servicos.length) {
+            return [];
+        }
+
+        if (!promocao?.servicos_ids?.length) {
+            return servicos;
+        }
+
+        const idsElegiveis = new Set(promocao.servicos_ids);
+        return servicos.filter((item) => idsElegiveis.has(item.id));
+    }
+
+    obterNomesServicosElegiveis(promocao, catalogoServicos = [], servicosSelecionados = []) {
+        const catalogo = Array.isArray(catalogoServicos) ? catalogoServicos : [];
+        const selecionados = Array.isArray(servicosSelecionados) ? servicosSelecionados : [];
+
+        if (!promocao?.servicos_ids?.length) {
+            return selecionados
+                .map((item) => item?.name || item?.nome || item?.titulo)
+                .filter(Boolean);
+        }
+
+        const idsElegiveis = new Set(promocao.servicos_ids);
+        const nomes = [];
+        const registrados = new Set();
+
+        [...selecionados, ...catalogo].forEach((servico) => {
+            if (!servico) {
+                return;
+            }
+            const id = servico.id;
+            if (!idsElegiveis.has(id) || registrados.has(id)) {
+                return;
+            }
+
+            const nome = servico.name || servico.nome || servico.titulo;
+            if (nome) {
+                nomes.push(nome);
+                registrados.add(id);
+            }
+        });
+
+        return nomes;
+    }
+
+    montarRotuloServicos(nomes) {
+        if (!Array.isArray(nomes) || !nomes.length) {
+            return 'serviços elegíveis';
+        }
+
+        if (nomes.length === 1) {
+            return nomes[0];
+        }
+
+        if (nomes.length === 2) {
+            return `${nomes[0]} ou ${nomes[1]}`;
+        }
+
+        return `${nomes[0]}, ${nomes[1]} ou outros serviços elegíveis`;
+    }
+
+    descreverBeneficio(promocao) {
+        if (!promocao) {
+            return 'um benefício especial';
+        }
+
+        const tipo = promocao.tipo_desconto;
+        const valor = Number(promocao.valor_desconto);
+
+        if (tipo === 'percentual' && valor) {
+            return `${valor}% de desconto`;
+        }
+
+        if (tipo === 'valor_fixo' && valor) {
+            return `${this.formatCurrencyBR(valor)} de desconto`;
+        }
+
+        if (tipo === 'combo' && promocao.combo_config) {
+            const config = promocao.combo_config;
+            if (config.tipo === 'buy_x_get_y' && config.ganhe) {
+                const ganhe = Number(config.ganhe) || 0;
+                if (ganhe > 0) {
+                    return `${ganhe} ${ganhe > 1 ? 'itens grátis' : 'item grátis'}`;
+                }
+            }
+
+            if (Array.isArray(config.faixas) && config.faixas.length) {
+                const maiorDesconto = Math.max(
+                    ...config.faixas.map((faixa) => Number(faixa.desconto) || 0)
+                );
+                if (maiorDesconto > 0) {
+                    return `${maiorDesconto}% de desconto`;
+                }
+            }
+        }
+
+        return 'um benefício especial';
+    }
+
+    gerarMensagemOportunidade(promocao, info) {
+        if (!promocao || !info) {
+            return null;
+        }
+
+        const beneficio = info.beneficio || this.descreverBeneficio(promocao);
+
+        if (info.tipo === 'quantity' && info.missingQuantity > 0) {
+            const label = info.labelServicos || 'serviços elegíveis';
+            return `Adicione +${info.missingQuantity} ${label} para desbloquear ${beneficio} na promoção "${promocao.nome}".`;
+        }
+
+        if (info.tipo === 'value' && info.missingValue > 0) {
+            const label = info.labelServicos || 'serviços';
+            return `Faltam ${this.formatCurrencyBR(info.missingValue)} em ${label} para garantir ${beneficio} na promoção "${promocao.nome}".`;
+        }
+
+        return null;
+    }
+
+    formatCurrencyBR(valor) {
+        return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+    }
+
+    isNearQuantity(missing, required) {
+        if (!(missing > 0)) {
+            return false;
+        }
+
+        const base = required || missing;
+        const threshold = Math.min(3, Math.max(1, Math.ceil(base * 0.4)));
+        return missing <= threshold;
+    }
+
+    isNearValue(missingValue, requiredValue) {
+        if (!(missingValue > 0)) {
+            return false;
+        }
+
+        const base = requiredValue || missingValue;
+        const threshold = Math.max(30, base * 0.25);
+        return missingValue <= threshold;
     }
 
     /**

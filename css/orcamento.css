@@ -308,6 +308,75 @@
     opacity: 0.6;
 }
 
+.promotion-opportunities {
+    margin-top: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.25);
+    background: rgba(102, 126, 234, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.promotion-opportunities.hidden {
+    display: none;
+}
+
+.promotion-opportunities__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #3c3c8c;
+}
+
+.promotion-opportunities__empty {
+    margin: 0;
+    color: #4a4a6a;
+    font-size: 0.95rem;
+}
+
+.promotion-opportunities__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.promotion-opportunities__item {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.1);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: #2f2f4f;
+}
+
+.promotion-opportunities__item strong {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.promotion-opportunities__item small {
+    display: block;
+    margin-top: 8px;
+    color: #56567a;
+    font-size: 0.85rem;
+}
+
+.promotion-opportunities__item--success {
+    background: #d4edda;
+    border-left-color: #28a745;
+    color: #155724;
+    font-weight: 600;
+    box-shadow: none;
+}
+
 /* --- Address Section --- */
 .address-card {
     margin-top: 8px;

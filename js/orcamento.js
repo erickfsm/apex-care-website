@@ -36,6 +36,7 @@ const serviceContextMessage = document.getElementById("service-context-message")
 const serviceHelpText = document.getElementById("service-help-text");
 const summaryItemsDiv = document.getElementById("summary-items");
 const summaryChargesDiv = document.getElementById("summary-charges");
+const promotionOpportunitiesDiv = document.getElementById("promotion-opportunities");
 const distanceInfoDiv = document.getElementById("distance-info");
 const totalPriceSpan = document.getElementById("total-price");
 const summaryTotalContainer = document.querySelector(".summary-total");
@@ -138,6 +139,14 @@ let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
 /** @type {object|null} Information about the last applied promotion. */
 let lastPromotionInfo = null;
+/** @type {Array<object>} The last computed promotion opportunities. */
+let lastPromotionOpportunities = [];
+/** @type {string|null} The last motivational promotion message shown. */
+let lastPromotionMessage = null;
+/** @type {number} Sequence used to avoid race conditions when rendering charges. */
+let renderChargesSummarySequence = 0;
+/** @type {boolean} Indicates when promotion calculations failed. */
+let lastPromotionCalculationFailed = false;
 /** @type {object|null} The user's active subscription plan. */
 let userSubscription = null;
 /** @type {Map<string, Array<object>>} Cached grouping of services by category. */
@@ -919,6 +928,7 @@ function updateSummary() {
  * Renders the charges summary, including subtotal, distance fee, and promotions.
  */
 export async function renderChargesSummary() {
+  const calculationId = ++renderChargesSummarySequence;
   const charges = [];
   const selectedServices = stepData.services || [];
   charges.push({ label: "Subtotal de serviços", amount: serviceSubtotal });
@@ -988,14 +998,17 @@ export async function renderChargesSummary() {
 
   let descontoPromocao = 0;
   let mensagemPromocao = null;
-  lastPromotionInfo = null;
+  let oportunidadesPromocionais = [];
+  let appliedPromotionInfo = null;
   let planDiscount = 0;
+  let promotionCalculationFailed = false;
 
   if (userSubscription) {
-    const plan = planPricing.find(p => p.id === userSubscription.plano_id);
+    const plan = planPricing.find((p) => p.id === userSubscription.plano_id);
     if (plan) {
       const serviceDiscount = serviceSubtotal * plan.serviceDiscount;
-      const additionalFeeDiscount = extremeConditionChargesTotal * plan.additionalFeeDiscount;
+      const additionalFeeDiscount =
+        extremeConditionChargesTotal * plan.additionalFeeDiscount;
 
       planDiscount = serviceDiscount + additionalFeeDiscount;
 
@@ -1012,12 +1025,16 @@ export async function renderChargesSummary() {
     try {
       const resultado = await promocoesManager.calcularMelhorPromocao(
         selectedServices,
-        serviceSubtotal
+        serviceSubtotal,
+        priceTable
       );
-      descontoPromocao = resultado.desconto;
-      mensagemPromocao = resultado.mensagem;
-      if (resultado.promocao && descontoPromocao > 0) {
-        lastPromotionInfo = {
+      descontoPromocao = resultado?.desconto || 0;
+      mensagemPromocao = resultado?.mensagem || null;
+      oportunidadesPromocionais = Array.isArray(resultado?.oportunidades)
+        ? resultado.oportunidades
+        : [];
+      if (resultado?.promocao && descontoPromocao > 0) {
+        appliedPromotionInfo = {
           id: resultado.promocao.id,
           nome: resultado.promocao.nome,
           valor: descontoPromocao,
@@ -1025,7 +1042,20 @@ export async function renderChargesSummary() {
       }
     } catch (error) {
       console.warn("Não foi possível calcular promoções:", error);
+      descontoPromocao = 0;
+      mensagemPromocao = null;
+      oportunidadesPromocionais = [];
+      appliedPromotionInfo = null;
+      promotionCalculationFailed = true;
     }
+  } else {
+    oportunidadesPromocionais = [];
+    mensagemPromocao = null;
+    appliedPromotionInfo = null;
+  }
+
+  if (calculationId !== renderChargesSummarySequence) {
+    return;
   }
 
   if (descontoPromocao > 0) {
@@ -1034,6 +1064,12 @@ export async function renderChargesSummary() {
       amount: -descontoPromocao,
     });
   }
+
+  lastPromotionInfo = appliedPromotionInfo;
+  lastPromotionDiscount = descontoPromocao;
+  lastPromotionOpportunities = oportunidadesPromocionais;
+  lastPromotionMessage = mensagemPromocao;
+  lastPromotionCalculationFailed = promotionCalculationFailed;
 
   if (summaryChargesDiv) {
     summaryChargesDiv.innerHTML = charges
@@ -1047,7 +1083,7 @@ export async function renderChargesSummary() {
       )
       .join("");
 
-    if (mensagemPromocao) {
+    if (lastPromotionMessage) {
       summaryChargesDiv.innerHTML += `
             <div class="promo-message" style="
                 background-color: #d4edda;
@@ -1058,16 +1094,18 @@ export async function renderChargesSummary() {
                 color: #155724;
                 font-weight: 600;
             ">
-                ${mensagemPromocao}
+                ${lastPromotionMessage}
             </div>
         `;
     }
   }
 
   lastCalculatedTotal =
-    serviceSubtotal + distanceSurcharge + extremeConditionChargesTotal -
-    descontoPromocao - planDiscount;
-  lastPromotionDiscount = descontoPromocao;
+    serviceSubtotal +
+    distanceSurcharge +
+    extremeConditionChargesTotal -
+    descontoPromocao -
+    planDiscount;
 
   if (totalPriceSpan) {
     totalPriceSpan.textContent = shouldRevealTotals()
@@ -1075,7 +1113,95 @@ export async function renderChargesSummary() {
       : "R$ --";
   }
 
+  renderPromotionOpportunities(lastPromotionOpportunities, lastPromotionMessage);
+
   updateSummaryVisibility();
+}
+
+/**
+ * Renders contextual promotion opportunities for the Step 3 panel.
+ * @param {Array<object>} oportunidades - List of near-promotion opportunities.
+ * @param {string|null} mensagemPromocao - Success message when a promotion is applied.
+ */
+function renderPromotionOpportunities(oportunidades = [], mensagemPromocao = null) {
+  if (!promotionOpportunitiesDiv) {
+    return;
+  }
+
+  promotionOpportunitiesDiv.classList.remove("hidden");
+
+  if (!currentSession?.user?.id) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <p class="promotion-opportunities__empty">
+        Crie ou acesse sua conta para acompanhar promoções personalizadas.
+      </p>
+    `;
+    return;
+  }
+
+  const hasPromotions = Boolean(promocoesManager?.promocoesAtivas?.length);
+  if (!hasPromotions) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <p class="promotion-opportunities__empty">
+        Nenhuma promoção ativa no momento, mas continuamos buscando condições especiais para você.
+      </p>
+    `;
+    return;
+  }
+
+  if (lastPromotionCalculationFailed) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <p class="promotion-opportunities__empty">
+        Não foi possível atualizar as promoções agora. Tente novamente em instantes.
+      </p>
+    `;
+    return;
+  }
+
+  if (!stepData.services.length) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <p class="promotion-opportunities__empty">
+        Selecione serviços para descobrir combos e descontos disponíveis.
+      </p>
+    `;
+    return;
+  }
+
+  if (mensagemPromocao) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <div class="promotion-opportunities__item promotion-opportunities__item--success">
+        ${mensagemPromocao}
+      </div>
+    `;
+    return;
+  }
+
+  if (!oportunidades?.length) {
+    promotionOpportunitiesDiv.innerHTML = `
+      <p class="promotion-opportunities__empty">
+        Você já está aproveitando o melhor desconto disponível para essa combinação de serviços. 🎉
+      </p>
+    `;
+    return;
+  }
+
+  const listItems = oportunidades
+    .slice(0, 3)
+    .map(
+      (op) => `
+        <li class="promotion-opportunities__item">
+            ${op.mensagem}
+        </li>
+      `
+    )
+    .join("");
+
+  promotionOpportunitiesDiv.innerHTML = `
+    <h3 class="promotion-opportunities__title">Falta pouco para ganhar mais!</h3>
+    <ul class="promotion-opportunities__list">
+        ${listItems}
+    </ul>
+  `;
 }
 /**
  * Determines if the total price should be revealed.
