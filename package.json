@@ -4,7 +4,12 @@
   "description": "Static site for Apex Care",
   "private": true,
   "scripts": {
+    "test": "vitest",
     "build": "echo 'Static site - no build needed'",
     "deploy": "echo 'Deployment handled by Cloudflare Pages'"
+  },
+  "devDependencies": {
+    "jsdom": "^27.0.1",
+    "vitest": "^3.2.4"
   }
 }

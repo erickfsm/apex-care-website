@@ -62,9 +62,11 @@ export const planPricing = [
             { highlight: '4 Higienizações', text: 'por ano' },
             { text: 'Ideal para pets e crianças' },
             { text: 'Maior desconto por serviço' },
-            { highlight: '15% OFF', text: 'serviços avulsos' },
-            { highlight: '20% OFF', text: 'taxas adicionais' }
+            { highlight: '20% OFF', text: 'serviços avulsos' },
+            { highlight: '25% OFF', text: 'taxas adicionais' }
         ],
+        serviceDiscount: 0.15,
+        additionalFeeDiscount: 0.20,
         portalBenefits: [
             '4 Higienizações por ano',
             '15% OFF em serviços avulsos',
@@ -111,8 +113,10 @@ export const planPricing = [
             { text: 'Equilíbrio perfeito custo-benefício' },
             { text: 'Mantém estofado sempre novo' },
             { highlight: '15% OFF', text: 'serviços avulsos' },
-            { highlight: '20% OFF', text: 'taxas adicionais' }
+            { highlight: '15% OFF', text: 'taxas adicionais' }
         ],
+        serviceDiscount: 0.15,
+        additionalFeeDiscount: 0.20,
         portalBenefits: [
             '2 Higienizações por ano',
             '15% OFF em serviços avulsos',
@@ -161,10 +165,13 @@ export const planPricing = [
             { highlight: '15% OFF', text: 'serviços avulsos' },
             { highlight: '20% OFF', text: 'taxas adicionais' }
         ],
+        serviceDiscount: 0.15,
+        additionalFeeDiscount: 0.20,
         portalBenefits: [
             '1 Higienização por ano',
             '1 Suporte emergencial',
             '15% OFF em serviços avulsos',
+            '20% OFF em taxas adicionais',
             'Segurança contra imprevistos',
             'Parcelamento facilitado'
         ]

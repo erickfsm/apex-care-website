@@ -1,4 +1,5 @@
 import { supabase } from "./supabase-client.js";
+import { planPricing } from './pricing-data.js';
 /**
  * @fileoverview Manages the multi-step budgeting and scheduling process for cleaning services.
  * @module orcamento
@@ -133,6 +134,8 @@ let lastCalculatedTotal = 0;
 let lastPromotionDiscount = 0;
 /** @type {object|null} Information about the last applied promotion. */
 let lastPromotionInfo = null;
+/** @type {object|null} The user's active subscription plan. */
+let userSubscription = null;
 
 
 /**
@@ -151,6 +154,37 @@ async function ensurePromocoesManagerInitialized() {
   }
 
   return promocoesManager;
+}
+
+/**
+ * Fetches the user's active subscription from the database.
+ * @param {string} userId - The ID of the user.
+ * @returns {Promise<object|null>} The active subscription object, or null if none is found.
+ */
+async function fetchActiveSubscription(userId) {
+  if (!userId) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('assinaturas')
+      .select('plano_id, status')
+      .eq('cliente_id', userId)
+      .eq('status', 'ativa')
+      .single();
+
+    if (error) {
+      // It's not an error if no active subscription is found, so we'll just log it
+      console.log('No active subscription found for user:', userId);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Error fetching active subscription:', err);
+    return null;
+  }
 }
 
 /**
@@ -685,7 +719,7 @@ function updateSummary() {
 /**
  * Renders the charges summary, including subtotal, distance fee, and promotions.
  */
-async function renderChargesSummary() {
+export async function renderChargesSummary() {
   const charges = [];
   const selectedServices = stepData.services || [];
   charges.push({ label: "Subtotal de serviços", amount: serviceSubtotal });
@@ -756,6 +790,24 @@ async function renderChargesSummary() {
   let descontoPromocao = 0;
   let mensagemPromocao = null;
   lastPromotionInfo = null;
+  let planDiscount = 0;
+
+  if (userSubscription) {
+    const plan = planPricing.find(p => p.id === userSubscription.plano_id);
+    if (plan) {
+      const serviceDiscount = serviceSubtotal * plan.serviceDiscount;
+      const additionalFeeDiscount = extremeConditionChargesTotal * plan.additionalFeeDiscount;
+
+      planDiscount = serviceDiscount + additionalFeeDiscount;
+
+      if (planDiscount > 0) {
+        charges.push({
+          label: `Desconto do Plano ${plan.name}`,
+          amount: -planDiscount,
+        });
+      }
+    }
+  }
 
   if (promocoesManager && selectedServices.length > 0) {
     try {
@@ -815,7 +867,7 @@ async function renderChargesSummary() {
 
   lastCalculatedTotal =
     serviceSubtotal + distanceSurcharge + extremeConditionChargesTotal -
-    descontoPromocao;
+    descontoPromocao - planDiscount;
   lastPromotionDiscount = descontoPromocao;
 
   if (totalPriceSpan) {
@@ -1576,6 +1628,7 @@ async function initializeAuth() {
   updatePasswordRequirement();
 
   if (currentSession) {
+    userSubscription = await fetchActiveSubscription(currentSession.user.id);
     await hydrateStep1FromSession({ force: true });
   } else {
     shouldAutoAdvanceAfterAuth = false;
@@ -1779,8 +1832,7 @@ function registerScheduleListener() {
       });
     }
 
-    const extremeSelections = stepData.extremeConditions?.selections ?? [];
-    const formattedExtremeSelections = extremeSelections
+    const formattedExtremeSelections = stepData.extremeConditions?.selections
       .map((item) => item.label || item.id || "")
       .filter(Boolean)
       .join(", ");
