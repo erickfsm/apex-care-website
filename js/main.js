@@ -31,17 +31,41 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
 // --- HEADER STYLING ON SCROLL ---
 const header = document.querySelector('.main-header');
+const heroSection = document.querySelector('.hero-section');
+
 /**
- * @listens scroll
- * @description Adds or removes the 'scrolled' class from the header based on the scroll position.
+ * Updates header classes to keep a translucent look over the hero section and
+ * switch to a solid background after scrolling past it.
  */
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) { // If scrolled more than 50 pixels
+const updateHeaderStyles = () => {
+    if (!header) {
+        return;
+    }
+
+    const isHeroCoveringHeader = heroSection ? (() => {
+        const heroBounds = heroSection.getBoundingClientRect();
+        return heroBounds.top <= header.offsetHeight && heroBounds.bottom > 0;
+    })() : false;
+
+    if (isHeroCoveringHeader) {
+        header.classList.add('is-transparent');
+        header.classList.remove('scrolled');
+        return;
+    }
+
+    header.classList.remove('is-transparent');
+
+    if (window.scrollY > 50) {
         header.classList.add('scrolled');
     } else {
         header.classList.remove('scrolled');
     }
-});
+};
+
+window.addEventListener('scroll', updateHeaderStyles);
+window.addEventListener('load', updateHeaderStyles);
+window.addEventListener('resize', updateHeaderStyles);
+updateHeaderStyles();
 // --- DYNAMIC PLAN RENDERING ---
 /**
  * Renders the homepage plans dynamically.
