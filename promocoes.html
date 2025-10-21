@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promoções Ativas - Apex Care</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-improvements.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header scrolled">
+        <nav class="main-nav">
+            <a href="index.html" class="logo">
+                <img src="assets/images/logo-apex-care.svg" alt="Logo Apex Care">
+            </a>
+            <ul>
+                <li><a href="index.html#servicos">Serviços</a></li>
+                <li><a href="index.html#metodo">O Método</a></li>
+                <li><a href="index.html#planos">Planos</a></li>
+                <li><a href="index.html#sobre">Sobre</a></li>
+                <li><a href="promocoes.html" class="active-link">Promoções</a></li>
+            </ul>
+            <div id="auth-container" class="auth-container-header"></div>
+        </nav>
+    </header>
+
+    <main class="promocoes-main">
+        <section class="promocoes-hero">
+            <div class="container">
+                <span class="promocoes-hero-pill">Exclusivo Apex Care</span>
+                <h1>Promoções que turbinam o cuidado com o seu lar</h1>
+                <p>Conheça as condições especiais disponíveis agora e aproveite benefícios pensados para trazer mais conforto, proteção e economia.</p>
+                <div class="promocoes-hero-actions">
+                    <a href="orcamento.html" class="cta-button-hero">Quero aproveitar agora</a>
+                    <a href="#lista-promocoes" class="ghost-button">Ver promoções</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="lista-promocoes" class="promocoes-list-section">
+            <div class="container">
+                <header class="promocoes-section-header">
+                    <h2>Promoções vigentes</h2>
+                    <p>Atualizamos esta lista diariamente para garantir que você aproveite apenas ofertas válidas e com benefícios reais.</p>
+                </header>
+                <div class="promocoes-list-wrapper" data-promocoes-list data-promocoes-layout="cards">
+                    <p class="promocoes-empty">Carregando promoções especiais...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="promocoes-dicas">
+            <div class="container promocoes-dicas-grid">
+                <div class="dica-card">
+                    <h3>Como garantir o melhor desconto</h3>
+                    <ul>
+                        <li>Finalize seu agendamento dentro do período de validade indicado.</li>
+                        <li>Verifique os serviços contemplados e combine com outros benefícios.</li>
+                        <li>Mantenha seu cadastro atualizado para receber ofertas personalizadas.</li>
+                    </ul>
+                </div>
+                <div class="dica-card destaque">
+                    <h3>Fale com um especialista</h3>
+                    <p>Quer entender qual promoção combina melhor com seu imóvel? Nossa equipe te ajuda a montar o pacote ideal.</p>
+                    <a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank" class="cta-button-outline">Conversar via WhatsApp</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <img src="assets/images/logo-apex-care-white.svg" alt="Logo Apex Care" class="footer-logo">
+                <p>Performance que traz tranquilidade. Tratamento técnico para estofados em Ibirité e região.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="index.html#servicos">Serviços</a></li>
+                    <li><a href="index.html#metodo">O Método</a></li>
+                    <li><a href="index.html#planos">Planos</a></li>
+                    <li><a href="index.html#sobre">Sobre</a></li>
+                    <li><a href="promocoes.html">Promoções</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Contato</h4>
+                <ul>
+                    <li><a href="https://wa.me/55SEUDDDSEUNUMERO" target="_blank">WhatsApp</a></li>
+                    <li><a href="mailto:contato@apexcare.com.br">contato@apexcare.com.br</a></li>
+                    <li><a href="https://instagram.com/apex.higienizacao" target="_blank">Instagram</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Apex Care. Todos os direitos reservados. Desenvolvido por @erick.fsm.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="js/promocoes-manager.js"></script>
+    <script type="module" src="js/promocoes-exibicao.js"></script>
+    <script type="module" src="js/shared.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
