@@ -1,4 +1,5 @@
 import { supabase } from "./supabase-client.js";
+import "./address-manager.js";
 import { planPricing } from './pricing-data.js';
 /**
  * @fileoverview Manages the multi-step budgeting and scheduling process for cleaning services.
@@ -44,6 +45,15 @@ const extremeConditionsForm = document.getElementById(
 const extremeDetailsInput = document.getElementById("extreme-details");
 const resumeExtremeNotes = document.getElementById("resume-extreme-notes");
 
+const tipoImovelSelect = document.getElementById("tipo-imovel");
+const savedAddressSelect = document.getElementById("saved-address-select");
+const addNewAddressBtn = document.getElementById("add-new-address-btn");
+const addressFormWrapper = document.getElementById("address-form-wrapper");
+const savedAddressActions = document.getElementById("saved-address-actions");
+const selectedAddressText = document.getElementById("selected-address-text");
+const deleteAddressBtn = document.getElementById("delete-address-btn");
+const nomeEnderecoInput = document.getElementById("nome-endereco-input");
+const manageAddressesLink = document.getElementById("manage-addresses-link");
 const cepInput = document.getElementById("cep-input");
 const numeroInput = document.getElementById("numero-input");
 const complementoInput = document.getElementById("complemento-input");
@@ -58,6 +68,7 @@ const resumeFields = {
   nome: document.getElementById("resume-nome"),
   email: document.getElementById("resume-email"),
   telefone: document.getElementById("resume-telefone"),
+  nomeEndereco: document.getElementById("resume-nome-endereco"),
   tipoImovel: document.getElementById("resume-tipo-imovel"),
   distancia: document.getElementById("resume-distancia"),
   cep: document.getElementById("resume-cep"),
@@ -78,7 +89,10 @@ const stepForms = {
 /** @type {object} Holds data for each step of the form. */
 const stepData = {
   step1: {},
-  step2: {},
+  step2: {
+    endereco_id: null,
+    nome_endereco: "",
+  },
   services: [],
   extremeConditions: {
     selections: [],
@@ -126,6 +140,8 @@ let profileCache = null;
 let shouldAutoAdvanceAfterAuth = false;
 /** @type {object|null} The promotions manager instance. */
 let promocoesManager = null;
+/** @type {AddressManager|null} Manages saved addresses for the authenticated user. */
+let addressManager = null;
 /** @type {number} The total charge for extreme conditions. */
 let extremeConditionChargesTotal = 0;
 /** @type {number} The last calculated total price. */
@@ -216,6 +232,361 @@ function applyCepMask(value) {
     return digits;
   }
   return `${digits.slice(0, 5)}-${digits.slice(5, 8)}`;
+}
+/**
+ * Creates a readable summary for an address.
+ * @param {object} address - The address record to summarize.
+ * @returns {string} The formatted summary text.
+ */
+function formatAddressPreview(address) {
+  if (!address) return "";
+
+  const street = address.rua
+    ? address.numero
+      ? `${address.rua}, ${address.numero}`
+      : address.rua
+    : "";
+  const neighborhood = address.bairro || "";
+  const cityState =
+    address.cidade && address.estado
+      ? `${address.cidade}/${address.estado}`
+      : address.cidade || address.estado || "";
+
+  return [street, neighborhood, cityState].filter(Boolean).join(" • ");
+}
+/**
+ * Maps a saved address record to the step 2 data structure.
+ * @param {object} address - The address record fetched from Supabase.
+ * @param {object} [overrides={}] - Additional values to merge.
+ * @returns {object} The mapped step data.
+ */
+function mapAddressRecordToStepData(address, overrides = {}) {
+  if (!address) {
+    return {
+      tipoImovel: overrides.tipoImovel || "",
+      cep: "",
+      numero: "",
+      complemento: "",
+      rua: "",
+      bairro: "",
+      cidadeDetalhe: "",
+      estado: "",
+      endereco_id: null,
+      nome_endereco: "",
+    };
+  }
+
+  return {
+    tipoImovel: overrides.tipoImovel ?? address.tipo_imovel ?? "",
+    cep: sanitizeCep(address.cep || ""),
+    numero: address.numero || "",
+    complemento: address.complemento || "",
+    rua: address.rua || "",
+    bairro: address.bairro || "",
+    cidadeDetalhe: address.cidade || "",
+    estado: address.estado || "",
+    endereco_id: address.id ?? null,
+    nome_endereco: address.nome_endereco || "",
+    latitude: address.latitude ?? null,
+    longitude: address.longitude ?? null,
+  };
+}
+/**
+ * Clears the new address form fields and resets the state.
+ */
+function clearNewAddressForm() {
+  const tipoValue = tipoImovelSelect?.value || stepData.step2?.tipoImovel || "";
+  stepData.step2 = {
+    tipoImovel: tipoValue,
+    cep: "",
+    numero: "",
+    complemento: "",
+    rua: "",
+    bairro: "",
+    cidadeDetalhe: "",
+    estado: "",
+    endereco_id: null,
+    nome_endereco: "",
+  };
+
+  if (nomeEnderecoInput) nomeEnderecoInput.value = "";
+  if (cepInput) cepInput.value = "";
+  if (numeroInput) numeroInput.value = "";
+  if (complementoInput) complementoInput.value = "";
+  if (ruaInput) ruaInput.value = "";
+  if (bairroInput) bairroInput.value = "";
+  if (cidadeInput) cidadeInput.value = "";
+  if (estadoInput) estadoInput.value = "";
+
+  lastCepData = null;
+  customerCoordinates = null;
+  distanceKm = null;
+  renderChargesSummary();
+}
+/**
+ * Displays the manual address form.
+ * @param {object} [options] - Display options.
+ * @param {boolean} [options.resetForm=false] - Whether to clear the form fields.
+ */
+function showAddressForm({ resetForm = false } = {}) {
+  if (resetForm) {
+    clearNewAddressForm();
+  }
+  if (addressFormWrapper) {
+    addressFormWrapper.classList.remove("hidden");
+  }
+  if (savedAddressActions) {
+    savedAddressActions.classList.add("hidden");
+  }
+}
+/**
+ * Hides the manual address form when a saved address is in use.
+ */
+function hideAddressForm() {
+  if (!addressManager?.addresses?.length) {
+    showAddressForm();
+    return;
+  }
+  if (addressFormWrapper) {
+    addressFormWrapper.classList.add("hidden");
+  }
+}
+/**
+ * Updates the saved address select element with the provided addresses.
+ * @param {Array<object>} addresses - The addresses to render.
+ */
+function populateSavedAddressSelect(addresses = []) {
+  if (!savedAddressSelect) return;
+
+  const desiredValue =
+    stepData.step2?.endereco_id != null
+      ? String(stepData.step2.endereco_id)
+      : "";
+
+  savedAddressSelect.innerHTML =
+    '<option value="">Selecione um endereço</option>';
+
+  addresses.forEach((address) => {
+    if (!address?.id) return;
+    const option = document.createElement("option");
+    option.value = String(address.id);
+    option.textContent = address.nome_endereco || formatAddressPreview(address);
+    savedAddressSelect.appendChild(option);
+  });
+
+  if (
+    desiredValue &&
+    addresses.some((addr) => String(addr.id) === desiredValue)
+  ) {
+    savedAddressSelect.value = desiredValue;
+    hideAddressForm();
+  } else {
+    savedAddressSelect.value = "";
+    if (addresses.length) {
+      hideAddressForm();
+    } else {
+      showAddressForm({ resetForm: false });
+    }
+  }
+
+  updateSavedAddressUI();
+}
+/**
+ * Updates the summary section and actions for the selected address.
+ */
+function updateSavedAddressUI() {
+  if (!savedAddressActions) return;
+
+  const selectedId = savedAddressSelect?.value;
+  if (!selectedId) {
+    savedAddressActions.classList.add("hidden");
+    if (selectedAddressText) selectedAddressText.textContent = "";
+    if (deleteAddressBtn) {
+      deleteAddressBtn.disabled = true;
+      deleteAddressBtn.dataset.addressId = "";
+    }
+    return;
+  }
+
+  const address = addressManager?.addresses?.find(
+    (item) => String(item.id) === selectedId
+  );
+
+  if (!address) {
+    savedAddressActions.classList.add("hidden");
+    if (selectedAddressText) selectedAddressText.textContent = "";
+    if (deleteAddressBtn) {
+      deleteAddressBtn.disabled = true;
+      deleteAddressBtn.dataset.addressId = "";
+    }
+    return;
+  }
+
+  savedAddressActions.classList.remove("hidden");
+  if (selectedAddressText) {
+    const summaryParts = [
+      address.nome_endereco || null,
+      formatAddressPreview(address),
+    ].filter(Boolean);
+    selectedAddressText.textContent = summaryParts.join(" • ");
+  }
+  if (deleteAddressBtn) {
+    deleteAddressBtn.disabled = false;
+    deleteAddressBtn.dataset.addressId = String(address.id);
+  }
+}
+/**
+ * Applies a saved address to the form inputs and state.
+ * @param {object} address - The selected address record.
+ * @param {object} [options] - Apply options.
+ * @param {boolean} [options.recalcDistance=true] - Whether to recalculate the distance.
+ */
+async function applySavedAddressToForm(address, { recalcDistance = true } = {}) {
+  if (!address) return;
+
+  const tipoValue = address.tipo_imovel || stepData.step2?.tipoImovel || "";
+  if (tipoImovelSelect) {
+    tipoImovelSelect.value = tipoValue;
+  }
+  if (cepInput) {
+    cepInput.value = address.cep ? applyCepMask(address.cep) : "";
+  }
+  if (numeroInput) numeroInput.value = address.numero || "";
+  if (complementoInput) complementoInput.value = address.complemento || "";
+  if (ruaInput) ruaInput.value = address.rua || "";
+  if (bairroInput) bairroInput.value = address.bairro || "";
+  if (cidadeInput) cidadeInput.value = address.cidade || "";
+  if (estadoInput) estadoInput.value = address.estado || "";
+  if (nomeEnderecoInput) nomeEnderecoInput.value = address.nome_endereco || "";
+
+  lastCepData = {
+    logradouro: address.rua || "",
+    bairro: address.bairro || "",
+    localidade: address.cidade || "",
+    uf: address.estado || "",
+  };
+
+  stepData.step2 = mapAddressRecordToStepData(address, {
+    tipoImovel: tipoValue,
+  });
+
+  if (address.latitude && address.longitude) {
+    customerCoordinates = {
+      latitude: Number(address.latitude),
+      longitude: Number(address.longitude),
+    };
+  } else {
+    customerCoordinates = null;
+  }
+
+  if (recalcDistance) {
+    await updateCustomerCoordinates();
+  }
+
+  renderChargesSummary();
+}
+/**
+ * Syncs the address form with the current state values.
+ * @param {object} [options] - Sync options.
+ * @param {boolean} [options.recalcDistance=false] - Whether to recalculate the distance.
+ */
+async function syncAddressFormFromState({ recalcDistance = false } = {}) {
+  if (stepData.step2?.endereco_id && addressManager?.addresses?.length) {
+    const address = addressManager.addresses.find(
+      (item) => String(item.id) === String(stepData.step2.endereco_id)
+    );
+    if (address) {
+      if (savedAddressSelect) {
+        savedAddressSelect.value = String(address.id);
+      }
+      hideAddressForm();
+      await applySavedAddressToForm(address, { recalcDistance });
+      updateSavedAddressUI();
+      return;
+    }
+  }
+
+  if (savedAddressSelect) {
+    savedAddressSelect.value = "";
+  }
+  showAddressForm({ resetForm: false });
+  if (nomeEnderecoInput)
+    nomeEnderecoInput.value = stepData.step2?.nome_endereco || "";
+  if (cepInput)
+    cepInput.value = stepData.step2?.cep
+      ? applyCepMask(stepData.step2.cep)
+      : "";
+  if (numeroInput) numeroInput.value = stepData.step2?.numero || "";
+  if (complementoInput)
+    complementoInput.value = stepData.step2?.complemento || "";
+  if (ruaInput) ruaInput.value = stepData.step2?.rua || "";
+  if (bairroInput) bairroInput.value = stepData.step2?.bairro || "";
+  if (cidadeInput)
+    cidadeInput.value = stepData.step2?.cidadeDetalhe || "";
+  if (estadoInput) estadoInput.value = stepData.step2?.estado || "";
+
+  if (
+    recalcDistance &&
+    stepData.step2?.cep &&
+    stepData.step2?.numero &&
+    stepData.step2?.rua
+  ) {
+    lastCepData = {
+      logradouro: stepData.step2.rua || "",
+      bairro: stepData.step2.bairro || "",
+      localidade: stepData.step2.cidadeDetalhe || "",
+      uf: stepData.step2.estado || "",
+    };
+    await updateCustomerCoordinates();
+  }
+
+  updateSavedAddressUI();
+}
+/**
+ * Handles the selection of a saved address from the dropdown.
+ */
+async function handleSavedAddressChange() {
+  if (!savedAddressSelect) return;
+
+  const selectedId = savedAddressSelect.value;
+  if (!selectedId) {
+    showAddressForm({ resetForm: true });
+    updateSavedAddressUI();
+    return;
+  }
+
+  const address = addressManager?.addresses?.find(
+    (item) => String(item.id) === selectedId
+  );
+  if (!address) {
+    showAddressForm({ resetForm: true });
+    updateSavedAddressUI();
+    return;
+  }
+
+  hideAddressForm();
+  await applySavedAddressToForm(address);
+  updateSavedAddressUI();
+}
+/**
+ * Ensures the address manager is ready for the current session.
+ * @returns {Promise<AddressManager|null>} The initialized manager or null.
+ */
+async function ensureAddressManagerInitialized() {
+  if (!currentSession?.user?.id || typeof window.AddressManager !== "function") {
+    addressManager = null;
+    populateSavedAddressSelect([]);
+    return null;
+  }
+
+  if (!addressManager) {
+    addressManager = new window.AddressManager();
+  }
+
+  await addressManager.init(currentSession.user.id);
+  populateSavedAddressSelect(addressManager.addresses);
+  await syncAddressFormFromState({ recalcDistance: true });
+  return addressManager;
 }
 /**
  * Gets the current CEP value from the input or stored data.
@@ -375,21 +746,12 @@ function prefillStepForms(step) {
   }
 
   if (step === 2 && stepForms[2]) {
-    const formElements = stepForms[2].elements;
-    if (formElements.namedItem("tipo-imovel"))
-      formElements.namedItem("tipo-imovel").value =
-        stepData.step2.tipoImovel ?? "";
-    if (cepInput)
-      cepInput.value = stepData.step2.cep
-        ? applyCepMask(stepData.step2.cep)
-        : "";
-    if (numeroInput) numeroInput.value = stepData.step2.numero ?? "";
-    if (complementoInput)
-      complementoInput.value = stepData.step2.complemento ?? "";
-    if (ruaInput) ruaInput.value = stepData.step2.rua ?? "";
-    if (bairroInput) bairroInput.value = stepData.step2.bairro ?? "";
-    if (cidadeInput) cidadeInput.value = stepData.step2.cidadeDetalhe ?? "";
-    if (estadoInput) estadoInput.value = stepData.step2.estado ?? "";
+    if (tipoImovelSelect) {
+      tipoImovelSelect.value = stepData.step2.tipoImovel ?? "";
+    }
+    syncAddressFormFromState().catch((error) =>
+      console.warn("Não foi possível sincronizar o formulário de endereço:", error)
+    );
   }
 
   if (step === 4 && stepForms[4]) {
@@ -446,6 +808,8 @@ function populateResume() {
   if (resumeFields.email) resumeFields.email.textContent = step1.email || "-";
   if (resumeFields.telefone)
     resumeFields.telefone.textContent = step1.telefone || "-";
+  if (resumeFields.nomeEndereco)
+    resumeFields.nomeEndereco.textContent = step2.nome_endereco || "-";
 
   const tipoLabels = {
     residencial: "Residencial",
@@ -999,6 +1363,8 @@ async function applyResumeState() {
     };
   }
 
+  await syncAddressFormFromState({ recalcDistance: false });
+
   const targetStep = Math.min(
     pendingResumeState.targetStep || 1,
     stepSections.length
@@ -1019,7 +1385,7 @@ async function applyResumeState() {
  */
 async function handleNavigation(action) {
   if (action === "next") {
-    if (!validateStep(currentStep)) {
+    if (!(await validateStep(currentStep))) {
       return;
     }
 
@@ -1054,7 +1420,7 @@ async function handleNavigation(action) {
  * @param {number} step - The step number to validate.
  * @returns {boolean} True if the step is valid, false otherwise.
  */
-function validateStep(step) {
+async function validateStep(step) {
   if (step === 1) {
     const form = stepForms[1];
     if (!form) return false;
@@ -1091,6 +1457,8 @@ function validateStep(step) {
     const form = stepForms[2];
     if (!form) return false;
 
+    const selectedAddressId = savedAddressSelect?.value || "";
+
     if (cepInput) {
       const sanitizedCep = sanitizeCep(cepInput.value);
       if (sanitizedCep.length !== 8) {
@@ -1102,6 +1470,48 @@ function validateStep(step) {
 
     if (!form.reportValidity()) {
       return false;
+    }
+
+    if (selectedAddressId) {
+      const selectedAddress = addressManager?.addresses?.find(
+        (item) => String(item.id) === selectedAddressId
+      );
+
+      if (!selectedAddress) {
+        alert(
+          "Não encontramos o endereço selecionado. Atualize a lista e tente novamente."
+        );
+        return false;
+      }
+
+      const tipoValue =
+        tipoImovelSelect?.value || selectedAddress.tipo_imovel || "";
+      stepData.step2 = mapAddressRecordToStepData(selectedAddress, {
+        tipoImovel: tipoValue,
+      });
+      stepData.step2.nome_endereco =
+        selectedAddress.nome_endereco || stepData.step2.nome_endereco || "";
+
+      if (nomeEnderecoInput) {
+        nomeEnderecoInput.value = stepData.step2.nome_endereco || "";
+      }
+
+      if (isCalculatingDistance) {
+        alert(
+          "Estamos calculando a distância. Aguarde alguns segundos e tente novamente."
+        );
+        return false;
+      }
+
+      if (!Number.isFinite(distanceKm)) {
+        await updateCustomerCoordinates();
+        if (!Number.isFinite(distanceKm)) {
+          alert("Aguarde o cálculo de distância antes de prosseguir.");
+          return false;
+        }
+      }
+
+      return true;
     }
 
     const cidadeValue = (
@@ -1128,8 +1538,14 @@ function validateStep(step) {
     }
 
     const elements = form.elements;
+    const tipoValue = elements.namedItem("tipo-imovel")?.value ?? "";
+    const rawNickname = nomeEnderecoInput?.value?.trim() || "";
+    const fallbackNickname = ruaInput?.value && numeroInput?.value
+      ? `${ruaInput.value.trim()}, ${numeroInput.value.trim()}`
+      : "Endereço salvo";
+
     stepData.step2 = {
-      tipoImovel: elements.namedItem("tipo-imovel")?.value ?? "",
+      tipoImovel: tipoValue,
       cep: sanitizeCep(cepInput?.value || ""),
       numero: numeroInput?.value.trim() ?? "",
       complemento: complementoInput?.value.trim() ?? "",
@@ -1137,7 +1553,50 @@ function validateStep(step) {
       bairro: (bairroInput?.value || lastCepData?.bairro || "").trim(),
       cidadeDetalhe: cidadeValue,
       estado: estadoInput?.value.trim() ?? "",
+      nome_endereco: rawNickname || fallbackNickname,
+      endereco_id: null,
     };
+
+    if (currentSession?.user?.id) {
+      try {
+        await ensureAddressManagerInitialized();
+        if (addressManager) {
+          const createdAddress = await addressManager.createAddress({
+            nome_endereco: stepData.step2.nome_endereco,
+            tipo_imovel: stepData.step2.tipoImovel,
+            cep: stepData.step2.cep,
+            rua: stepData.step2.rua,
+            numero: stepData.step2.numero,
+            complemento: stepData.step2.complemento || null,
+            bairro: stepData.step2.bairro,
+            cidade: stepData.step2.cidadeDetalhe,
+            estado: stepData.step2.estado,
+            latitude: customerCoordinates?.latitude ?? null,
+            longitude: customerCoordinates?.longitude ?? null,
+          });
+
+          if (createdAddress) {
+            populateSavedAddressSelect(addressManager.addresses);
+            stepData.step2 = mapAddressRecordToStepData(createdAddress, {
+              tipoImovel: stepData.step2.tipoImovel,
+            });
+            stepData.step2.nome_endereco =
+              createdAddress.nome_endereco || stepData.step2.nome_endereco;
+            if (savedAddressSelect) {
+              savedAddressSelect.value = String(createdAddress.id);
+            }
+            hideAddressForm();
+            updateSavedAddressUI();
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao salvar endereço:", error);
+        alert(
+          "Não foi possível salvar o novo endereço. Atualize a página ou tente novamente em instantes."
+        );
+        return false;
+      }
+    }
 
     return true;
   }
@@ -1629,8 +2088,12 @@ async function initializeAuth() {
 
   if (currentSession) {
     userSubscription = await fetchActiveSubscription(currentSession.user.id);
+    await ensureAddressManagerInitialized();
     await hydrateStep1FromSession({ force: true });
   } else {
+    addressManager = null;
+    populateSavedAddressSelect([]);
+    showAddressForm({ resetForm: false });
     shouldAutoAdvanceAfterAuth = false;
   }
 
@@ -1641,6 +2104,7 @@ async function initializeAuth() {
     updateScheduleButtonState();
 
     if (session) {
+      await ensureAddressManagerInitialized();
       if (pendingResumeState) {
         await applyResumeState();
       }
@@ -1657,6 +2121,9 @@ async function initializeAuth() {
       stepData.step1 = {};
       shouldAutoAdvanceAfterAuth = false;
       profileCache = null;
+      addressManager = null;
+      populateSavedAddressSelect([]);
+      showAddressForm({ resetForm: false });
       if (currentStep !== 1) {
         showStep(1);
       }
@@ -1681,13 +2148,66 @@ function registerNavigationListeners() {
  * Registers event listeners for address input fields.
  */
 function registerAddressListeners() {
-  if (!cepInput) return;
+  if (savedAddressSelect) {
+    savedAddressSelect.addEventListener("change", () => {
+      handleSavedAddressChange().catch((error) =>
+        console.warn("Não foi possível aplicar o endereço selecionado:", error)
+      );
+    });
+  }
 
-  cepInput.addEventListener("input", () => {
-    cepInput.value = applyCepMask(cepInput.value);
-  });
+  if (addNewAddressBtn) {
+    addNewAddressBtn.addEventListener("click", () => {
+      showAddressForm({ resetForm: true });
+      if (savedAddressSelect) {
+        savedAddressSelect.value = "";
+      }
+      updateSavedAddressUI();
+    });
+  }
 
-  cepInput.addEventListener("blur", fetchAddressByCep);
+  if (deleteAddressBtn) {
+    deleteAddressBtn.addEventListener("click", async () => {
+      if (!addressManager || !savedAddressSelect?.value) {
+        if (manageAddressesLink?.href) {
+          window.open(manageAddressesLink.href, "_blank", "noopener");
+        }
+        return;
+      }
+
+      const addressId = savedAddressSelect.value;
+      const address = addressManager.addresses.find(
+        (item) => String(item.id) === addressId
+      );
+      const nickname = address?.nome_endereco || "este endereço";
+      const confirmed = window.confirm(
+        `Tem certeza que deseja excluir ${nickname}?`
+      );
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        await addressManager.deleteAddress(addressId);
+        populateSavedAddressSelect(addressManager.addresses);
+        showAddressForm({ resetForm: true });
+        updateSavedAddressUI();
+      } catch (error) {
+        console.error("Erro ao excluir endereço:", error);
+        alert(
+          "Não foi possível excluir o endereço agora. Tente novamente em instantes."
+        );
+      }
+    });
+  }
+
+  if (cepInput) {
+    cepInput.addEventListener("input", () => {
+      cepInput.value = applyCepMask(cepInput.value);
+    });
+
+    cepInput.addEventListener("blur", fetchAddressByCep);
+  }
 
   numeroInput?.addEventListener("blur", updateCustomerCoordinates);
   numeroInput?.addEventListener("input", () => {
@@ -1939,6 +2459,8 @@ async function persistBudgetForApproval(orcamentoData) {
     orcamentoData.adicionais_condicoes
   ) || 0;
 
+  const propertyInfo = orcamentoData.imovel || {};
+
   const basePayload = {
     cliente_id: clienteId,
     servicos_escolhidos: orcamentoData.servicos,
@@ -1953,6 +2475,8 @@ async function persistBudgetForApproval(orcamentoData) {
     anotacoes_backoffice: orcamentoData.anotacoes_backoffice || "",
     data_agendamento: null,
     hora_agendamento: null,
+    endereco_id: propertyInfo.endereco_id || null,
+    nome_endereco: propertyInfo.nome_endereco || null,
   };
 
   if (existingAppointment) {
@@ -2023,6 +2547,7 @@ async function init() {
 
   registerNavigationListeners();
   registerAddressListeners();
+  updateSavedAddressUI();
   registerExtremeConditionsListeners();
   registerScheduleListener();
   registerServiceSummaryWatcher();

@@ -119,8 +119,30 @@
                                         <option value="condominio">Condomínio</option>
                                     </select>
                                 </div>
-                                <div class="address-card">
+                                <div class="form-group">
+                                    <label for="saved-address-select">Endereços salvos</label>
+                                    <div class="saved-address-row">
+                                        <select id="saved-address-select" name="saved-address">
+                                            <option value="">Selecione um endereço</option>
+                                        </select>
+                                        <button type="button" id="add-new-address-btn" class="ghost-button">Adicionar novo</button>
+                                    </div>
+                                    <div id="saved-address-actions" class="saved-address-actions hidden">
+                                        <p class="saved-address-summary">
+                                            <span id="selected-address-text"></span>
+                                        </p>
+                                        <div class="saved-address-links">
+                                            <a id="manage-addresses-link" href="config-perfil.html#enderecos" target="_blank" rel="noopener">Editar na área do cliente</a>
+                                            <button type="button" id="delete-address-btn" class="link-button">Excluir endereço</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="address-form-wrapper" class="address-card">
                                     <h3>Endereço da visita</h3>
+                                    <div class="form-group">
+                                        <label for="nome-endereco-input">Apelido do endereço</label>
+                                        <input type="text" id="nome-endereco-input" name="nome-endereco" placeholder="Casa, Escritório, Cobertura...">
+                                    </div>
                                     <div class="form-grid">
                                         <div class="form-group">
                                             <label for="cep-input">CEP</label>
@@ -218,6 +240,7 @@
                                     </ul>
                                     <h3>Dados do imóvel</h3>
                                     <ul class="resume-list">
+                                        <li><span>Apelido:</span> <span id="resume-nome-endereco">-</span></li>
                                         <li><span>Tipo:</span> <span id="resume-tipo-imovel">-</span></li>
                                         <li><span>Distância estimada:</span> <span id="resume-distancia">-</span></li>
                                     </ul>
