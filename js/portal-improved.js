@@ -136,6 +136,45 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 /**
+ * Extracts a readable primary service name from an appointment payload.
+ * @param {object} appointment - The appointment object.
+ * @returns {string} The best effort service name.
+ */
+function extractPrimaryServiceName(appointment) {
+  if (!appointment) return '';
+
+  const services = Array.isArray(appointment.servicos_escolhidos)
+    ? appointment.servicos_escolhidos
+    : [];
+
+  const namedService = services.find((service) => typeof service?.name === 'string' && service.name.trim());
+  if (namedService) return namedService.name.trim();
+
+  const fallbackKeys = ['servico_principal', 'servico', 'tipo_servico', 'categoria'];
+  for (const key of fallbackKeys) {
+    const value = appointment[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return '';
+}
+/**
+ * Parses a date string into a Date object, supporting dates without time.
+ * @param {string} value - The date value to parse.
+ * @returns {Date|null} A valid Date instance or null when parsing fails.
+ */
+function parseDate(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.includes('T') ? trimmed : `${trimmed}T00:00:00`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+/**
  * Initializes the client portal, authenticates the user, and loads data.
  */
 async function initPortal() {
@@ -475,40 +514,106 @@ function renderAppointments(appointments, element, isUpcoming) {
 function updateStats() {
   if (!statsDiv) return;
 
-  const totalAppointments = allAppointments.filter(
-    (a) => a.status_pagamento === 'Concluído'
-  ).length;
+  statsDiv.classList.add('stats-grid', 'premium-stats-grid');
 
-  const totalSpent = allAppointments
-    .filter((a) => a.status_pagamento === 'Concluído')
-    .reduce((sum, a) => sum + (Number(a.valor_total) || 0), 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const nextAppointment = allAppointments
-    .filter((appt) => {
-      if (!appt.data_agendamento) return false;
-      const apptDate = new Date(`${appt.data_agendamento}T00:00:00`);
-      return apptDate >= new Date().setHours(0, 0, 0, 0) && !['Cancelado', 'Concluído'].includes(appt.status_pagamento);
+  const upcomingAppointments = allAppointments
+    .map((appt) => ({
+      appointment: appt,
+      date: parseDate(appt.data_agendamento),
+    }))
+    .filter(({ appointment, date }) => {
+      if (!date) return false;
+      if (['Cancelado', 'Concluído', 'Reprovado'].includes(appointment.status_pagamento)) {
+        return false;
+      }
+      return date >= today;
     })
-    .sort((a, b) => new Date(a.data_agendamento) - new Date(b.data_agendamento))[0];
+    .sort((a, b) => a.date - b.date);
 
-  const nextDate = nextAppointment
-    ? new Date(`${nextAppointment.data_agendamento}T00:00:00`).toLocaleDateString('pt-BR')
-    : 'Nenhum';
+  const nextData = upcomingAppointments[0] || null;
+  const nextAppointment = nextData?.appointment || null;
+  const nextDate = nextData?.date || null;
+  const nextHour = typeof nextAppointment?.hora_agendamento === 'string'
+    ? nextAppointment.hora_agendamento.trim()
+    : '';
+  const nextValue = nextDate
+    ? `${nextDate.toLocaleDateString('pt-BR')}${nextHour ? ` • ${nextHour}` : ''}`
+    : 'Sem agendamentos confirmados';
+  const nextPrimaryService = extractPrimaryServiceName(nextAppointment);
+  const nextHelper = nextAppointment
+    ? nextPrimaryService
+      ? `Serviço destaque: ${nextPrimaryService}.`
+      : 'Consulte os detalhes completos na seção de agendamentos.'
+    : 'Agende um serviço para ver aqui.';
 
-  statsDiv.innerHTML = `
-    <div class="stat-card">
-      <h4>Serviços concluídos</h4>
-      <p>${totalAppointments}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Valor investido</h4>
-      <p>${formatCurrency(totalSpent)}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Próximo agendamento</h4>
-      <p>${nextDate}</p>
-    </div>
+  const recentCutoff = new Date();
+  recentCutoff.setMonth(recentCutoff.getMonth() - 6);
+
+  const concludedAppointments = allAppointments.filter(
+    (appt) => appt.status_pagamento === 'Concluído'
+  );
+
+  const concludedRecent = concludedAppointments.filter((appt) => {
+    const concludedDate = parseDate(appt.data_agendamento || appt.created_at);
+    return concludedDate && concludedDate >= recentCutoff;
+  });
+
+  const concludedRecentCount = concludedRecent.length;
+  const lastConcludedDate = concludedRecent
+    .map((appt) => parseDate(appt.data_agendamento || appt.created_at))
+    .filter(Boolean)
+    .sort((a, b) => b - a)[0] || null;
+
+  const concludedValue = concludedRecentCount.toString();
+  const concludedHelper = concludedRecentCount
+    ? lastConcludedDate
+      ? `Último serviço em ${lastConcludedDate.toLocaleDateString('pt-BR')}.`
+      : 'Último serviço recente registrado.'
+    : 'Nenhum serviço recente registrado.';
+
+  let clubStatusValue = 'Convite disponível';
+  let clubHelper = 'Contrate um serviço para desbloquear vantagens exclusivas.';
+
+  if (concludedRecentCount >= 3) {
+    const renewalDateText = lastConcludedDate
+      ? lastConcludedDate.toLocaleDateString('pt-BR')
+      : '';
+    clubStatusValue = 'Apex Club ativo';
+    clubHelper = renewalDateText
+      ? `Benefícios garantidos. Última renovação em ${renewalDateText}.`
+      : 'Benefícios garantidos. Aproveite suas vantagens exclusivas.';
+  } else if (concludedAppointments.length > 0) {
+    const remaining = Math.max(1, 3 - concludedRecentCount);
+    const plural = remaining > 1;
+    clubStatusValue = 'Elegível em breve';
+    clubHelper = `Falta${plural ? 'm' : ''} ${remaining} atendimento${plural ? 's' : ''} recente${plural ? 's' : ''} para ativar o Apex Club.`;
+  }
+
+  const cardsMarkup = `
+    <article class="stat-card premium-card">
+      <span class="stat-icon" aria-hidden="true">📆</span>
+      <p class="stat-label">Próxima visita confirmada</p>
+      <p class="stat-value">${escapeHtml(nextValue)}</p>
+      <p class="stat-helper">${escapeHtml(nextHelper)}</p>
+    </article>
+    <article class="stat-card premium-card">
+      <span class="stat-icon" aria-hidden="true">✅</span>
+      <p class="stat-label">Serviços recentes (últimos 6 meses)</p>
+      <p class="stat-value">${escapeHtml(concludedValue)}</p>
+      <p class="stat-helper">${escapeHtml(concludedHelper)}</p>
+    </article>
+    <article class="stat-card premium-card">
+      <span class="stat-icon" aria-hidden="true">🌟</span>
+      <p class="stat-label">Status Apex Club</p>
+      <p class="stat-value">${escapeHtml(clubStatusValue)}</p>
+      <p class="stat-helper">${escapeHtml(clubHelper)}</p>
+    </article>
   `;
+
+  statsDiv.innerHTML = cardsMarkup;
 }
 /**
  * Gets a CSS class based on the appointment status.
