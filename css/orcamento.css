@@ -324,6 +324,67 @@
     color: var(--color-dark-blue);
 }
 
+.saved-address-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.saved-address-row select {
+    flex: 1;
+}
+
+#add-new-address-btn {
+    white-space: nowrap;
+}
+
+.saved-address-actions {
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--color-light-gray);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.saved-address-summary {
+    margin: 0;
+    font-weight: 600;
+    color: var(--color-dark-blue);
+}
+
+.saved-address-links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.saved-address-links a {
+    font-weight: 600;
+    color: var(--color-cyan);
+}
+
+.saved-address-links a:hover {
+    text-decoration: underline;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--color-cyan);
+    cursor: pointer;
+}
+
+.link-button:hover {
+    text-decoration: underline;
+    color: var(--color-dark-blue);
+}
+
 /* --- Action Buttons --- */
 .step-actions {
     display: flex;
