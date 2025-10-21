@@ -158,8 +158,19 @@
                         <section class="step-section hidden" data-step="3">
                             <h2>Etapa 3 – Seleção de serviços</h2>
                             <p class="step-description">Escolha os serviços desejados para seu imóvel. Você poderá revisar tudo na etapa seguinte.</p>
-                            <div id="service-selection" class="service-grid">
-                                <!-- Services loaded dynamically -->
+                            <div id="service-selection" class="service-step-container">
+                                <div class="service-step" data-service-flow-step="groups">
+                                    <h3>Tipo de item</h3>
+                                    <p id="service-group-message" class="step-description">Comece escolhendo qual tipo de peça você deseja higienizar.</p>
+                                    <div id="service-groups" class="service-group-list" role="list"></div>
+                                </div>
+                                <div class="service-step" data-service-flow-step="models">
+                                    <h3>Modelo e quantidade</h3>
+                                    <p id="service-model-message" class="step-description">Depois de escolher o tipo, selecione o modelo que melhor representa o item e ajuste a quantidade.</p>
+                                    <div id="service-models" class="service-model-list" aria-live="polite"></div>
+                                    <div id="service-context-message" class="service-context-message" aria-live="polite"></div>
+                                    <div id="service-help-text" class="service-help-text" aria-live="polite"></div>
+                                </div>
                             </div>
                             <div class="step-actions">
                                 <button class="ghost-button" data-action="prev">Voltar</button>

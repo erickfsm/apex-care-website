@@ -30,6 +30,10 @@ const stepsWrapper = document.querySelector(".steps-wrapper");
 const loginWarning = document.getElementById("login-warning");
 
 const serviceSelectionDiv = document.getElementById("service-selection");
+const serviceGroupsContainer = document.getElementById("service-groups");
+const serviceModelsContainer = document.getElementById("service-models");
+const serviceContextMessage = document.getElementById("service-context-message");
+const serviceHelpText = document.getElementById("service-help-text");
 const summaryItemsDiv = document.getElementById("summary-items");
 const summaryChargesDiv = document.getElementById("summary-charges");
 const distanceInfoDiv = document.getElementById("distance-info");
@@ -136,6 +140,29 @@ let lastPromotionDiscount = 0;
 let lastPromotionInfo = null;
 /** @type {object|null} The user's active subscription plan. */
 let userSubscription = null;
+/** @type {Map<string, Array<object>>} Cached grouping of services by category. */
+let groupedServices = new Map();
+/** @type {Map<number, string>} Maps a service ID to its category label. */
+let serviceCategoryIndex = new Map();
+/** @type {string|null} Tracks the currently selected service category. */
+let selectedServiceCategory = null;
+/** @type {boolean} Flag to avoid re-registering shared listeners. */
+let serviceInputListenerRegistered = false;
+
+const CATEGORY_HELP_TEXTS = {
+  sofa:
+    "Saber o tecido do sofá nos ajuda a ajustar os produtos certos e evitar encolhimento. Indique se é suede, linho, couro, veludo ou outro material.",
+  colchao:
+    "Informe se o colchão possui manchas, tempo de uso e se há capa impermeável. Assim podemos reforçar a higienização antiácaros.",
+  cadeira:
+    "Cadeiras e banquetas podem ter partes fixas ou madeira aparente. Avise se há braços, detalhes delicados ou tecidos diferentes em cada peça.",
+  poltrona:
+    "Poltronas reclináveis, com puff ou mecanismos elétricos exigem cuidados extras. Indique o modelo e acessórios para protegermos tudo.",
+  automotivo:
+    "Para interior automotivo, deixe o veículo ventilado e remova itens pessoais. Se houver couro, citamos produtos específicos no atendimento.",
+  default:
+    "Compartilhe detalhes sobre o material, uso e manchas principais. Quanto mais contexto, mais preciso será o tratamento e o tempo de execução.",
+};
 
 
 /**
@@ -533,6 +560,107 @@ function captureExtremeConditionsState() {
 }
 
 // ============= SERVICE SELECTION =============
+function normalizeCategoryKey(label = "") {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getCategoryLabel(service) {
+  return service?.category || service?.grupo || service?.group || "Outros";
+}
+
+function buildServiceGroups(services = []) {
+  const groups = new Map();
+  serviceCategoryIndex = new Map();
+
+  services.forEach((service) => {
+    const label = getCategoryLabel(service);
+    if (!groups.has(label)) {
+      groups.set(label, []);
+    }
+    groups.get(label).push(service);
+    if (Number.isFinite(service?.id)) {
+      serviceCategoryIndex.set(Number(service.id), label);
+    }
+  });
+
+  return groups;
+}
+
+function getHelpTextForCategory(label = "") {
+  const normalized = normalizeCategoryKey(label);
+  if (CATEGORY_HELP_TEXTS[normalized]) {
+    return CATEGORY_HELP_TEXTS[normalized];
+  }
+  if (normalized.includes("sofa")) {
+    return CATEGORY_HELP_TEXTS.sofa;
+  }
+  if (normalized.includes("colch")) {
+    return CATEGORY_HELP_TEXTS.colchao;
+  }
+  if (normalized.includes("cadeir")) {
+    return CATEGORY_HELP_TEXTS.cadeira;
+  }
+  if (normalized.includes("poltron")) {
+    return CATEGORY_HELP_TEXTS.poltrona;
+  }
+  if (normalized.includes("auto")) {
+    return CATEGORY_HELP_TEXTS.automotivo;
+  }
+  return CATEGORY_HELP_TEXTS.default;
+}
+
+function updateCategoryMessages(categoryLabel = "") {
+  if (serviceContextMessage) {
+    serviceContextMessage.textContent = categoryLabel
+      ? `Você está visualizando modelos de ${categoryLabel.toLowerCase()}. Ajuste a quantidade conforme o número de peças.`
+      : "Selecione um tipo de item para ver os modelos disponíveis.";
+  }
+  if (serviceHelpText) {
+    serviceHelpText.textContent = getHelpTextForCategory(categoryLabel);
+  }
+}
+
+function setActiveCategory(categoryLabel) {
+  if (!groupedServices.size) return;
+  if (!groupedServices.has(categoryLabel)) return;
+
+  selectedServiceCategory = categoryLabel;
+
+  if (serviceGroupsContainer) {
+    serviceGroupsContainer
+      .querySelectorAll("button[data-category]")
+      .forEach((button) => {
+        const isActive = button.dataset.category === categoryLabel;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+  }
+
+  if (serviceModelsContainer) {
+    serviceModelsContainer
+      .querySelectorAll("[data-category-group]")
+      .forEach((group) => {
+        const isActive = group.dataset.categoryGroup === categoryLabel;
+        group.classList.toggle("hidden", !isActive);
+      });
+  }
+
+  updateCategoryMessages(categoryLabel);
+}
+
+function getSelectionsToApply() {
+  if (pendingServiceSelection && pendingServiceSelection.length) {
+    return pendingServiceSelection;
+  }
+  if (Array.isArray(stepData.services) && stepData.services.length) {
+    return stepData.services;
+  }
+  return [];
+}
+
 /**
  * Gets the currently selected services and their quantities.
  * @returns {Array<object>} An array of selected service objects.
@@ -578,33 +706,92 @@ function getSelectedServices() {
  * Renders the list of available services in the DOM.
  */
 function renderServices() {
-  if (!serviceSelectionDiv) return;
+  if (!serviceSelectionDiv || !serviceGroupsContainer || !serviceModelsContainer)
+    return;
 
-  serviceSelectionDiv.innerHTML = "";
+  serviceGroupsContainer.innerHTML = "";
+  serviceModelsContainer.innerHTML = "";
+  if (serviceContextMessage) serviceContextMessage.textContent = "";
+  if (serviceHelpText) serviceHelpText.textContent = "";
 
   if (!priceTable.length) {
-    serviceSelectionDiv.innerHTML =
+    serviceGroupsContainer.innerHTML =
       "<p>Não encontramos serviços disponíveis no momento.</p>";
     updateSummary();
     return;
   }
 
-  priceTable.forEach((service) => {
-    const minQuantity = service.min_quantity || 1;
-    const quantityInputHTML =
-      service.type === "quantity"
-        ? `
+  groupedServices = buildServiceGroups(priceTable);
+  const categories = Array.from(groupedServices.keys());
+
+  if (!categories.length) {
+    serviceGroupsContainer.innerHTML =
+      "<p>Não encontramos serviços disponíveis no momento.</p>";
+    updateSummary();
+    return;
+  }
+
+  const selections = getSelectionsToApply();
+  const selectionCategory = selections.reduce((found, selection) => {
+    if (found) return found;
+    return serviceCategoryIndex.get(Number(selection.id)) || null;
+  }, null);
+
+  if (selectionCategory) {
+    selectedServiceCategory = selectionCategory;
+  } else if (!selectedServiceCategory || !groupedServices.has(selectedServiceCategory)) {
+    selectedServiceCategory = categories[0];
+  }
+
+  categories.forEach((category) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "service-group-button";
+    if (category === selectedServiceCategory) {
+      button.classList.add("active");
+    }
+    button.dataset.category = category;
+    button.textContent = category;
+    button.setAttribute(
+      "aria-pressed",
+      category === selectedServiceCategory ? "true" : "false"
+    );
+    button.addEventListener("click", () => {
+      if (selectedServiceCategory === category) return;
+      setActiveCategory(category);
+    });
+    serviceGroupsContainer.appendChild(button);
+  });
+
+  categories.forEach((category) => {
+    const groupWrapper = document.createElement("div");
+    groupWrapper.className = "service-model-group";
+    groupWrapper.dataset.categoryGroup = category;
+    if (category !== selectedServiceCategory) {
+      groupWrapper.classList.add("hidden");
+    }
+
+    const services = groupedServices.get(category) || [];
+    if (!services.length) {
+      groupWrapper.innerHTML =
+        "<p>Modelos indisponíveis para esta categoria.</p>";
+    } else {
+      services.forEach((service) => {
+        const minQuantity = service.min_quantity || 1;
+        const quantityInputHTML =
+          service.type === "quantity"
+            ? `
                 <div class="service-quantity">
                     <input type="number" class="quantity-input" min="${minQuantity}" value="${minQuantity}" data-service-id="${
-            service.id
-          }" disabled>
+                service.id
+              }" disabled>
                     <span>${service.unit || ""}</span>
                 </div>
             `
-        : "";
+            : "";
 
-    const serviceHTML = `
-            <div class="service-item">
+        const serviceHTML = `
+            <div class="service-item" data-category="${category}">
                 <input type="checkbox" id="service-${
                   service.id
                 }" data-service-id="${service.id}">
@@ -619,16 +806,27 @@ function renderServices() {
                 ${quantityInputHTML}
             </div>
         `;
-    serviceSelectionDiv.insertAdjacentHTML("beforeend", serviceHTML);
+        groupWrapper.insertAdjacentHTML("beforeend", serviceHTML);
+      });
+    }
+
+    serviceModelsContainer.appendChild(groupWrapper);
   });
 
   attachServiceListeners();
   applyPendingServiceSelection();
+  setActiveCategory(selectedServiceCategory);
   updateSummary();
 }
 /**
  * Attaches event listeners to the service selection inputs.
  */
+function handleServiceQuantityInput(event) {
+  if (event.target.classList?.contains("quantity-input")) {
+    updateSummary();
+  }
+}
+
 function attachServiceListeners() {
   if (!serviceSelectionDiv) return;
 
@@ -651,20 +849,21 @@ function attachServiceListeners() {
       });
     });
 
-  serviceSelectionDiv.addEventListener("input", (event) => {
-    if (event.target.classList?.contains("quantity-input")) {
-      updateSummary();
-    }
-  });
+  if (!serviceInputListenerRegistered) {
+    serviceSelectionDiv.addEventListener("input", handleServiceQuantityInput);
+    serviceInputListenerRegistered = true;
+  }
 }
 /**
  * Applies pending service selections from the resume state.
  */
 function applyPendingServiceSelection() {
-  if (!pendingServiceSelection || !pendingServiceSelection.length) return;
   if (!serviceSelectionDiv) return;
 
-  pendingServiceSelection.forEach((serviceState) => {
+  const selectionsToApply = getSelectionsToApply();
+  if (!selectionsToApply.length) return;
+
+  selectionsToApply.forEach((serviceState) => {
     const checkbox = serviceSelectionDiv.querySelector(
       `input[type="checkbox"][data-service-id="${serviceState.id}"]`
     );
@@ -1372,7 +1571,21 @@ async function ensureCustomerAccount() {
 async function loadServices() {
   if (!serviceSelectionDiv) return;
 
-  serviceSelectionDiv.innerHTML = "<p>Carregando serviços...</p>";
+  if (serviceGroupsContainer) {
+    serviceGroupsContainer.innerHTML = "<p>Carregando serviços...</p>";
+  } else {
+    serviceSelectionDiv.innerHTML = "<p>Carregando serviços...</p>";
+  }
+  if (serviceModelsContainer) {
+    serviceModelsContainer.innerHTML = "";
+  }
+  if (serviceContextMessage) {
+    serviceContextMessage.textContent =
+      "Estamos buscando os modelos disponíveis para cada categoria.";
+  }
+  if (serviceHelpText) {
+    serviceHelpText.textContent = "";
+  }
 
   const { data: services, error } = await supabase
     .from("servicos")
@@ -1382,12 +1595,25 @@ async function loadServices() {
 
   if (error) {
     console.error("Erro ao carregar serviços:", error);
-    serviceSelectionDiv.innerHTML =
-      "<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>";
+    if (serviceGroupsContainer) {
+      serviceGroupsContainer.innerHTML =
+        "<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>";
+    } else {
+      serviceSelectionDiv.innerHTML =
+        "<p>Erro ao carregar os serviços. Tente novamente mais tarde.</p>";
+    }
+    if (serviceModelsContainer) {
+      serviceModelsContainer.innerHTML = "";
+    }
+    if (serviceContextMessage) {
+      serviceContextMessage.textContent =
+        "Não foi possível carregar os modelos agora. Atualize a página ou tente novamente em instantes.";
+    }
     return;
   }
 
   priceTable = services || [];
+  selectedServiceCategory = null;
   renderServices();
 }
 /**
