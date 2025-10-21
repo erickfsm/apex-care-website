@@ -19,6 +19,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 /** @type {Array<object>} A list of all appointments for the current user. */
 let allAppointments = [];
+/** @type {number} The current loyalty points balance for the user. */
+let loyaltyPoints = 0;
 
 // --- DOM ELEMENT REFERENCES ---
 const userNameSpan = document.getElementById('user-name');
@@ -120,6 +122,26 @@ function setButtonLoadingState(button, isLoading) {
 function formatCurrency(value) {
   return `R$ ${(Number(value) || 0).toFixed(2).replace('.', ',')}`;
 }
+
+/**
+ * Formats the loyalty points using Brazilian number formatting.
+ * @param {number} value - The number of loyalty points to format.
+ * @returns {string} The formatted points string.
+ */
+function formatLoyaltyPoints(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return '0';
+  }
+
+  const hasDecimals = Math.abs(numericValue % 1) > 0;
+
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: hasDecimals ? 2 : 0,
+  }).format(Math.max(numericValue, 0));
+}
 /**
  * Escapes HTML special characters in a string.
  * @param {*} value - The value to escape.
@@ -183,13 +205,15 @@ async function loadPortalData({ skipLoading = false } = {}) {
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('nome_completo')
+      .select('nome_completo, pontos_fidelidade')
       .eq('id', currentUser.id)
       .single();
 
     if (profile?.nome_completo && userNameSpan) {
       userNameSpan.textContent = profile.nome_completo.split(' ')[0];
     }
+
+    loyaltyPoints = Number(profile?.pontos_fidelidade) || 0;
 
     const { data: appointments, error } = await supabase
       .from('agendamentos')
@@ -487,7 +511,10 @@ function updateStats() {
     .filter((appt) => {
       if (!appt.data_agendamento) return false;
       const apptDate = new Date(`${appt.data_agendamento}T00:00:00`);
-      return apptDate >= new Date().setHours(0, 0, 0, 0) && !['Cancelado', 'Concluído'].includes(appt.status_pagamento);
+      return (
+        apptDate >= new Date().setHours(0, 0, 0, 0) &&
+        !['Cancelado', 'Concluído'].includes(appt.status_pagamento)
+      );
     })
     .sort((a, b) => new Date(a.data_agendamento) - new Date(b.data_agendamento))[0];
 
@@ -496,17 +523,27 @@ function updateStats() {
     : 'Nenhum';
 
   statsDiv.innerHTML = `
-    <div class="stat-card">
-      <h4>Serviços concluídos</h4>
-      <p>${totalAppointments}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Valor investido</h4>
-      <p>${formatCurrency(totalSpent)}</p>
-    </div>
-    <div class="stat-card">
-      <h4>Próximo agendamento</h4>
-      <p>${nextDate}</p>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🎁</div>
+        <div class="stat-value">${formatLoyaltyPoints(loyaltyPoints)} pts</div>
+        <div class="stat-label">Pontos de fidelidade disponíveis</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value">${totalAppointments}</div>
+        <div class="stat-label">Serviços concluídos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">${formatCurrency(totalSpent)}</div>
+        <div class="stat-label">Valor investido com a Apex Care</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value">${nextDate}</div>
+        <div class="stat-label">Próximo agendamento</div>
+      </div>
     </div>
   `;
 }
