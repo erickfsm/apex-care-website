@@ -23,6 +23,7 @@
             </a>
             <ul>
                 <li><a href="index.html">Voltar ao Site</a></li>
+                <li><a href="promocoes.html">Promoções</a></li>
             </ul>
             <div id="auth-container-header" class="auth-container-header"></div>
         </nav>
@@ -39,6 +40,21 @@
 
             <!-- Statistics Dashboard -->
             <div id="stats-container"></div>
+
+            <!-- Active Promotions Snapshot -->
+            <section class="portal-promocoes">
+                <div class="portal-promocoes-header">
+                    <div>
+                        <span class="portal-promocoes-pill">Benefícios ativos</span>
+                        <h2>Promoções prontas para você aproveitar</h2>
+                        <p>Atualizamos automaticamente as condições válidas para garantir economia em seu próximo agendamento.</p>
+                    </div>
+                    <a href="promocoes.html" class="portal-promocoes-link">Ver página de promoções</a>
+                </div>
+                <div class="portal-promocoes-list" data-promocoes-list data-promocoes-layout="compact">
+                    <p class="promocoes-empty">Carregando promoções especiais...</p>
+                </div>
+            </section>
 
             <!-- Navigation Tabs -->
             <div class="section-tabs">
@@ -306,6 +322,7 @@
                     <li><a href="index.html#metodo">O Método</a></li>
                     <li><a href="index.html#planos">Planos</a></li>
                     <li><a href="index.html#sobre">Sobre</a></li>
+                    <li><a href="promocoes.html">Promoções</a></li>
                 </ul>
             </div>
             <div class="footer-col">
@@ -330,6 +347,8 @@
     </div>
 
     <!-- Scripts -->
+    <script type="module" src="js/promocoes-manager.js"></script>
+    <script type="module" src="js/promocoes-exibicao.js"></script>
     <script type="module" src="js/shared-improved.js"></script>
     <script type="module" src="js/portal-improved.js"></script>
     <script type="module" src="js/main.js"></script>
