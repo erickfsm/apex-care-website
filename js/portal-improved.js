@@ -29,8 +29,147 @@ const logoutBtn = document.getElementById('logout-btn');
 const portalToast = document.getElementById('portal-status-toast');
 const portalToastMessage = portalToast?.querySelector('.toast-message');
 const portalToastIcon = portalToast?.querySelector('.toast-icon');
+const infoAccordionContainer = document.getElementById('info-sections');
 /** @type {number|null} Timeout ID for the portal toast. */
 let toastTimeoutId = null;
+
+// --- PORTAL CONTENT DATA ---
+const postServiceGuides = [
+  {
+    title: 'Primeiras 24 horas',
+    icon: '⏱️',
+    items: [
+      'Evite usar o estofado por até 6 horas após o serviço',
+      'Garanta circulação de ar para acelerar a secagem',
+      'Não coloque objetos ou pesos sobre a superfície',
+      'Mantenha distância de roupas ou tecidos úmidos',
+    ],
+  },
+  {
+    title: 'Manutenção semanal',
+    icon: '🧹',
+    items: [
+      'Aspire com escova macia 1 a 2 vezes por semana',
+      'Vire almofadas para distribuir o desgaste',
+      'Remova migalhas e poeira assim que notar',
+      'Bata as almofadas para manter o volume',
+    ],
+  },
+  {
+    title: 'Proteção diária',
+    icon: '🛡️',
+    items: [
+      'Use mantas ou protetores em casas com pets e crianças',
+      'Evite exposição direta ao sol para não desbotar',
+      'Aja rápido com líquidos, pressionando com papel toalha',
+      'Limpe manchas de fora para dentro, sem esfregar',
+    ],
+  },
+];
+
+const emergencyGuide = {
+  title: 'Socorro rápido para líquidos',
+  icon: '🚨',
+  steps: [
+    'Pressione com papel absorvente sem esfregar',
+    'Utilize água fria e limpa, evitando água quente',
+    'Repita até retirar o excesso de líquido',
+    'Chame a equipe Apex Care se a mancha persistir',
+  ],
+  cta: {
+    label: 'Falar com o suporte emergencial',
+    href: 'https://wa.me/55SEUDDDSEUNUMERO',
+  },
+};
+
+const hygieneFacts = [
+  {
+    value: '10x',
+    title: 'Redução de ácaros',
+    description: 'Um colchão pode abrigar até 10 milhões de ácaros. Higienização técnica reduz até 99% desses microrganismos.',
+  },
+  {
+    value: '2-3 anos',
+    title: 'Vida útil estendida',
+    description: 'A manutenção periódica aumenta a durabilidade média de estofados entre dois e três anos.',
+  },
+  {
+    value: '70%',
+    title: 'Menos alergias',
+    description: 'Clientes relatam até 70% de redução de sintomas respiratórios após limpezas regulares.',
+  },
+  {
+    value: 'R$ 5.000+',
+    title: 'Economia real',
+    description: 'Cuidados preventivos evitam gastos elevados com substituições prematuras de móveis.',
+  },
+];
+
+const comboPackages = [
+  {
+    icon: '🛋️',
+    name: 'Combo sala completa',
+    description: 'Sofá + tapete + poltronas',
+    savings: 'Economize até R$ 120',
+    benefits: ['Higienização completa', 'Impermeabilização básica', 'Fragrância especial'],
+  },
+  {
+    icon: '🛏️',
+    name: 'Combo dormitório',
+    description: 'Colchão + travesseiros + carpete',
+    savings: 'Economize até R$ 95',
+    benefits: ['Tratamento antiácaro', 'Desinfecção profunda', 'Aromatização relaxante'],
+  },
+  {
+    icon: '🪑',
+    name: 'Combo jantar',
+    description: '6 cadeiras estofadas',
+    savings: 'Leve 6, pague 5',
+    benefits: ['Limpeza técnica', 'Proteção contra manchas', 'Realce das cores'],
+  },
+  {
+    icon: '🏠',
+    name: 'Combo casa inteira',
+    description: 'Todos os ambientes',
+    savings: 'Economize até R$ 350',
+    benefits: ['Higienização geral', 'Impermeabilização premium', 'Manutenção trimestral', 'Atendimento prioritário'],
+    featured: true,
+  },
+];
+
+const supportChannels = [
+  {
+    icon: '💬',
+    label: 'WhatsApp',
+    value: '(31) XXXXX-XXXX',
+    action: 'Iniciar conversa',
+    href: 'https://wa.me/55SEUDDDSEUNUMERO',
+    description: 'Resposta em minutos durante o horário comercial.',
+  },
+  {
+    icon: '✉️',
+    label: 'E-mail',
+    value: 'contato@apexcare.com.br',
+    action: 'Enviar mensagem',
+    href: 'mailto:contato@apexcare.com.br',
+    description: 'Suporte detalhado para dúvidas e orçamentos.',
+  },
+  {
+    icon: '📸',
+    label: 'Instagram',
+    value: '@apex.higienizacao',
+    action: 'Seguir perfil',
+    href: 'https://instagram.com/apex.higienizacao',
+    description: 'Acompanhe bastidores, resultados e promoções.',
+  },
+  {
+    icon: '🕒',
+    label: 'Horários de atendimento',
+    value: 'Segunda a sexta: 8h às 18h',
+    extra: 'Sábados: 8h às 12h',
+    description: 'Nossa equipe está pronta para ajudar dentro desses períodos.',
+  },
+];
 
 // --- INITIALIZATION ---
 if (portalToast) {
@@ -134,6 +273,214 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function createAccordionItem({ id, icon, title, subtitle, content }) {
+  return `
+    <details class="info-accordion-item" data-section="${escapeHtml(id)}">
+      <summary class="info-summary">
+        <span class="info-icon" aria-hidden="true">${escapeHtml(icon)}</span>
+        <span class="info-text">
+          <span class="info-title">${escapeHtml(title)}</span>
+          ${subtitle ? `<span class="info-subtitle">${escapeHtml(subtitle)}</span>` : ''}
+        </span>
+        <span class="info-toggle" aria-hidden="true"></span>
+      </summary>
+      <div class="info-content">
+        ${content}
+      </div>
+    </details>
+  `;
+}
+
+function createCareSection() {
+  const guides = postServiceGuides
+    .map(
+      (guide) => `
+        <article class="info-card">
+          <header class="info-card-header">
+            <span class="info-card-icon" aria-hidden="true">${escapeHtml(guide.icon)}</span>
+            <h3>${escapeHtml(guide.title)}</h3>
+          </header>
+          <ul class="info-card-list">
+            ${guide.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+          </ul>
+        </article>
+      `
+    )
+    .join('');
+
+  const emergency = `
+    <article class="info-card info-card-highlight">
+      <header class="info-card-header">
+        <span class="info-card-icon" aria-hidden="true">${escapeHtml(emergencyGuide.icon)}</span>
+        <h3>${escapeHtml(emergencyGuide.title)}</h3>
+      </header>
+      <ol class="info-card-steps">
+        ${emergencyGuide.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}
+      </ol>
+      <a class="info-card-cta" href="${escapeHtml(emergencyGuide.cta.href)}" target="_blank" rel="noopener noreferrer">
+        ${escapeHtml(emergencyGuide.cta.label)}
+      </a>
+    </article>
+  `;
+
+  return createAccordionItem({
+    id: 'care',
+    icon: '🧺',
+    title: 'Cuidados pós-serviço',
+    subtitle: 'Preserve os resultados conquistados',
+    content: `<div class="info-card-grid">${guides}${emergency}</div>`,
+  });
+}
+
+function createFactsSection() {
+  const facts = hygieneFacts
+    .map(
+      (fact) => `
+        <article class="info-fact">
+          <span class="info-fact-value">${escapeHtml(fact.value)}</span>
+          <div class="info-fact-text">
+            <h3>${escapeHtml(fact.title)}</h3>
+            <p>${escapeHtml(fact.description)}</p>
+          </div>
+        </article>
+      `
+    )
+    .join('');
+
+  return createAccordionItem({
+    id: 'facts',
+    icon: '💡',
+    title: 'Curiosidades sobre higienização',
+    subtitle: 'Dados rápidos para ajudar nas decisões',
+    content: `<div class="info-facts">${facts}</div>`,
+  });
+}
+
+function createPlansSection() {
+  const content = `
+    <p class="info-description">Compare planos com valores atualizados automaticamente pelo time Apex Care.</p>
+    <div class="plans-comparison" data-portal-pricing>
+      <noscript>
+        <p class="info-noscript">Ative o JavaScript para visualizar a comparação de planos.</p>
+      </noscript>
+    </div>
+    <div class="plans-cta">
+      <a href="orcamento.html" class="btn-cta-large">
+        🎯 Contratar plano agora
+      </a>
+      <p class="cta-subtitle">Cancele quando quiser. Sem taxas escondidas.</p>
+    </div>
+  `;
+
+  return createAccordionItem({
+    id: 'plans',
+    icon: '🎯',
+    title: 'Planos de cuidado contínuo',
+    subtitle: 'Economize até 25% em serviços recorrentes',
+    content,
+  });
+}
+
+function createPackagesSection() {
+  const packages = comboPackages
+    .map((combo) => {
+      const badge = combo.featured ? '<span class="info-package-badge">Mais vendido</span>' : '';
+      return `
+        <article class="info-package-card${combo.featured ? ' is-featured' : ''}">
+          ${badge}
+          <span class="info-package-icon" aria-hidden="true">${escapeHtml(combo.icon)}</span>
+          <h3>${escapeHtml(combo.name)}</h3>
+          <p class="info-package-description">${escapeHtml(combo.description)}</p>
+          <span class="info-package-savings">${escapeHtml(combo.savings)}</span>
+          <ul class="info-package-benefits">
+            ${combo.benefits.map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join('')}
+          </ul>
+        </article>
+      `;
+    })
+    .join('');
+
+  return createAccordionItem({
+    id: 'packages',
+    icon: '📦',
+    title: 'Combos favoritos dos clientes',
+    subtitle: 'Combine serviços e aumente sua economia',
+    content: `<div class="info-packages">${packages}</div>`,
+  });
+}
+
+function createSupportSection() {
+  const channels = supportChannels
+    .map((channel) => {
+      const hasExternalTarget = typeof channel.href === 'string' && channel.href.startsWith('http');
+      const action = channel.action && channel.href
+        ? `<a class="info-support-action" href="${escapeHtml(channel.href)}"${
+            hasExternalTarget ? ' target="_blank" rel="noopener noreferrer"' : ''
+          }>${escapeHtml(channel.action)}</a>`
+        : '';
+      const value = channel.value ? `<p class="info-support-value">${escapeHtml(channel.value)}</p>` : '';
+      const extra = channel.extra ? `<p class="info-support-extra">${escapeHtml(channel.extra)}</p>` : '';
+      const description = channel.description
+        ? `<p class="info-support-description">${escapeHtml(channel.description)}</p>`
+        : '';
+
+      return `
+        <article class="info-support-card">
+          <div class="info-support-main">
+            <span class="info-support-icon" aria-hidden="true">${escapeHtml(channel.icon)}</span>
+            <div class="info-support-text">
+              <h3>${escapeHtml(channel.label)}</h3>
+              ${value}
+              ${extra}
+              ${description}
+            </div>
+          </div>
+          ${action ? `<div class="info-support-actions">${action}</div>` : ''}
+        </article>
+      `;
+    })
+    .join('');
+
+  return createAccordionItem({
+    id: 'support',
+    icon: '🤝',
+    title: 'Canais de suporte e contato',
+    subtitle: 'Fale com a equipe Apex Care quando precisar',
+    content: `<div class="info-support-grid">${channels}</div>`,
+  });
+}
+
+function renderInfoSections() {
+  if (!infoAccordionContainer) return;
+
+  const sections = [
+    createCareSection(),
+    createFactsSection(),
+    createPlansSection(),
+    createPackagesSection(),
+    createSupportSection(),
+  ];
+
+  infoAccordionContainer.innerHTML = sections.join('');
+
+  const detailItems = infoAccordionContainer.querySelectorAll('.info-accordion-item');
+  detailItems.forEach((item, index) => {
+    if (index === 0) {
+      item.setAttribute('open', '');
+      item.classList.add('is-open');
+    }
+    item.addEventListener('toggle', () => {
+      if (item.open) {
+        item.classList.add('is-open');
+      } else {
+        item.classList.remove('is-open');
+      }
+    });
+  });
+
+  renderPortalPlanComparison();
 }
 /**
  * Initializes the client portal, authenticates the user, and loads data.
@@ -588,5 +935,5 @@ window.rebookAppointment = function rebookAppointment(servicesData) {
 };
 
 // --- RENDER INITIAL COMPONENTS ---
-renderPortalPlanComparison();
+renderInfoSections();
 initPortal();
